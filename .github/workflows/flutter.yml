@@ -1,0 +1,29 @@
+name: Flutter CI
+
+on:
+  push:
+    paths:
+      - 'flutter_app/**'
+  pull_request:
+    paths:
+      - 'flutter_app/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.3'
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: flutter_app
+
+      - name: Analyze project
+        run: flutter analyze
+        working-directory: flutter_app
