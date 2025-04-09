@@ -53,12 +53,11 @@ dados_filtrados = []
 # Para cada perfil, verifica quais hipóteses tiveram média ≥ 3 e adiciona no resultado
 for perfil, linha in medias_por_perfil.iterrows():
     for hipotese, media in linha.items():
-        if media >= 3.0:
-            dados_filtrados.append({
-                "Perfil": perfil,
-                "Hipótese": hipotese,
-                "Média da Nota": round(media, 2)
-            })
+        dados_filtrados.append({
+            "Perfil": perfil,
+            "Hipótese": hipotese,
+            "Média da Nota": round(media, 2)
+        })
 
 # Converte para DataFrame
 resultado = pd.DataFrame(dados_filtrados)
