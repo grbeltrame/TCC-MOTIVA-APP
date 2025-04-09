@@ -1,3 +1,6 @@
+# Queremos entender quem é de fato o publico alvo do app. Não nos ajuda muito para comparar preferencias,
+# mas ajuda a definir uma persona mais complexa para estudo
+
 # Importação das bibliotecas necessárias
 import pandas as pd               # Para leitura e manipulação dos dados da planilha
 import matplotlib.pyplot as plt   # Para visualização gráfica
