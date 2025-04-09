@@ -38,6 +38,10 @@ colunas_likert = [
     "Ter acesso a serviços de profissionais como nutricionistas e fisioterapeutas dentro do aplicativo me interessa."
 ]
 
+# Garantindo que não haja valores ausentes (NaN) nas colunas usadas.
+df = df.dropna(subset=colunas_likert)
+
+
 # Aqui eu calculo a média de todas as respostas para cada afirmação
 # O resultado será um ranking com valores entre 1 (discordo fortemente) e 5 (concordo fortemente)
 medias = df[colunas_likert].mean()
@@ -84,4 +88,67 @@ plt.tight_layout()
 plt.savefig("scripts_gerais/grafico_likert.png", dpi=300)
 
 # Mostra o gráfico na tela
+plt.show()
+
+# ---------------------- GRÁFICO DE BARRAS EMPILHADAS COM TODAS AS PORCENTAGENS ----------------------
+
+# Crio um DataFrame apenas com as colunas de Likert
+df_likert = df[colunas_likert]
+
+# Removo respostas incompletas
+df_likert = df_likert.dropna(how='any')
+
+# Calcula a distribuição percentual de cada nota (1 a 5) por hipótese
+frequencias = df_likert.apply(lambda col: col.value_counts(normalize=True).reindex([1,2,3,4,5], fill_value=0) * 100)
+
+# Transponho para que cada linha seja uma hipótese, e colunas sejam as notas 1-5
+frequencias = frequencias.T
+
+# Preparo rótulos quebrados para melhorar legibilidade
+rotulos_quebrados = [
+    textwrap.fill(texto, width=65, break_long_words=False) for texto in frequencias.index
+]
+
+# Configurações do gráfico
+plt.figure(figsize=(11, 12))
+cores = ['#E74C3C', '#F39C12', '#F1C40F', '#2ECC71', '#27AE60']  # Vermelho → Verde
+valores_acumulados = [0] * len(frequencias)
+
+# Criação das barras empilhadas
+for i, nota in enumerate([1, 2, 3, 4, 5]):
+    barras = plt.barh(
+        y=range(len(frequencias)),
+        width=frequencias[nota],
+        left=valores_acumulados,
+        label=f"{nota} - {['Discordo Fortemente','Discordo','Neutro','Concordo','Concordo Fortemente'][i]}",
+        color=cores[i]
+    )
+    
+    # Mostra a % dentro de todas as barras (independente do tamanho)
+    for j, bar in enumerate(barras):
+        valor = frequencias.iloc[j, i]
+        if valor > 0:
+            plt.text(
+                x=valores_acumulados[j] + valor / 2,
+                y=j,
+                s=f"{valor:.0f}%",
+                va='center',
+                ha='center',
+                fontsize=8,
+                color='white'
+            )
+    
+    # Atualiza os valores acumulados para empilhar corretamente
+    valores_acumulados = [a + b for a, b in zip(valores_acumulados, frequencias[nota])]
+
+# Eixos e título
+plt.yticks(range(len(rotulos_quebrados)), rotulos_quebrados, fontsize=8)
+plt.xlabel("Porcentagem das Respostas")
+plt.title("Distribuição Percentual das Respostas (Escala de Likert)", fontsize=14)
+plt.legend(title="Nota", loc='lower right')
+plt.xlim(0, 100)
+plt.tight_layout(rect=[0, 0, 1, 0.98])
+
+# Salva o gráfico novo
+plt.savefig("scripts_gerais/grafico_likert_percentual.png", dpi=300, bbox_inches='tight')
 plt.show()
