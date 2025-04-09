@@ -36,6 +36,9 @@ ordem_idades = [
     "Mais de 50 anos"
 ]
 
+# Garantindo que não haja valores ausentes (NaN) nas colunas usadas.
+df = df.dropna(subset=[coluna_idade] + hipoteses_prioritarias)
+
 # Etapa 5: Agrupamento por faixa etária e cálculo da média das respostas
 medias_por_idade = df.groupby(coluna_idade)[hipoteses_prioritarias].mean()
 medias_por_idade = medias_por_idade.reindex(ordem_idades)

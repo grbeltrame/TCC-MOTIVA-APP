@@ -14,6 +14,11 @@ df = pd.read_csv(arquivo)
 coluna_idade = 'Qual sua faixa de idade?'
 coluna_tempo = 'Há quanto tempo você treina crossfit?'
 
+
+# Garantindo que não haja valores ausentes (NaN) nas colunas usadas.
+df = df.dropna(subset=[coluna_idade, coluna_tempo])
+
+
 # Crio uma tabela de contingência com as combinações entre faixa etária e tempo de prática
 # Cada célula da tabela representa o número de pessoas com aquele perfil específico
 tabela_perfis = pd.crosstab(df[coluna_idade], df[coluna_tempo])

@@ -31,6 +31,9 @@ hipoteses_prioritarias = [
     "Ter acesso a serviços de profissionais como nutricionistas e fisioterapeutas dentro do aplicativo me interessa."
 ]
 
+# Garantindo que não haja valores ausentes (NaN) nas colunas usadas.
+df = df.dropna(subset=[coluna_cargo] + hipoteses_prioritarias)
+
 # Etapa 4: Crio um novo DataFrame contendo apenas a coluna de cargo e as hipóteses
 df_filtrado = df[[coluna_cargo] + hipoteses_prioritarias]
 
