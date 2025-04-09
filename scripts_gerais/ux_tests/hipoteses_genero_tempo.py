@@ -69,7 +69,7 @@ os.makedirs("scripts_gerais/ux_tests", exist_ok=True)
 resultado.to_csv("scripts_gerais/ux_tests/hipoteses_por_genero_tempo.csv", index=False)
 
 # Exibe um preview no terminal
-print("Análise concluída. Hipóteses mais bem avaliadas por perfil (média ≥ 3):")
+print("Análise concluída. Hipóteses mais bem avaliadas por perfil:")
 print(resultado.head(10))
 
 

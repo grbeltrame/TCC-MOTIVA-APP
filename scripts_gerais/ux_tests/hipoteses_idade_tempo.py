@@ -39,13 +39,12 @@ colunas_likert = [
 df = df.dropna(subset=["Qual seu gênero", "Há quanto tempo você treina crossfit?"] + colunas_likert)
 
 # Cria uma nova coluna combinando Gênero + Tempo de prática
-df["Perfil Genero x Idade"] = (
-    df["Qual seu gênero"].astype(str) + " | " +
-    df["Qual sua faixa de idade?"].astype(str)
-)
+df["Perfil Idade x Tempo"] = (
+    df["Qual sua faixa de idade?"].astype(str) + " | " +
+    df["Há quanto tempo você treina crossfit?"].astype(str))
 
 # Agrupa os dados por esse perfil combinado e calcula a média das notas para cada hipótese
-medias_por_perfil = df.groupby("Perfil Genero x Idade")[colunas_likert].mean()
+medias_por_perfil = df.groupby("Perfil Idade x Tempo")[colunas_likert].mean()
 
 # Cria uma estrutura para guardar os resultados em formato plano
 dados_filtrados = []
@@ -66,7 +65,7 @@ resultado = pd.DataFrame(dados_filtrados)
 os.makedirs("scripts_gerais/ux_tests", exist_ok=True)
 
 # Salva o resultado em um CSV para análise posterior ou uso no TCC
-resultado.to_csv("scripts_gerais/ux_tests/hipoteses_por_genero_idade.csv", index=False)
+resultado.to_csv("scripts_gerais/ux_tests/hipoteses_por_idade_tempo.csv", index=False)
 
 # Exibe um preview no terminal
 print("Análise concluída. Hipóteses mais bem avaliadas por perfil:")
@@ -96,22 +95,22 @@ sns.heatmap(
     tabela,
     annot=True,
     fmt=".2f",
-    cmap="BuPu",
+    cmap="Blues",
     linewidths=0.5,
     linecolor='gray',
     cbar_kws={"label": "Média da Nota"}
 )
 
 # Título e eixos
-plt.title("Média das Respostas por Hipótese\n(Distribuição por Gênero + Idade)", fontsize=13, pad=20)
-plt.xlabel("Perfil (Gênero + Idade)")
+plt.title("Média das Respostas por Hipótese\n(Distribuição por Idade + Tempo)", fontsize=13, pad=20)
+plt.xlabel("Perfil (Idade + Tempo)")
 plt.ylabel("Hipóteses (Escala de Likert)")
 
 # Ajustes finais
 plt.tight_layout()
 
 # Salva o gráfico
-plt.savefig("scripts_gerais/ux_tests/heatmap_hipoteses_genero_idade.png", dpi=300, bbox_inches='tight')
+plt.savefig("scripts_gerais/ux_tests/heatmap_hipoteses_idade_tempo.png", dpi=300, bbox_inches='tight')
 
 # Exibe o gráfico na tela
 plt.show()
