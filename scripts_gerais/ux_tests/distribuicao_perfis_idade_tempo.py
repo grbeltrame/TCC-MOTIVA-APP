@@ -1,3 +1,8 @@
+# Com essa analise estamos buscando perfis levando em conta idade e tempo de pratica no esporte.
+# Queremos entender os perfis que temos para avaliar de forma mais efetiva a percepção de valor
+# das funcionlaidades do app considerando maturidade fisica e experiencia, e avaliar se temos muita
+# discrepancia ou mais concordancia entre diferentes perfis.
+
 # Importo as bibliotecas necessárias
 import pandas as pd               # Para leitura e manipulação dos dados
 import seaborn as sns             # Para criar o gráfico de calor (heatmap)
