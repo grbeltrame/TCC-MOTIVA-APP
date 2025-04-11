@@ -44,8 +44,17 @@ df["Perfil Genero x Tempo"] = (
     df["Há quanto tempo você treina crossfit?"].astype(str)
 )
 
-# Agrupa os dados por esse perfil combinado e calcula a média das notas para cada hipótese
-medias_por_perfil = df.groupby("Perfil Genero x Tempo")[colunas_likert].mean()
+# Conta o número de respondentes por perfil
+contagem_perfis = df["Perfil Genero x Tempo"].value_counts()
+
+# Filtra apenas os perfis com 12 ou mais respondentes
+perfis_filtrados = contagem_perfis[contagem_perfis >= 12].index.tolist()
+
+# Filtra o DataFrame com apenas os perfis de interesse
+df_filtrado = df[df["Perfil Genero x Tempo"].isin(perfis_filtrados)]
+
+# Agrupa os dados e calcula a média das hipóteses
+medias_por_perfil = df_filtrado.groupby("Perfil Genero x Tempo")[colunas_likert].mean()
 
 # Cria uma estrutura para guardar os resultados em formato plano
 dados_filtrados = []
@@ -103,7 +112,7 @@ sns.heatmap(
 )
 
 # Título e eixos
-plt.title("Média das Respostas por Hipótese\n(Distribuição por Gênero + Tempo de Prática)", fontsize=13, pad=20)
+plt.title("Média das Respostas por Hipótese\n(Perfis com ≥ 12 respondentes | Gênero + Tempo de Prática)", fontsize=13, pad=20)
 plt.xlabel("Perfil (Gênero + Tempo)")
 plt.ylabel("Hipóteses (Escala de Likert)")
 
