@@ -7,9 +7,9 @@ import os
 
 # Dicionário com caminhos e limites mínimos de respondentes por distribuição
 arquivos_com_limites = {
-    "scripts_gerais/ux_tests/hipoteses_por_genero_tempo.csv": 12,
+    "scripts_gerais/ux_tests/hipoteses_por_genero_tempo.csv": 7,
     "scripts_gerais/ux_tests/hipoteses_por_idade_tempo.csv": 7,
-    "scripts_gerais/ux_tests/hipoteses_por_genero_idade.csv": 11
+    "scripts_gerais/ux_tests/hipoteses_por_genero_idade.csv": 7
 }
 
 # Lista para armazenar os DataFrames filtrados

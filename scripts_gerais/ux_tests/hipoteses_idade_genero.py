@@ -48,7 +48,7 @@ df["Perfil Genero x Idade"] = (
 contagem_perfis = df["Perfil Genero x Idade"].value_counts()
 
 # Filtra apenas os perfis com 11 ou mais respondentes
-perfis_filtrados = contagem_perfis[contagem_perfis >= 11].index.tolist()
+perfis_filtrados = contagem_perfis[contagem_perfis >= 7].index.tolist()
 
 # Filtra o DataFrame com apenas os perfis de interesse
 df_filtrado = df[df["Perfil Genero x Idade"].isin(perfis_filtrados)]
@@ -59,7 +59,7 @@ medias_por_perfil = df_filtrado.groupby("Perfil Genero x Idade")[colunas_likert]
 # Cria uma estrutura para guardar os resultados em formato plano
 dados_filtrados = []
 
-# Para cada perfil, verifica quais hipóteses tiveram média ≥ 3 e adiciona no resultado
+# Para cada perfil, verifica a media das hipoteses
 for perfil, linha in medias_por_perfil.iterrows():
     for hipotese, media in linha.items():
         dados_filtrados.append({
