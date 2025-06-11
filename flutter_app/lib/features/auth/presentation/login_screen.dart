@@ -1,9 +1,14 @@
+// lib/features/auth/presentation/login_screen.dart
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/routes/app_routes.dart';
+import 'package:flutter_app/shared/widgets/form_fields.dart';
+import 'package:flutter_app/shared/widgets/primary_button.dart';
+import 'package:flutter_app/shared/widgets/text_action_button.dart';
 
+/// -----LOGIN SCREEN-----
 /// Tela de Login com inputs de email e senha, botões de ação e opções de login social.
 class LoginScreen extends StatefulWidget {
   static const String routeName = '/login';
@@ -14,14 +19,10 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // FRONT-END: FormKey para validação dos campos (habilitar validators)
   final _formKey = GlobalKey<FormState>();
-
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
   bool _isLoading = false;
-  String? _errorMessage; // Mensagem de erro do backend
 
   @override
   void dispose() {
@@ -30,30 +31,28 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// BACKEND TODO: Chamar API de login, obter resultado e role
+  /// Chama a API de login e navega conforme perfil.
   Future<void> _performLogin() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+
     try {
-      // BACKEND TODO: Descomente e implemente
+      // BACKEND TODO: implementar AuthService.login(email, password)
       // final result = await AuthService.login(
       //   email: _emailController.text,
       //   password: _passwordController.text,
       // );
       // if (!result.success) throw Exception(result.message);
-      // FRONT-END: navegação condicional por profile:
-      // if (result.role == UserRole.athlete) Navigator.pushReplacementNamed(context, '/athlete_home');
-      // else Navigator.pushReplacementNamed(context, '/coach_home');
+      // if (result.role == UserRole.athlete) Navigator.pushReplacementNamed(context, AppRoutes.athleteHome);
+      // else Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
 
-      // Simulação de delay e erro
+      // Simulação de delay para demonstração
       await Future.delayed(const Duration(seconds: 1));
       throw Exception('Usuário ou senha inválidos');
     } catch (e) {
-      setState(
-        () => _errorMessage = e.toString().replaceFirst('Exception: ', ''),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -63,12 +62,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final scale = width / 375.0;
-    double vSpace(double value) => value * scale;
+    double vSpace(double val) => val * scale;
 
     return Scaffold(
       backgroundColor: AppColors.offWhite,
       body: SafeArea(
-        // -----LOGIN FORM-----
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -76,8 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(height: vSpace(80)), // margem topo
-                // Título principal
+                SizedBox(height: vSpace(80)),
                 Text(
                   'MOTIVA',
                   style: TextStyle(
@@ -99,134 +96,48 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: vSpace(32)),
 
-                // ---------------EMAIL FIELD-----------------
-                TextFormField(
+                // Email input
+                EmailInputField(
                   controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    hintText: 'ex:maria@gmail.com',
-                    filled: true,
-                    fillColor: AppColors.offWhite,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.mediumGray),
-                    ),
-                    errorText: _errorMessage, // mostra erro backend
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty)
-                      return 'Informe seu e-mail';
-                    final regex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                    if (!regex.hasMatch(value))
-                      return 'Formato de e-mail inválido';
-                    return null;
-                  },
+                  requireExists: true,
                 ),
                 SizedBox(height: vSpace(16)),
 
-                // ---------------PASSWORD FIELD------------------
-                TextFormField(
+                // Password input
+                PasswordInputField(
                   controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Senha',
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    hintText: '********',
-                    filled: true,
-                    fillColor: AppColors.offWhite,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.mediumGray),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        size: 24 * scale,
-                      ),
-                      onPressed:
-                          () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.length < 8) {
-                      return 'Senha deve ter ao menos 8 caracteres';
-                    }
-                    return null;
-                  },
+                  requireAssociation: true,
                 ),
                 SizedBox(height: vSpace(8)),
 
-                // FRONT-END TODO: Descomentar exibição de erro após integrar backend
-                // if (_errorMessage != null) ...[
-                //   Text(_errorMessage!, style: TextStyle(color: Colors.red, fontSize: 12 * scale)),
-                //   SizedBox(height: vSpace(8)),
-                // ],
-
-                // -------------------FORGOT PASSWORD-------------------
+                // Forgot password
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: TextButton(
+                  child: TextActionButton(
+                    text: 'Esqueci minha senha',
+                    icon: Icons.help_outline,
                     onPressed:
                         () => Navigator.pushNamed(
                           context,
                           AppRoutes.forgotPassword,
                         ),
-                    child: Text(
-                      'Esqueci minha senha',
-                      style: TextStyle(
-                        fontFamily: AppFonts.roboto,
-                        fontWeight: AppFontWeight.bold,
-                        fontSize: 14 * scale,
-                        color: AppColors.baseBlue,
-                      ),
-                    ),
                   ),
                 ),
                 SizedBox(height: vSpace(56)),
 
                 // ---------------LOGIN BUTTON----------------
-                if (_isLoading)
-                  Center(
-                    child: CircularProgressIndicator(color: AppColors.darkBlue),
-                  )
-                else
-                  SizedBox(
-                    width: double.infinity,
-                    height: vSpace(48),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.darkBlue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8 * scale),
-                        ),
-                      ),
-                      onPressed: () {
-                        // FRONT-END: habilitar validação ao integrar
-                        if (_formKey.currentState!.validate()) {
-                          _performLogin(); // chama backend
-                        }
-                        //// BACK-END: descomentar lógica de navegação após implementar _performLogin
-                      },
-                      child: Text(
-                        'Entrar',
-                        style: TextStyle(
-                          fontFamily: AppFonts.montserrat,
-                          fontWeight: AppFontWeight.bold,
-                          fontSize: 16 * scale,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
+                PrimaryButton(
+                  label: 'Entrar',
+                  isLoading: _isLoading,
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      _performLogin();
+                    }
+                  },
+                ),
                 SizedBox(height: vSpace(8)),
 
-                // --------------------LGPD TEXT----------------------
+                // LGPD Text
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
@@ -240,12 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       TextSpan(
                         text: 'Termos de Serviço',
-                        style: TextStyle(
-                          fontFamily: AppFonts.roboto,
-                          fontWeight: AppFontWeight.bold,
-                          fontSize: 8 * scale,
-                          color: AppColors.darkText,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold),
                         recognizer:
                             TapGestureRecognizer()
                               ..onTap =
@@ -257,12 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const TextSpan(text: ' e '),
                       TextSpan(
                         text: 'Política de Privacidade',
-                        style: TextStyle(
-                          fontFamily: AppFonts.roboto,
-                          fontWeight: AppFontWeight.bold,
-                          fontSize: 8 * scale,
-                          color: AppColors.darkText,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold),
                         recognizer:
                             TapGestureRecognizer()
                               ..onTap =
@@ -276,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: vSpace(16)),
 
-                // -------------------------SIGN UP----------------------
+                // Sign up
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -289,27 +190,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: AppColors.darkText,
                       ),
                     ),
-                    TextButton(
+                    TextActionButton(
+                      text: 'Cadastre-se',
                       onPressed:
                           () => Navigator.pushReplacementNamed(
                             context,
                             AppRoutes.signup,
                           ),
-                      child: Text(
-                        'Cadastre-se',
-                        style: TextStyle(
-                          fontFamily: AppFonts.roboto,
-                          fontWeight: AppFontWeight.bold,
-                          fontSize: 14 * scale,
-                          color: AppColors.baseBlue,
-                        ),
-                      ),
                     ),
                   ],
                 ),
                 SizedBox(height: vSpace(40)),
 
-                // ------------------------------SOCIAL LOGIN-----------------------
+                // Social login
                 Row(
                   children: [
                     Expanded(

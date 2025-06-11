@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/routes/app_routes.dart';
+import 'package:flutter_app/shared/widgets/back_button.dart';
+import 'package:flutter_app/shared/widgets/form_fields.dart';
+import 'package:flutter_app/shared/widgets/primary_button.dart';
 
 /// -----FORGOT PASSWORD FLOW - STEP 1-----
-/// Tela para o usuário informar o e-mail e receber um código de reset.
+/// Solicita o e-mail do usuário e envia código de recuperação.
 class ForgotPasswordScreen extends StatefulWidget {
   static const String routeName = '/forgotPassword';
   const ForgotPasswordScreen({Key? key}) : super(key: key);
@@ -15,10 +18,9 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _formKey = GlobalKey<FormState>(); // FRONT-END: para validar e-mail
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isLoading = false;
-  String? _errorMessage; // Mensagem de erro do backend
 
   @override
   void dispose() {
@@ -26,27 +28,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  /// FRONT-END: envia e-mail ao backend e navega para VerifyOtpScreen
+  /// Envia e-mail de reset e navega para tela de código.
   Future<void> _sendResetEmail() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() => _isLoading = true);
     try {
-      // BACKEND TODO: inserir chamada ao serviço de envio de código
-      // await AuthService.sendResetEmail(email: _emailController.text);
+      // BACKEND TODO: chamar AuthService.sendResetEmail(email: _emailController.text)
+      await Future.delayed(const Duration(seconds: 1)); // simula delay
 
-      // Simulação de delay de rede
-      await Future.delayed(const Duration(seconds: 1));
-      // FRONT-END: navegar para a próxima etapa (verify OTP)
       Navigator.pushNamed(
         context,
         AppRoutes.verifyOtp,
         arguments: _emailController.text,
       );
-    } catch (e) {
-      setState(() => _errorMessage = 'Erro ao enviar código');
+    } catch (_) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Erro ao enviar código')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -56,7 +54,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final scale = width / 375.0;
-    double vSpace(double value) => value * scale;
+    double vSpace(double val) => val * scale;
 
     return Scaffold(
       backgroundColor: AppColors.offWhite,
@@ -70,27 +68,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ------------------Voltar para Login---------------------
-              TextButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(
-                  Icons.navigate_before,
-                  color: AppColors.baseBlue,
-                  size: 20 * scale,
-                ),
-                label: Text(
-                  'Voltar',
-                  style: TextStyle(
-                    fontFamily: AppFonts.roboto,
-                    fontWeight: AppFontWeight.bold,
-                    fontSize: 16 * scale,
-                    color: AppColors.baseBlue,
-                  ),
-                ),
-              ),
+              // Voltar para Login
+              AppBackButton(),
               SizedBox(height: vSpace(64)),
 
-              // ------------------------Título--------------------------
+              // Título
               Text(
                 'Esqueceu sua senha?',
                 style: TextStyle(
@@ -112,74 +94,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               ),
               SizedBox(height: vSpace(53)),
 
-              // --------------------------Formulário de e-mail------------------------
+              // Formulário de e-mail
               Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    TextFormField(
+                    EmailInputField(
                       controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        floatingLabelBehavior: FloatingLabelBehavior.always,
-                        hintText: 'Seu email cadastrado',
-                        filled: true,
-                        fillColor: AppColors.offWhite,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4 * scale),
-                          borderSide: BorderSide(color: AppColors.mediumGray),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          vertical: vSpace(12),
-                          horizontal: vSpace(12),
-                        ),
-                        errorText:
-                            _errorMessage, // erro do backend-------------------------------------
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Informe seu email';
-                        }
-                        final regex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                        if (!regex.hasMatch(value)) {
-                          return 'Email inválido';
-                        }
-                        return null;
-                      },
+                      requireExists: true,
                     ),
                     SizedBox(height: vSpace(32)),
 
-                    // ---------------------------Botão Enviar email-------------------------------
-                    if (_isLoading)
-                      Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.darkBlue,
-                        ),
-                      )
-                    else
-                      SizedBox(
-                        width: double.infinity,
-                        height: vSpace(48),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.darkBlue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8 * scale),
-                            ),
-                          ),
-                          onPressed: _sendResetEmail,
-                          child: Text(
-                            'Enviar email',
-                            style: TextStyle(
-                              fontFamily: AppFonts.montserrat,
-                              fontWeight: AppFontWeight.bold,
-                              fontSize: 18 * scale,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
+                    // Botão Enviar email
+                    PrimaryButton(
+                      label: 'Enviar email',
+                      isLoading: _isLoading,
+                      onPressed: _sendResetEmail,
+                    ),
                   ],
                 ),
               ),
