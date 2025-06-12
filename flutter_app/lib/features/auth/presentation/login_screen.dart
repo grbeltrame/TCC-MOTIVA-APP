@@ -129,11 +129,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 PrimaryButton(
                   label: 'Entrar',
                   isLoading: _isLoading,
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      _performLogin();
-                    }
-                  },
+                  onPressed:
+                      () => Navigator.pushReplacementNamed(
+                        context,
+                        AppRoutes.athleteHome,
+                      ), //leva direto pra pagina de atleta pra teste
+                  // onPressed: () { ///DESCOMENTAR QUANDO TIVER VALIDAÇÃO DO BACKEND
+                  //   // if (_formKey.currentState!.validate()) {
+                  //   //   _performLogin();
+                  //   // }
+                  // },
                 ),
                 SizedBox(height: vSpace(8)),
 
