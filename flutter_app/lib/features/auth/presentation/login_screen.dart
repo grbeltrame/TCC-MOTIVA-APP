@@ -137,11 +137,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 SizedBox(height: vSpace(8)),
 
-                // LGPD Text
+                // LGPD Text – substitua o trecho anterior pelo abaixo:
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    text: 'Ao continuar, você concorda com nossos ',
                     style: TextStyle(
                       fontFamily: AppFonts.roboto,
                       fontWeight: AppFontWeight.light,
@@ -149,9 +148,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: AppColors.darkText,
                     ),
                     children: [
+                      const TextSpan(
+                        text: 'Ao continuar, você concorda com nossos ',
+                      ),
                       TextSpan(
                         text: 'Termos de Serviço',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontFamily: AppFonts.roboto,
+                          fontWeight: AppFontWeight.bold,
+                          fontSize: 8 * scale,
+                          color: AppColors.darkText,
+                          decoration: TextDecoration.underline,
+                        ),
                         recognizer:
                             TapGestureRecognizer()
                               ..onTap =
@@ -163,7 +171,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       const TextSpan(text: ' e '),
                       TextSpan(
                         text: 'Política de Privacidade',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontFamily: AppFonts.roboto,
+                          fontWeight: AppFontWeight.bold,
+                          fontSize: 8 * scale,
+                          color: AppColors.darkText,
+                          decoration: TextDecoration.underline,
+                        ),
                         recognizer:
                             TapGestureRecognizer()
                               ..onTap =
@@ -175,6 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
+
                 SizedBox(height: vSpace(16)),
 
                 // Sign up
@@ -193,10 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextActionButton(
                       text: 'Cadastre-se',
                       onPressed:
-                          () => Navigator.pushReplacementNamed(
-                            context,
-                            AppRoutes.signup,
-                          ),
+                          () => Navigator.pushNamed(context, AppRoutes.signup),
                     ),
                   ],
                 ),

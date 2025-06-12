@@ -1,6 +1,8 @@
 // lib/routes/app_routes.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_app/features/user/athlete/athlete_home_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_home_screen.dart';
 import 'package:flutter_app/main.dart' show MyHomePage;
 import 'package:flutter_app/features/auth/presentation/login_screen.dart';
 import 'package:flutter_app/features/auth/presentation/signup_screen.dart';
@@ -24,6 +26,10 @@ class AppRoutes {
   static const String terms = TermsScreen.routeName; // '/terms'
   static const String privacyPolicy =
       PrivacyPolicyScreen.routeName; // '/privacy_policy'
+
+  // Rotas de exemplo para telas home
+  static const String athleteHome = AthleteHomeScreen.routeName;
+  static const String coachHome = CoachHomeScreen.routeName;
 }
 
 /// Mapeamento de rotas para usar no MaterialApp(routes:)
@@ -36,4 +42,6 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.resetPassword: (_) => const ResetPasswordScreen(email: ''),
   AppRoutes.terms: (_) => const TermsScreen(),
   AppRoutes.privacyPolicy: (_) => const PrivacyPolicyScreen(),
+  AppRoutes.athleteHome: (_) => const AthleteHomeScreen(),
+  AppRoutes.coachHome: (_) => const CoachHomeScreen(),
 };

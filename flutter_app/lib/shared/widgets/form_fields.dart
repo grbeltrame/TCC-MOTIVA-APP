@@ -327,3 +327,60 @@ class CodeInputField extends StatelessWidget {
     );
   }
 }
+
+/// Campo de texto para nome completo com validação de não-vazio.
+class NameInputField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+
+  const NameInputField({
+    Key? key,
+    required this.controller,
+    this.label = 'Nome',
+    this.hint = 'Seu nome completo',
+  }) : super(key: key);
+
+  String? _validator(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Informe seu nome';
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 375.0;
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(
+          fontFamily: AppFonts.roboto,
+          fontWeight: AppFontWeight.light,
+          fontSize: 12 * scale,
+          color: AppColors.darkText,
+        ),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        hintText: hint,
+        hintStyle: TextStyle(
+          fontFamily: AppFonts.roboto,
+          fontWeight: AppFontWeight.regular,
+          fontSize: 14 * scale,
+          color: AppColors.mediumGray,
+        ),
+        filled: true,
+        fillColor: AppColors.offWhite,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(4 * scale),
+          borderSide: BorderSide(color: AppColors.mediumGray),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          vertical: 12 * scale,
+          horizontal: 12 * scale,
+        ),
+      ),
+      validator: _validator,
+    );
+  }
+}
