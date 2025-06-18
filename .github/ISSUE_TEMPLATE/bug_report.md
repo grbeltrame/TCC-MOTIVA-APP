@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
+title: "[BUG]"
 labels: 'aguardando testes, corrigido, em análise, em correção, impacto: crítico,
   impacto:leve, impacto: moderado, intermitente, isolado, modulo: cadastro, modulo:
   evolução, modulo: inisghts, modulo: login, modulo: notificções, modulo: perfil,

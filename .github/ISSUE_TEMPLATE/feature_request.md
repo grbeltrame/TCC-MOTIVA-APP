@@ -1,7 +1,7 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: ''
+title: "[FEATURE]"
 labels: 'aguardando testes, ajuste de performance, ajuste visual, automação, corrigido,
   em análise, em correção, enhancement, integração, melhoria UX, modulo: cadastro,
   modulo: evolução, modulo: inisghts, modulo: login, modulo: notificções, modulo:
