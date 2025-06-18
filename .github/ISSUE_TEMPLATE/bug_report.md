@@ -3,8 +3,10 @@ name: Bug report
 about: Create a report to help us improve
 title: ''
 labels: 'aguardando testes, corrigido, em análise, em correção, impacto: crítico,
-  impacto:leve, impacto: moderado, intermitente, isolado, necessito ajuda, quebra
-  o app, recorrente'
+  impacto:leve, impacto: moderado, intermitente, isolado, modulo: cadastro, modulo:
+  evolução, modulo: inisghts, modulo: login, modulo: notificções, modulo: perfil,
+  modulo: treinos, necessito ajuda, prioridade: alta, prioridade: baixa, prioridade:
+  média'
 assignees: ''
 
 ---

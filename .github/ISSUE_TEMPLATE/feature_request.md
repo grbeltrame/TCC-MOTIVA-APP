@@ -2,7 +2,10 @@
 name: Feature request
 about: Suggest an idea for this project
 title: ''
-labels: ''
+labels: 'aguardando testes, ajuste de performance, ajuste visual, automação, corrigido,
+  em análise, em correção, enhancement, integração, melhoria UX, modulo: cadastro,
+  modulo: evolução, modulo: inisghts, modulo: login, modulo: notificções, modulo:
+  perfil, modulo: treinos, prioridade: alta, prioridade: baixa, prioridade: média'
 assignees: ''
 
 ---
@@ -54,4 +57,4 @@ Inclua qualquer informação que ajude a entender melhor a solicitação. Pode s
 ### Informações internas (opcional)
 about: Sugira uma ideia
 title: "[FEATURE] "
-labels: [feature request, triagem pendente, prioridade: a definir]
+labels: [enhancement, triagem pendente, prioridade: a definir]

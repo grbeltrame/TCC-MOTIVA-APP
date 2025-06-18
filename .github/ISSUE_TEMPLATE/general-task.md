@@ -3,7 +3,8 @@ name: General Task
 about: Describe thCriação de uma tarefa técnica, de documentação ou atividade organizacionalis
   issue template's purpose here.
 title: ''
-labels: ''
+labels: 'desgin, documentation, infraestrutura, prioridade: alta, prioridade: baixa,
+  prioridade: média, prioridade: urgente, refatoração, task'
 assignees: ''
 
 ---
