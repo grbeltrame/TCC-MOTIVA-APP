@@ -1,18 +1,31 @@
-// lib/features/athlete_home/presentation/athlete_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 import 'package:flutter_app/core/services/profile_service.dart';
+import 'package:flutter_app/shared/widgets/alerts_carousel.dart';
+import 'package:flutter_app/core/services/alerts_service.dart';
 
-/// Instância única de ProfileService (mock) criada fora do widget
 final _profileService = ProfileService();
+final _alertsService = AlertsService();
 
-/// Tela inicial do atleta (ou coach, se estiver no perfil de coach).
-class AthleteHomeScreen extends StatelessWidget {
+class AthleteHomeScreen extends StatefulWidget {
   static const routeName = '/athlete_home';
-
   const AthleteHomeScreen({Key? key}) : super(key: key);
 
-  // método para abrir o BottomSheet de cadastro de box
+  @override
+  State<AthleteHomeScreen> createState() => _AthleteHomeScreenState();
+}
+
+class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
+  late Future<List<AlertModel>> _futureAlerts;
+  late Future<Set<String>> _futureEnabledTypes;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureAlerts = _alertsService.fetchAlerts();
+    _futureEnabledTypes = _alertsService.fetchEnabledTypes();
+  }
+
   void _openRegisterBoxSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -31,14 +44,49 @@ class AthleteHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 1) Barra superior customizada — **sem** const, pois recebe callback não-const
       appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1) Carrega ambos os futuros e renderiza o carousel quando prontos
+            FutureBuilder<List<AlertModel>>(
+              future: _futureAlerts,
+              builder: (context, snapAlerts) {
+                return FutureBuilder<Set<String>>(
+                  future: _futureEnabledTypes,
+                  builder: (context, snapTypes) {
+                    if (snapAlerts.connectionState != ConnectionState.done ||
+                        snapTypes.connectionState != ConnectionState.done) {
+                      return const SizedBox(
+                        height: 80,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final alerts = snapAlerts.data!;
+                    final enabled = snapTypes.data!;
+                    return AlertsCarousel(
+                      allAlerts: alerts,
+                      enabledTypes: enabled,
+                    );
+                  },
+                );
+              },
+            ),
 
-      // Corpo da tela
-      body: Center(
-        child: Text(
-          'Bem-vindo, ${_profileService.currentRoleLabel}!',
-          style: const TextStyle(fontSize: 18),
+            const SizedBox(height: 24),
+
+            // Saudação
+            Center(
+              child: Text(
+                'Bem-vindo, ${_profileService.currentRoleLabel}!',
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
+
+            // ... resto do body ...
+          ],
         ),
       ),
     );

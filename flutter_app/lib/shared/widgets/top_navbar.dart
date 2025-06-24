@@ -52,7 +52,7 @@ class _TopNavbarState extends State<TopNavbar> {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return AppBar(
-      backgroundColor: AppColors.offWhite,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       elevation: 0,
       centerTitle: false,
       titleSpacing: 16.0 * scale,
@@ -72,12 +72,13 @@ class _TopNavbarState extends State<TopNavbar> {
           else
             Text(
               _currentRole,
-              style: TextStyle(
-                fontFamily: AppFonts.montserrat,
-                fontWeight: AppFontWeight.bold,
-                fontSize: 18 * scale,
-                color: AppColors.darkText,
-              ),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge // que no seu ThemeData é Montserrat Bold 16px
+                  ?.copyWith(
+                    fontSize: 18 * scale, // se quiser manter o scale
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
             ),
 
           SizedBox(width: 24 * scale),
@@ -110,8 +111,9 @@ class _TopNavbarState extends State<TopNavbar> {
                 icon: Icon(
                   Icons.notifications_none,
                   size: 24 * scale,
-                  color: AppColors.darkText,
+                  color: Theme.of(context).colorScheme.onBackground,
                 ),
+
                 onPressed: () {
                   // TODO: navegar para notificações
                 },
@@ -164,12 +166,12 @@ class _TopNavbarState extends State<TopNavbar> {
                       value: e,
                       child: Text(
                         e.toString(),
-                        style: TextStyle(
-                          fontFamily: AppFonts.roboto,
-                          fontWeight: AppFontWeight.regular,
-                          fontSize: 14 * scale,
-                          color: AppColors.darkText,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium // Roboto Regular 14px, definido no seu AppTheme
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.onBackground,
+                            ),
                       ),
                     ),
                   )
@@ -178,13 +180,12 @@ class _TopNavbarState extends State<TopNavbar> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontFamily: AppFonts.roboto,
-              fontWeight: AppFontWeight.regular,
-              fontSize: 16 * scale,
-              color: AppColors.darkText,
-            ),
+            style: Theme.of(context)
+                .textTheme
+                .bodyLarge // ou outro conforme sua hierarquia
+                ?.copyWith(color: Theme.of(context).colorScheme.onBackground),
           ),
+
           const Icon(Icons.keyboard_arrow_down),
         ],
       ),
