@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/shared/widgets/highlights_carousel.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 import 'package:flutter_app/core/services/profile_service.dart';
 import 'package:flutter_app/shared/widgets/alerts_carousel.dart';
 import 'package:flutter_app/core/services/alerts_service.dart';
+import 'package:flutter_app/core/services/highlights_service.dart';
 
 final _profileService = ProfileService();
 final _alertsService = AlertsService();
+final _highlightsService = HighlightsService();
 
 class AthleteHomeScreen extends StatefulWidget {
   static const routeName = '/athlete_home';
@@ -19,11 +22,18 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
   late Future<List<AlertModel>> _futureAlerts;
   late Future<Set<String>> _futureEnabledTypes;
 
+  late Future<List<HighlightModel>> _futureHighlights;
+  late Future<Set<String>> _fetchEnabledHighlightsTypes;
+
   @override
   void initState() {
     super.initState();
     _futureAlerts = _alertsService.fetchAlerts();
     _futureEnabledTypes = _alertsService.fetchEnabledTypes();
+
+    _futureHighlights = _highlightsService.fetchHighlights();
+    _fetchEnabledHighlightsTypes =
+        _highlightsService.fetchEnabledHighlightsTypes();
   }
 
   void _openRegisterBoxSheet(BuildContext context) {
@@ -76,16 +86,31 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
             ),
 
             const SizedBox(height: 24),
-
-            // Saudação
-            Center(
-              child: Text(
-                'Bem-vindo, ${_profileService.currentRoleLabel}!',
-                style: const TextStyle(fontSize: 18),
-              ),
+            FutureBuilder<List<HighlightModel>>(
+              future: _futureHighlights,
+              builder: (context, snapHighlights) {
+                return FutureBuilder<Set<String>>(
+                  future: _fetchEnabledHighlightsTypes,
+                  builder: (context, snapHighlightTypes) {
+                    if (snapHighlights.connectionState !=
+                            ConnectionState.done ||
+                        snapHighlightTypes.connectionState !=
+                            ConnectionState.done) {
+                      return const SizedBox(
+                        height: 80,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final highlights = snapHighlights.data!;
+                    final enabled = snapHighlightTypes.data!;
+                    return HighlightsCarousel(
+                      allHighlights: highlights,
+                      enabledHighlightsTypes: enabled,
+                    );
+                  },
+                );
+              },
             ),
-
-            // ... resto do body ...
           ],
         ),
       ),
