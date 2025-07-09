@@ -61,6 +61,12 @@ class AppTheme {
           fontSize: 16,
           color: Colors.white,
         ),
+        headlineSmall: const TextStyle(
+          fontFamily: AppFonts.roboto,
+          fontWeight: AppFontWeight.bold,
+          fontSize: 24, // tamanho que você desejar
+          color: AppColors.darkText,
+        ),
         bodySmall: const TextStyle(
           // textos pequenos (LGPD)
           fontFamily: AppFonts.roboto,

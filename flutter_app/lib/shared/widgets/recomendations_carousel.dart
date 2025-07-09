@@ -1,42 +1,41 @@
-// lib/shared/widgets/highlights_carousel.dart
+// lib/shared/widgets/recomendations_carousel.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 /// Modelo simples de destaque — usado para tipagem e lógica dentro do widget.
-class HighlightModel {
+class RecomendationModel {
   final String type;
   final String message;
-  HighlightModel({required this.type, required this.message});
+  RecomendationModel({required this.type, required this.message});
 }
 
 /// Um carrossel de cartões de destaques.
 /// Exibe apenas os tipos habilitados e percorre automaticamente.
-class HighlightsCarousel extends StatefulWidget {
-  final List<HighlightModel> allHighlights;
-  final Set<String> enabledHighlightsTypes;
+class RecomendationsCarousel extends StatefulWidget {
+  final List<RecomendationModel> allRecomendations;
+  final Set<String> enabledRecomendationsTypes;
 
-  const HighlightsCarousel({
+  const RecomendationsCarousel({
     Key? key,
-    required this.allHighlights,
-    required this.enabledHighlightsTypes,
+    required this.allRecomendations,
+    required this.enabledRecomendationsTypes,
   }) : super(key: key);
 
   @override
-  _HighlightsCarouselState createState() => _HighlightsCarouselState();
+  _RecomendationsCarouselState createState() => _RecomendationsCarouselState();
 }
 
-class _HighlightsCarouselState extends State<HighlightsCarousel> {
+class _RecomendationsCarouselState extends State<RecomendationsCarousel> {
   late final PageController _controller;
-  late final List<HighlightModel> _filtered;
+  late final List<RecomendationModel> _filtered;
 
   @override
   void initState() {
     super.initState();
     _filtered =
-        widget.allHighlights
-            .where((a) => widget.enabledHighlightsTypes.contains(a.type))
+        widget.allRecomendations
+            .where((a) => widget.enabledRecomendationsTypes.contains(a.type))
             .toList();
     // mostra 1 cartão por página
     _controller = PageController(viewportFraction: 1);
@@ -77,17 +76,17 @@ class _HighlightsCarouselState extends State<HighlightsCarousel> {
                 horizontal: 12 * scale,
               ),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.mediumGray),
+                color: AppColors.lightBlue.withAlpha(31),
+                border: Border.all(color: AppColors.darkBlue),
                 borderRadius: BorderRadius.circular(12 * scale),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SvgPicture.asset(
-                    'assets/icons/social_leaderboard.svg',
-                    width: 28 * scale,
-                    height: 28 * scale,
-                    color: AppColors.lightBlue, // se quiser colorir via código
+                  Icon(
+                    Icons.lightbulb_outline_rounded,
+                    size: 28 * scale,
+                    color: AppColors.darkText,
                   ),
                   SizedBox(width: 8 * scale),
                   Expanded(

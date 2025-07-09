@@ -61,7 +61,7 @@ class _AlertsCarouselState extends State<AlertsCarousel> {
     return SizedBox(
       // altura definida apenas pelo conteúdo + padding
       height:
-          (24 + 14 * 3 + 24) *
+          (16 + 14 * 3 + 16) *
           scale, // padding 12*2 + até 3 linhas de 14px cada * scale
       child: PageView.builder(
         controller: _controller,
@@ -78,7 +78,7 @@ class _AlertsCarouselState extends State<AlertsCarousel> {
               decoration: BoxDecoration(
                 color: AppColors.lightMagenta.withAlpha(31),
                 border: Border.all(color: AppColors.baseMagenta),
-                borderRadius: BorderRadius.circular(8 * scale),
+                borderRadius: BorderRadius.circular(12 * scale),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -92,12 +92,12 @@ class _AlertsCarouselState extends State<AlertsCarousel> {
                   Expanded(
                     child: Text(
                       a.message,
-                      textAlign: TextAlign.center,
+                      textAlign: TextAlign.left,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: AppFonts.roboto,
-                        fontWeight: AppFontWeight.medium,
+                        fontWeight: AppFontWeight.bold,
                         fontSize: 14 * scale,
                         color: AppColors.darkText,
                         height: 1.2, // garante espaçamento vertical
