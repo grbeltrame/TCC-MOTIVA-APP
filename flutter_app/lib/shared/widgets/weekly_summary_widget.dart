@@ -66,7 +66,6 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
         }
         final week = snapWeek.data!;
 
-        // **Novo: envolve tudo num Card 98% largura**
         return Align(
           alignment: Alignment.topCenter,
           child: FractionallySizedBox(
@@ -75,7 +74,7 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
               margin: EdgeInsets.symmetric(vertical: 8 * scale),
               shape: RoundedRectangleBorder(
                 side: BorderSide(color: AppColors.mediumGray),
-                borderRadius: BorderRadius.circular(8 * scale),
+                borderRadius: BorderRadius.circular(24 * scale),
               ),
               elevation: 0,
               child: Padding(
@@ -329,6 +328,7 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   'PRs BATIDOS',
@@ -338,28 +338,36 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                     color: AppColors.darkBlue,
                                   ),
                                 ),
-                                Spacer(),
-                                TextActionButton(
-                                  icon: Icons.add,
-                                  text: 'Registrar PR',
-                                  onPressed: () {
-                                    /* TODO */
-                                  },
+
+                                // -- aqui usamos Transform.scale --
+                                Transform.scale(
+                                  scale: 0.9, // 90% do tamanho original
+                                  alignment: Alignment.centerRight,
+                                  child: TextActionButton(
+                                    icon: Icons.add,
+                                    text: 'Registrar PR',
+                                    onPressed: () {
+                                      /* TODO */
+                                    },
+                                  ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 8 * scale),
+
+                            SizedBox(height: 1 * scale),
                             if (prs.isEmpty)
                               const Text('Essa semana você não atualizou PRs.')
                             else
                               TextCarousel(
                                 items: prs.map((p) => p.label).toList(),
+                                fontWeight: FontWeight.bold,
+                                fontStyle: FontStyle.normal,
                               ),
                           ],
                         );
                       },
                     ),
-                    SizedBox(height: 24 * scale),
+                    SizedBox(height: 10 * scale),
 
                     // --- Esforço Médio ---
                     FutureBuilder<EffortModel>(
@@ -371,6 +379,7 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   'ESFORÇO MÉDIO',
@@ -380,30 +389,35 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                     color: AppColors.darkBlue,
                                   ),
                                 ),
-                                Spacer(),
-                                TextActionButton(
-                                  icon: Icons.show_chart,
-                                  text: 'Ver gráfico de Esforço',
-                                  onPressed: () {
-                                    /* TODO */
-                                  },
+
+                                Transform.scale(
+                                  scale: 0.9,
+                                  alignment: Alignment.centerRight,
+                                  child: TextActionButton(
+                                    icon: Icons.add,
+                                    text: 'Ver gráfico de Esforço',
+                                    onPressed: () {
+                                      /* TODO */
+                                    },
+                                  ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 8 * scale),
+
+                            SizedBox(height: 2 * scale),
                             Text(
-                              '${ef.score.toStringAsFixed(1)} de 10',
-                              style: TextStyle(fontSize: 12 * scale),
-                            ),
-                            Text(
-                              ef.comment,
-                              style: TextStyle(fontSize: 12 * scale),
+                              '${ef.score.toStringAsFixed(1)} de 10 - ${ef.comment}',
+                              style: TextStyle(
+                                fontSize: 14 * scale,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.darkText,
+                              ),
                             ),
                           ],
                         );
                       },
                     ),
-                    SizedBox(height: 24 * scale),
+                    SizedBox(height: 16 * scale),
 
                     // --- Insights da Semana (texto rolante) ---
                     FutureBuilder<List<InsightModel>>(
@@ -425,6 +439,8 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                             SizedBox(height: 8 * scale),
                             TextCarousel(
                               items: ins.map((i) => i.message).toList(),
+                              fontWeight: FontWeight.w300,
+                              fontStyle: FontStyle.italic,
                             ),
                           ],
                         );
