@@ -8,21 +8,22 @@ import 'package:flutter_app/core/services/profile_service.dart';
 import 'package:flutter_app/shared/widgets/alerts_carousel.dart';
 import 'package:flutter_app/core/services/alerts_service.dart';
 import 'package:flutter_app/core/services/highlights_service.dart';
+import 'package:flutter_app/shared/widgets/weekly_summary_widget.dart';
 
 final _profileService = ProfileService();
 final _alertsService = AlertsService();
 final _highlightsService = HighlightsService();
 final _recomendationsService = RecomendationsService();
 
-class AthleteHomeScreen extends StatefulWidget {
-  static const routeName = '/athlete_home';
-  const AthleteHomeScreen({Key? key}) : super(key: key);
+class AthleteInsightScreen extends StatefulWidget {
+  static const routeName = '/athlete_insight';
+  const AthleteInsightScreen({Key? key}) : super(key: key);
 
   @override
-  State<AthleteHomeScreen> createState() => _AthleteHomeScreenState();
+  State<AthleteInsightScreen> createState() => _AthleteInsightScreenState();
 }
 
-class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
+class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
   late Future<List<AlertModel>> _futureAlerts;
   late Future<Set<String>> _futureEnabledTypes;
 
@@ -178,6 +179,21 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
                 );
               },
             ),
+
+            const SizedBox(height: 24),
+            // ----- Seção de Resumo Semanal -----
+            // --- Título do Resumo Semanal ---
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+              child: Text(
+                'Resumo Semanal',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ),
+            SizedBox(height: 8 * scale),
+
+            // --- Widget principal de Resumo Semanal ---
+            const WeeklySummaryWidget(),
           ],
         ),
       ),

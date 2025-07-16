@@ -29,9 +29,35 @@ class StimulusCount {
 
 /// Dados de carga total levantada e comparação vs. semana anterior.
 class TotalLoad {
-  final double kilos;
-  final double percentVsLastWeek;
-  TotalLoad(this.kilos, this.percentVsLastWeek);
+  /// kg levantados na semana atual
+  final double totalKg;
+
+  /// kg levantados na semana anterior
+  final double previousWeekKg;
+
+  TotalLoad({required this.totalKg, required this.previousWeekKg});
+
+  /// diferença em kg (pode ser negativa)
+  double get differenceKg => totalKg - previousWeekKg;
+
+  /// variação percentual (pode ser negativa)
+  double get percentChange =>
+      previousWeekKg > 0 ? (differenceKg / previousWeekKg) * 100 : 0;
+
+  /// valor absoluto da variação percentual
+  double get absolutePercentChange => percentChange.abs();
+
+  /// comentário “X% maior…” ou “X% menor…”
+  String get changeComment {
+    final p = absolutePercentChange.toStringAsFixed(1);
+    if (percentChange > 0) {
+      return '$p% maior que a semana anterior';
+    } else if (percentChange < 0) {
+      return '$p% menor que a semana anterior';
+    } else {
+      return 'Mesmo total da semana anterior';
+    }
+  }
 }
 
 /// Modelo para PRs batidos.
@@ -86,11 +112,13 @@ class WeeklySummaryService {
     ];
   }
 
-  ///  Carga total levantada + % vs. semana anterior.
+  /// Simula busca da carga total e da carga da semana anterior.
   Future<TotalLoad> fetchTotalLoad() async {
     await Future.delayed(const Duration(milliseconds: 200));
-    // TODO: calcular no backend
-    return TotalLoad(18.4, 10.0);
+    // TODO: substituir pelos valores vindos do backend:
+    final current = 18.4;
+    final previous = 16.0;
+    return TotalLoad(totalKg: current, previousWeekKg: previous);
   }
 
   ///  PRs batidos nesta semana.

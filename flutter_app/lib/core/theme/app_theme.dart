@@ -13,14 +13,13 @@ class AppTheme {
       // Paleta de cores
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.darkBlue,
-        background: AppColors.offWhite,
         primary: AppColors.darkBlue,
         onPrimary: Colors.white,
         secondary: AppColors.baseBlue,
       ),
+      scaffoldBackgroundColor: AppColors.offWhite,
 
       // Cor de fundo global
-      scaffoldBackgroundColor: AppColors.offWhite,
 
       // ======================
       // TextTheme global

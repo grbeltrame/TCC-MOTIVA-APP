@@ -1,8 +1,7 @@
+// lib/shared/screens/athlete_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/theme/app_theme.dart';
-
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
-import 'package:flutter_app/core/services/profile_service.dart';
 import 'package:flutter_app/shared/widgets/weekly_summary_widget.dart';
 
 class AthleteHomeScreen extends StatefulWidget {
@@ -14,7 +13,6 @@ class AthleteHomeScreen extends StatefulWidget {
 }
 
 class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
-  @override
   void _openRegisterBoxSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -43,7 +41,20 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [const WeeklySummaryWidget()],
+          children: [
+            // --- Título do Resumo Semanal ---
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+              child: Text(
+                'Resumo Semanal',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ),
+            SizedBox(height: 8 * scale),
+
+            // --- Widget principal de Resumo Semanal ---
+            const WeeklySummaryWidget(),
+          ],
         ),
       ),
     );

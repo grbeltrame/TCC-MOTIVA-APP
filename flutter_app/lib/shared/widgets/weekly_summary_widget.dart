@@ -288,7 +288,9 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                             child: Center(child: CircularProgressIndicator()),
                           );
                         }
-                        final load = snapLoad.data!;
+                        final load =
+                            snapLoad
+                                .data!; // agora TotalLoad(totalKg, previousWeekKg)
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -301,17 +303,16 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                               ),
                             ),
                             SizedBox(height: 4 * scale),
+                            // mostra  o total em kg + comentário formatado com “X% maior…” ou “X% menor…”
                             Text(
-                              '${load.kilos.toStringAsFixed(1)} kg – '
-                              '${load.percentVsLastWeek.toStringAsFixed(1)}% vs. semana anterior',
+                              '${load.totalKg.toStringAsFixed(1)} kg - ${load.changeComment}',
                               style: TextStyle(
                                 fontSize: 14 * scale,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.darkText,
                               ),
-                              softWrap: true,
-                              maxLines: 2,
                             ),
+                            SizedBox(height: 2 * scale),
                           ],
                         );
                       },
