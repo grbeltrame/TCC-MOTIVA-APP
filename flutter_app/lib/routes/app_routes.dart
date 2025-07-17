@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/features/user/athlete/athlete_home_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_insights_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_home_screen.dart';
-import 'package:flutter_app/main.dart' show MyHomePage;
 import 'package:flutter_app/features/auth/presentation/login_screen.dart';
 import 'package:flutter_app/features/auth/presentation/signup_screen.dart';
 import 'package:flutter_app/features/auth/presentation/forgot_password_screen.dart';

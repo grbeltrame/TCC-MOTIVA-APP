@@ -1,4 +1,5 @@
 import 'package:flutter_app/shared/widgets/highlights_carousel.dart';
+import 'package:flutter_app/core/services/weekly_summary_service.dart';
 
 /// Serviço responsável por buscar os destaques e tipos habilitados.
 /// TODO: substituir mocks por chamadas reais ao backend.
@@ -29,5 +30,14 @@ class HighlightsService {
   Future<Set<String>> fetchEnabledHighlightsTypes() async {
     await Future.delayed(const Duration(milliseconds: 100)); // simula latência
     return {'training_streak', 'hydration'};
+  }
+
+  /// NOVO: filtra apenas os destaques habilitados **e** da semana dada
+  Future<List<HighlightModel>> fetchWeeklyHighlights(WeekRange week) async {
+    final all = await fetchHighlights();
+    final enabled = await fetchEnabledHighlightsTypes();
+    // Aqui você poderia também filtrar por data usando week.start/end,
+    // mas no mock atual só filtramos por tipo:
+    return all.where((h) => enabled.contains(h.type)).toList();
   }
 }

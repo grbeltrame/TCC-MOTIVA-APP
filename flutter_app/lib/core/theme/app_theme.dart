@@ -4,6 +4,38 @@ import '../constants/app_fonts.dart';
 
 /// Tema principal do aplicativo Motiva.
 class AppTheme {
+  /// Estilo de botão secundário (filled), cor personalizável.
+  static ButtonStyle secondaryButtonStyle(Color color, Color second) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: second.withAlpha(50),
+      side: BorderSide(color: color, width: 1.5),
+      foregroundColor: color,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      textStyle: TextStyle(
+        fontFamily: AppFonts.montserrat,
+        fontWeight: AppFontWeight.bold,
+        fontSize: 16,
+        color: Colors.white,
+      ),
+    );
+  }
+
+  /// Estilo de botão terciário (outlined), cor personalizável.
+  static ButtonStyle tertiaryButtonStyle(Color color) {
+    return OutlinedButton.styleFrom(
+      side: BorderSide(color: color, width: 1.5),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      foregroundColor: color,
+      textStyle: TextStyle(
+        fontFamily: AppFonts.montserrat,
+        fontWeight: AppFontWeight.bold,
+        fontSize: 16,
+      ),
+    );
+  }
+
   /// Tema claro (light) utilizado como base para todo o app.
   static ThemeData get lightTheme {
     return ThemeData(

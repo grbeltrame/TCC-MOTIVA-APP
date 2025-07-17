@@ -1,7 +1,6 @@
 // lib/shared/widgets/top_navbar.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
-import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/profile_service.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';

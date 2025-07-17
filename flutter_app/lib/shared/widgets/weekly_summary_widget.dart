@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/effort_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/text_carousel.dart';
 import 'package:flutter_app/shared/widgets/text_action_button.dart';
 import 'package:intl/intl.dart';
@@ -397,9 +399,11 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                   child: TextActionButton(
                                     icon: Icons.add,
                                     text: 'Ver gráfico de Esforço',
-                                    onPressed: () {
-                                      /* TODO */
-                                    },
+                                    onPressed:
+                                        () => showAppBottomSheet(
+                                          context,
+                                          const EffortBottomSheet(),
+                                        ),
                                   ),
                                 ),
                               ],

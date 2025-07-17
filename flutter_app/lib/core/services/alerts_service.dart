@@ -1,4 +1,5 @@
 import 'package:flutter_app/shared/widgets/alerts_carousel.dart';
+import 'package:flutter_app/core/services/weekly_summary_service.dart'; // ↖ precise deste import
 
 /// Serviço responsável por buscar os alertas e tipos habilitados.
 /// TODO: substituir mocks por chamadas reais ao backend.
@@ -29,5 +30,13 @@ class AlertsService {
   Future<Set<String>> fetchEnabledTypes() async {
     await Future.delayed(const Duration(milliseconds: 100)); // simula latência
     return {'training_streak', 'hydration'};
+  }
+
+  /// NOVO: filtra apenas os alertas habilitados **e** da semana dada
+  Future<List<AlertModel>> fetchWeeklyAlerts(WeekRange week) async {
+    final all = await fetchAlerts();
+    final enabled = await fetchEnabledTypes();
+    // Se precisar filtrar por data, use week.start e week.end.
+    return all.where((a) => enabled.contains(a.type)).toList();
   }
 }

@@ -1,5 +1,4 @@
 // lib/core/services/weekly_summary_service.dart
-import 'package:intl/intl.dart';
 import 'package:flutter_app/core/services/alerts_service.dart';
 import 'package:flutter_app/core/services/highlights_service.dart';
 import 'package:flutter_app/core/services/recomendations_service.dart';
