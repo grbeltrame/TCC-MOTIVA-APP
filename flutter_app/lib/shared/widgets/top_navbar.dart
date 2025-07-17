@@ -58,6 +58,11 @@ class _TopNavbarState extends State<TopNavbar> {
       elevation: 0,
       centerTitle: false,
       titleSpacing: 16.0 * scale,
+      // aqui a “borda” de baixo:
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0.5 * scale),
+        child: Container(height: 0.5 * scale, color: AppColors.mediumGray),
+      ),
       title: Row(
         children: [
           // 1) Perfil: dropdown só se tiver ambos

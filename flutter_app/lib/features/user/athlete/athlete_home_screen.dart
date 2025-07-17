@@ -1,7 +1,7 @@
 // lib/shared/screens/athlete_home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/theme/app_theme.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/weekly_summary_widget.dart';
@@ -25,6 +25,8 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
 
     return Scaffold(
       appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+      bottomNavigationBar: const BottomNavBar(),
+
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
           vertical: 16 * scale,

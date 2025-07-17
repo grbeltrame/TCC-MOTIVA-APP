@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/theme/app_theme.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/highlights_carousel.dart';
 import 'package:flutter_app/shared/widgets/recomendations_carousel.dart';
 import 'package:flutter_app/core/services/recomendations_service.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
-import 'package:flutter_app/core/services/profile_service.dart';
 import 'package:flutter_app/shared/widgets/alerts_carousel.dart';
 import 'package:flutter_app/core/services/alerts_service.dart';
 import 'package:flutter_app/core/services/highlights_service.dart';
 import 'package:flutter_app/shared/widgets/weekly_summary_widget.dart';
 
-final _profileService = ProfileService();
 final _alertsService = AlertsService();
 final _highlightsService = HighlightsService();
 final _recomendationsService = RecomendationsService();
@@ -60,6 +58,8 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
 
     return Scaffold(
       appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+      bottomNavigationBar: const BottomNavBar(),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         child: Column(
