@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/profile_service.dart';
+import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/text_action_button.dart';
 
 /// TopNavbar genérico: ele mesmo consulta o ProfileService e se atualiza.
@@ -98,7 +100,8 @@ class _TopNavbarState extends State<TopNavbar> {
                 : TextActionButton(
                   icon: Icons.add, // ícone de “+”
                   text: 'Cadastrar box',
-                  onPressed: widget.onRegisterBox,
+                  onPressed:
+                      () => showAppBottomSheet(context, const BoxSignupCoach()),
                 ),
 
           const Spacer(),

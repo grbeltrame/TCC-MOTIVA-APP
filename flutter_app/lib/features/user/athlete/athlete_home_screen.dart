@@ -1,6 +1,8 @@
 // lib/shared/screens/athlete_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/theme/app_theme.dart';
+import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/weekly_summary_widget.dart';
 
@@ -14,18 +16,7 @@ class AthleteHomeScreen extends StatefulWidget {
 
 class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
   void _openRegisterBoxSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder:
-          (_) => Container(
-            height: 200,
-            alignment: Alignment.center,
-            child: const Text('Formulário de cadastro de box aqui'),
-          ),
-    );
+    showAppBottomSheet(context, const BoxSignupCoach());
   }
 
   @override
