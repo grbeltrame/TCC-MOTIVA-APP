@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/monthly_summary_widget.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/weekly_summary_widget.dart';
 
@@ -34,20 +35,7 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // --- Título do Resumo Semanal ---
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 6 * scale),
-              child: Text(
-                'Resumo Semanal',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            ),
-            SizedBox(height: 8 * scale),
-
-            // --- Widget principal de Resumo Semanal ---
-            const WeeklySummaryWidget(),
-          ],
+          children: [const MonthlySummaryWidget(), const SizedBox(height: 24)],
         ),
       ),
     );
