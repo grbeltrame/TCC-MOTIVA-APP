@@ -8,6 +8,7 @@ class AppColors {
   static const Color lightBlue = Color(0xFF2E5CF5); //azul base
   static const Color darkText = Color(0xFF212121); //textos
   static const Color mediumGray = Color(0xFFA1A1A1); //detalhes
+  static const Color lightGray = Color(0xFFD9D9D9); //fundo
   static const Color offWhite = Color(0xFFF3F3F3); //fundo
   static const Color baseMagenta = Color(0xFFCC0E43); //magenta base
   static const Color lightMagenta = Color(0xFFEE2A60); //magenta claro

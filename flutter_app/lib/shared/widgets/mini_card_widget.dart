@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/mini_card_service.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'mini_card_button_widget.dart';
 
-// lembre-se de adicionar flutter_svg no pubspec.yaml:
-//   flutter_svg: ^2.1.0
 import 'package:flutter_svg/flutter_svg.dart';
 
 /// MiniCard que busca valor via service e exibe:
@@ -18,6 +15,7 @@ class MiniCardWidget extends StatelessWidget {
   final String title;
   final String tipo; // chave para o service
   final Color backgroundColor;
+  final Color borderColor;
   final Color iconColor;
   final bool showButton;
   final Widget? buttonWidget; // mesmo conceito para botão, se quiser
@@ -28,6 +26,7 @@ class MiniCardWidget extends StatelessWidget {
     required this.title,
     required this.tipo,
     required this.backgroundColor,
+    required this.borderColor,
     required this.iconColor,
     this.showButton = false,
     this.buttonWidget,
@@ -55,7 +54,7 @@ class MiniCardWidget extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: backgroundColor.withAlpha(70),
-            border: Border.all(color: backgroundColor, width: 1 * scale),
+            border: Border.all(color: borderColor, width: 1 * scale),
             borderRadius: BorderRadius.circular(10 * scale),
           ),
           child: Column(

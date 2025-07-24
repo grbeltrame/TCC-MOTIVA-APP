@@ -93,7 +93,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
           ),
         ),
       ),
-      padding: EdgeInsets.only(top: 6 * scale, bottom: 8 * scale),
+      padding: EdgeInsets.only(top: 6 * scale, bottom: 20 * scale),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: List.generate(items.length, (i) {

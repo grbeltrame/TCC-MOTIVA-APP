@@ -69,7 +69,14 @@ flutter:
     - assets/icons/social_leaderboard.svg
     - assets/icons/relax.svg
     - assets/icons/exercise.svg
-    
+    - assets/icons/calendar_clock.svg
+    - assets/icons/goal1.png
+    - assets/icons/goal2.png
+    - assets/icons/goal3.png
+    - assets/icons/goal4.png
+
+
+ 
     
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

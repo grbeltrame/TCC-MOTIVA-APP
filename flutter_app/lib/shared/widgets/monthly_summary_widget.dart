@@ -46,10 +46,11 @@ class _MonthlySummaryWidgetState extends State<MonthlySummaryWidget> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.calendar_today,
-              size: 20 * scale,
-              color: AppColors.darkText,
+            SvgPicture.asset(
+              'assets/icons/calendar_clock.svg',
+              width: 22 * scale,
+              height: 22 * scale,
+              color: AppColors.darkBlue, // se quiser colorir via código
             ),
             SizedBox(width: 6 * scale),
             Text(
@@ -57,7 +58,7 @@ class _MonthlySummaryWidgetState extends State<MonthlySummaryWidget> {
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontWeight: FontWeight.bold,
-                fontSize: 16 * scale,
+                fontSize: 14 * scale,
                 color: AppColors.darkText,
               ),
             ),
@@ -72,7 +73,7 @@ class _MonthlySummaryWidgetState extends State<MonthlySummaryWidget> {
           style: TextStyle(
             fontFamily: AppFonts.roboto,
             fontWeight: AppFontWeight.medium,
-            fontSize: 12 * scale,
+            fontSize: 10 * scale,
             color: AppColors.darkText,
           ),
         ),
@@ -91,6 +92,7 @@ class _MonthlySummaryWidgetState extends State<MonthlySummaryWidget> {
                 ),
                 title: 'PR batidos',
                 tipo: CardInfoType.prsMes,
+                borderColor: AppColors.darkBlue,
                 backgroundColor: AppColors.lightBlue,
                 iconColor: AppColors.darkText,
               ),
@@ -105,6 +107,7 @@ class _MonthlySummaryWidgetState extends State<MonthlySummaryWidget> {
                 ),
                 title: 'Frequência',
                 tipo: CardInfoType.frequenciaMes,
+                borderColor: AppColors.darkBlue,
                 backgroundColor: AppColors.lightBlue,
                 iconColor: AppColors.darkText,
               ),
@@ -120,6 +123,7 @@ class _MonthlySummaryWidgetState extends State<MonthlySummaryWidget> {
                 ),
                 title: 'Esforço',
                 tipo: CardInfoType.esforcoMes,
+                borderColor: AppColors.darkBlue,
                 backgroundColor: AppColors.lightBlue,
                 iconColor: AppColors.darkText,
               ),

@@ -49,7 +49,7 @@ class AppTheme {
         onPrimary: Colors.white,
         secondary: AppColors.baseBlue,
       ),
-      scaffoldBackgroundColor: AppColors.offWhite,
+      scaffoldBackgroundColor: Colors.white,
 
       // Cor de fundo global
 
