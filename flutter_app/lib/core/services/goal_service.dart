@@ -59,6 +59,14 @@ class GoalService {
     }
   }
 
+  /// Retorna o conjunto de IDs de metas que o usuário quer ver.
+  /// TODO: trocar o retorno hardcoded por chamada ao backend / prefs.
+  static Future<Set<String>> fetchEnabledSuggestedGoalIds() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    // por enquanto, usuário habilitou apenas a goal1; troque conforme necessidade
+    return {'goal1', 'goal2'};
+  }
+
   /// Retorna a lista de metas **sugeridas** para o usuário.
   /// Cada Goal já traz o `badgeAsset` correto.
   static Future<List<Goal>> fetchSuggestedGoals() async {

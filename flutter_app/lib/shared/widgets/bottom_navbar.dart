@@ -56,7 +56,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
       _NavItem(
         icon: Icons.bar_chart,
         label: 'Evolução',
-        routeAthlete: '/athlete_progress',
+        routeAthlete: AppRoutes.athleteEvolution,
         routeCoach: '/coach_progress',
       ),
       _NavItem(
