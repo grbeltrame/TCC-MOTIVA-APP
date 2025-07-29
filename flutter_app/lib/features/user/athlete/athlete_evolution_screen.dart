@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/exercise_weekly_summary_card.dart';
+import 'package:flutter_app/shared/widgets/exercise_weekly_summary_widget.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 
 class AthleteEvolutionScreen extends StatefulWidget {
@@ -35,7 +35,7 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const ExerciseWeeklySummarySimpleCard(),
+            const ExerciseWeeklySummaryWidget(),
             const SizedBox(height: 24),
           ],
         ),
