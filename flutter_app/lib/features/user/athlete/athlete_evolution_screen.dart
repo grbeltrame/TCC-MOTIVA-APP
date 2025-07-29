@@ -4,6 +4,7 @@ import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/exercise_weekly_summary_widget.dart';
+import 'package:flutter_app/shared/widgets/weekly_statistics_widget.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 
 class AthleteEvolutionScreen extends StatefulWidget {
@@ -35,8 +36,15 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Resumo semanal de exercícios (simples ou complexo)
             const ExerciseWeeklySummaryWidget(),
             const SizedBox(height: 24),
+
+            // Estatísticas da Semana
+            const WeeklyStatisticsWidget(),
+            const SizedBox(height: 24),
+
+            // ... quaisquer outras seções da página ...
           ],
         ),
       ),

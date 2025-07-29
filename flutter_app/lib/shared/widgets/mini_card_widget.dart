@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/mini_card_service.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/services/weekly_stats_service.dart';
 
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -37,7 +38,12 @@ class MiniCardWidget extends StatelessWidget {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return FutureBuilder<String>(
-      future: MiniCardService.getCardInfo(tipo: tipo),
+      future:
+          (tipo == WeeklyStatsType.cargas ||
+                  tipo == WeeklyStatsType.frequencia ||
+                  tipo == WeeklyStatsType.esforco)
+              ? WeeklyStatsService.getWeeklyStat(tipo: tipo)
+              : MiniCardService.getCardInfo(tipo: tipo),
       builder: (context, snapshot) {
         final value =
             snapshot.connectionState == ConnectionState.waiting
