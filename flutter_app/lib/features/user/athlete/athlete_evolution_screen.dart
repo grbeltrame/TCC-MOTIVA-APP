@@ -4,6 +4,8 @@ import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/exercise_weekly_summary_widget.dart';
+import 'package:flutter_app/shared/widgets/user_goals_section.dart';
+import 'package:flutter_app/shared/widgets/weekly_recomendation_section.dart';
 import 'package:flutter_app/shared/widgets/weekly_statistics_widget.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 
@@ -44,7 +46,11 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
             const WeeklyStatisticsWidget(),
             const SizedBox(height: 24),
 
-            // ... quaisquer outras seções da página ...
+            // Metas do Usuario
+            const UserGoalsSection(),
+
+            // Destaques da Semana
+            const WeeklyRecomendationSection(),
           ],
         ),
       ),

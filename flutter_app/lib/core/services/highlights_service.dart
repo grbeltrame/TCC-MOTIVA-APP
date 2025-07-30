@@ -1,5 +1,6 @@
 import 'package:flutter_app/shared/widgets/highlights_carousel.dart';
 import 'package:flutter_app/core/services/weekly_summary_service.dart';
+import 'package:flutter_app/shared/widgets/recomendations_carousel.dart';
 
 /// Serviço responsável por buscar os destaques e tipos habilitados.
 /// TODO: substituir mocks por chamadas reais ao backend.
@@ -39,5 +40,34 @@ class HighlightsService {
     // Aqui você poderia também filtrar por data usando week.start/end,
     // mas no mock atual só filtramos por tipo:
     return all.where((h) => enabled.contains(h.type)).toList();
+  }
+
+  /// NOVO: destaques estatísticos semanais no formato recomendation
+  /// TODO: conectar ao backend real quando disponível.
+  Future<List<RecomendationModel>> fetchWeeklyStatsRecommendations() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return [
+      RecomendationModel(
+        type: 'carga_variacao',
+        message: '+15 % de carga em relação à semana passada',
+      ),
+      RecomendationModel(
+        type: 'frequencia_variacao',
+        message: '+10 % de treinos em relação à semana passada',
+      ),
+      RecomendationModel(
+        type: 'esforco_variacao',
+        message: 'Esforço médio subiu 0.3 ponto',
+      ),
+      // adicione quantos quiser
+    ];
+  }
+
+  /// Tipos de destaques semanais habilitados pelo usuário.
+  /// TODO: integrar com backend de preferências reais.
+  Future<Set<String>> fetchEnabledWeeklyStatsTypes() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    // hard‑coded: suponha que o usuário queira só carga e esforço
+    return {'carga_variacao', 'esforco_variacao'};
   }
 }
