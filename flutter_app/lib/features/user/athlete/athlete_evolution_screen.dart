@@ -8,6 +8,7 @@ import 'package:flutter_app/shared/widgets/user_goals_section.dart';
 import 'package:flutter_app/shared/widgets/weekly_recomendation_section.dart';
 import 'package:flutter_app/shared/widgets/weekly_statistics_widget.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
+import 'package:flutter_app/shared/widgets/well_being_section.dart';
 
 class AthleteEvolutionScreen extends StatefulWidget {
   static const routeName = '/athlete_evolution';
@@ -48,6 +49,9 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
 
             // Metas do Usuario
             const UserGoalsSection(),
+
+            // Bem estar do Usuario
+            const WellBeingSection(),
 
             // Destaques da Semana
             const WeeklyRecomendationSection(),

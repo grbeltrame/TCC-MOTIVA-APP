@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 
 /// Todas as cores utilizadas globalmente no app.
 class AppColors {
+  static const Color darkText = Color(0xFF212121); //textos
   static const Color darkBlue = Color(0xFF092580); //azul escuro
   static const Color baseBlue = Color(0xFF0E3ACC); //azul base
   static const Color lightBlue = Color(0xFF2E5CF5); //azul base
-  static const Color darkText = Color(0xFF212121); //textos
-  static const Color mediumGray = Color(0xFFA1A1A1); //detalhes
-  static const Color lightGray = Color(0xFFD9D9D9); //fundo
-  static const Color offWhite = Color(0xFFF3F3F3); //fundo
+  static const Color mediumGray = Color(0xFFA1A1A1); //cinza esculo
+  static const Color lightGray = Color(0xFFD9D9D9); //cinza claro
+  static const Color offWhite = Color(0xFFF3F3F3); //off white
   static const Color baseMagenta = Color(0xFFCC0E43); //magenta base
   static const Color lightMagenta = Color(0xFFEE2A60); //magenta claro
+  static const Color darkMagenta = Color(0xFF99002C); //magenta escuro
 
   /// Gradiente de elipse (da parte superior até o final):
   static const Color gradientStart = Color.fromRGBO(238, 42, 96, 0.84);
