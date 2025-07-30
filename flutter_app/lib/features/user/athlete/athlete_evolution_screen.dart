@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/championship_section.dart';
 import 'package:flutter_app/shared/widgets/exercise_weekly_summary_widget.dart';
 import 'package:flutter_app/shared/widgets/user_goals_section.dart';
 import 'package:flutter_app/shared/widgets/weekly_recomendation_section.dart';
@@ -46,6 +47,9 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
             // Estatísticas da Semana
             const WeeklyStatisticsWidget(),
             const SizedBox(height: 24),
+
+            // Campeonatos
+            const ChampionshipsSection(),
 
             // Metas do Usuario
             const UserGoalsSection(),
