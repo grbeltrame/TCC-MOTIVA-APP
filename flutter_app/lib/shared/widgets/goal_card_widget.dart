@@ -132,7 +132,7 @@ class GoalCardWidget extends StatelessWidget {
                   children: [
                     SizedBox(
                       width:
-                          225 *
+                          210 *
                           scale, // ajuste esse valor até ficar do tamanho desejado
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8 * scale),
