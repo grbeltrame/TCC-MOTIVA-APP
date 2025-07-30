@@ -1,5 +1,6 @@
 // lib/shared/screens/athlete_home_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_app/shared/widgets/analysis_section.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
@@ -47,6 +48,9 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
             // Estatísticas da Semana
             const WeeklyStatisticsWidget(),
             const SizedBox(height: 24),
+
+            // Analises
+            const AnalysisSection(),
 
             // Campeonatos
             const ChampionshipsSection(),
