@@ -55,29 +55,52 @@ class _SimpleAnalysisCardState extends State<SimpleAnalysisCard> {
     late final Widget chart;
     switch (widget.summary.type) {
       case AnalysisType.effort:
+        // dentro do seu case AnalysisType.effort:
+        final days = widget.summary.intervalDays;
+        final intervalCount = (days / 6).ceil();
+
         chart = SfCartesianChart(
-          primaryXAxis: CategoryAxis(majorGridLines: MajorGridLines(width: 0)),
+          primaryXAxis: DateTimeAxis(
+            intervalType: DateTimeIntervalType.days,
+            interval: intervalCount.toDouble(), // <-- converte para double
+            dateFormat: DateFormat('dd/MM'),
+            edgeLabelPlacement: EdgeLabelPlacement.shift,
+            majorGridLines: const MajorGridLines(width: 0),
+            labelRotation: -45,
+          ),
           primaryYAxis: NumericAxis(
             minimum: 0,
             maximum: 10,
             interval: 2,
-            majorGridLines: MajorGridLines(width: 0.5),
+            majorGridLines: const MajorGridLines(width: 0.5),
             axisLine: const AxisLine(width: 0),
           ),
-          series: <LineSeries<ChartData, String>>[
-            LineSeries<ChartData, String>(
+          series: <SplineAreaSeries<ChartData, DateTime>>[
+            SplineAreaSeries<ChartData, DateTime>(
               dataSource: widget.summary.data,
-              xValueMapper:
-                  (d, _) => DateFormat.E('pt_BR').format(d.x).substring(0, 1),
+              xValueMapper: (d, _) => d.x,
               yValueMapper: (d, _) => d.y,
               markerSettings: const MarkerSettings(isVisible: true),
-              width: 2 * scale,
-              color: AppColors.baseBlue,
+              color: AppColors.baseBlue.withOpacity(0.3),
             ),
           ],
-          tooltipBehavior: TooltipBehavior(enable: true),
+          tooltipBehavior: TooltipBehavior(
+            enable: true,
+            header: '',
+            canShowMarker: true,
+            textStyle: TextStyle(fontSize: 16 * scale, color: Colors.white),
+            borderColor: AppColors.baseBlue,
+            borderWidth: 1,
+          ),
+          trackballBehavior: TrackballBehavior(
+            enable: true,
+            activationMode: ActivationMode.singleTap,
+            tooltipSettings: InteractiveTooltip(
+              format: 'point.x : point.y',
+              textStyle: TextStyle(fontSize: 16 * scale, color: Colors.white),
+            ),
+          ),
         );
-        break;
 
       case AnalysisType.frequency:
         chart = SfCartesianChart(
@@ -217,7 +240,7 @@ class _SimpleAnalysisCardState extends State<SimpleAnalysisCard> {
                     fontFamily: AppFonts.roboto,
                     fontWeight: AppFontWeight.bold,
                     fontSize: 12 * scale,
-                    color: AppColors.darkText,
+                    color: AppColors.darkBlue,
                   ),
                 ),
               ),

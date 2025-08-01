@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/analysis_service.dart';
+import 'package:flutter_app/shared/widgets/complex_analysis_section.dart';
 import 'package:flutter_app/shared/widgets/simple_analysis_section.dart';
 // import 'complex_analyses_section.dart'; // TODO quando for criar o modo complexo
 
@@ -20,8 +21,7 @@ class AnalysisSection extends StatelessWidget {
         if (mode == AnalysisDisplayMode.simple) {
           return const SimpleAnalysisSection();
         } else {
-          // TODO: implemente ComplexAnalysesSection()
-          return const SizedBox.shrink();
+          return const ComplexAnalysisSection();
         }
       },
     );

@@ -8,7 +8,7 @@ enum AnalysisType { effort, frequency, volume, load }
 class AnalysisService {
   static Future<AnalysisDisplayMode> fetchDisplayMode() async {
     await Future.delayed(const Duration(milliseconds: 100));
-    return AnalysisDisplayMode.simple;
+    return AnalysisDisplayMode.complex;
   }
 
   static Future<Set<AnalysisType>> fetchEnabledAnalysisTypes() async {
@@ -134,4 +134,49 @@ class AnalysisService {
   }) async {
     return [];
   }
+
+  /// Retorna apenas um AnalysisSummary para um tipo e intervalo
+  /// TODO: trocar por chamada real ao backend.
+  static Future<AnalysisSummary> fetchSummaryByType({
+    required AnalysisType type,
+    required int intervalDays,
+  }) async {
+    // reaproveita o mock de fetchSimpleAnalyses
+    final list = await fetchSimpleAnalyses(intervalDays: intervalDays);
+    return list.firstWhere((s) => s.type == type);
+  }
+
+  /// --- NOVOS MÉTODOS PARA OS DROPDOWNS DAS ABAS ---
+
+  /// Mock de categorias de movimentos
+  static Future<List<String>> fetchMovementCategories() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    // TODO: buscar as categorias reais no backend
+    return ['LPO', 'Ginástica', 'Endurance'];
+  }
+
+  /// Mock de movimentos por categoria
+  static Future<List<String>> fetchMovementsForCategory(String cat) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    // TODO: buscar movimentos reais de cada categoria no backend
+    switch (cat) {
+      case 'LPO':
+        return ['Clean', 'Jerk', 'Snatch', 'Deadlift'];
+      case 'Ginástica':
+        return ['Pullups', 'Toes to Bar', 'HSPU'];
+      case 'Endurance':
+        return ['Double Under', 'Burpee', 'Run'];
+      default:
+        return [];
+    }
+  }
+
+  /// Mock de benchmarks de WODs
+  static Future<List<String>> fetchCrossfitBenchmarks() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    // TODO: trazer lista de benchmarks do backend
+    return ['Fran', 'Cindy', 'Grace', 'Helen', 'Murph'];
+  }
+
+  // resto do service permanece inalterado...
 }
