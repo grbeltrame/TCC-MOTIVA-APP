@@ -6,6 +6,7 @@ import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/inisghts_section.dart';
 import 'package:flutter_app/shared/widgets/monthly_summary_widget.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/training_info_section.dart';
@@ -66,7 +67,8 @@ class _AthleteTrainingScreenState extends State<AthleteTrainingScreen> {
               onBoxChanged: _onBoxChanged,
               onDateChanged: _onDateChanged,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 40),
+            InsightsSection(),
           ],
         ),
       ),
