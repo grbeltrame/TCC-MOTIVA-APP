@@ -6,6 +6,8 @@ import 'package:flutter_app/shared/models/box.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/category_training_section.dart';
+import 'package:flutter_app/shared/widgets/icon_text_action_button.dart';
+import 'package:flutter_app/shared/widgets/primary_button.dart';
 import 'package:flutter_app/shared/widgets/text_action_button.dart';
 import 'package:flutter_app/shared/widgets/date_selector.dart';
 
@@ -175,6 +177,15 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
 
         // dentro do build da TrainingInfoSection, logo após o CategoryTrainingSection:
         SizedBox(height: 12 * scale),
+        Align(
+          alignment: Alignment.center,
+          child: PrimaryButton(
+            label: 'Ver turmas do dia',
+            onPressed: () {},
+          ), //redirecionar para pagina de turmas com info do profressores e informar qual turma deseja
+        ),
+        SizedBox(height: 12 * scale),
+
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
