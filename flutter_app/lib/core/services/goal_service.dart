@@ -114,7 +114,7 @@ class GoalService {
         deadlineWeeks: 3,
         startDate: weekAgo,
         unitsPerWeek: 2,
-        completedUnits: 1, // 1/6 concluído
+        completedUnits: 5,
         badgeAsset: _badgeFor('goal1'),
         status: GoalStatus.inProgress, // será ajustado abaixo
       ),
@@ -156,5 +156,23 @@ class GoalService {
   static Future<List<Goal>> fetchCompletedUserGoals() async {
     final all = await fetchUserGoals();
     return all.where((g) => g.status == GoalStatus.completed).toList();
+  }
+
+  /// Retorna apenas as metas do usuário que ainda estão em andamento
+  /// e cujo progresso >= [minProgress] (0.0–1.0).
+  /// TODO: substituir mock por chamada real ao backend, fornecendo um parâmetro
+  ///       minProgress para o filtro.
+  static Future<List<Goal>> fetchNearCompleteGoals({
+    double minProgress = 0.8,
+  }) async {
+    final all = await fetchActiveUserGoals();
+    return all.where((g) => g.progress >= minProgress).toList();
+  }
+
+  /// Retorna se o usuário habilitou ou não a seção “Progresso Próximo”.
+  /// TODO: ligar isso a uma preferência real no backend.
+  static Future<bool> fetchShowNearCompleteSection() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return true; // por enquanto sempre mostra
   }
 }

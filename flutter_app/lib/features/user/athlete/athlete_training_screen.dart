@@ -8,6 +8,7 @@ import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/inisghts_section.dart';
 import 'package:flutter_app/shared/widgets/monthly_summary_widget.dart';
+import 'package:flutter_app/shared/widgets/near_completion_section.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/training_info_section.dart';
 
@@ -63,12 +64,18 @@ class _AthleteTrainingScreenState extends State<AthleteTrainingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Treinos do dia
             TrainingInfoSection(
               onBoxChanged: _onBoxChanged,
               onDateChanged: _onDateChanged,
             ),
             const SizedBox(height: 40),
+
+            // Insights sobre o treino do dia
             InsightsSection(),
+
+            // Metas proximas de serem concluidas
+            const NearCompletionSection(),
           ],
         ),
       ),

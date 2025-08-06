@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/insights_service.dart';
 import 'package:flutter_app/shared/models/inisght_model.dart';
 import 'package:flutter_app/shared/widgets/inisghts_carousel.dart';
-import 'package:flutter_app/core/constants/app_colors.dart';
-import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/shared/widgets/recomendations_carousel.dart'; // opcional, se quiser combinar
 
 /// Seção de “Insights do Treino do Dia”:
 /// – só aparece se houver insights habilitados
