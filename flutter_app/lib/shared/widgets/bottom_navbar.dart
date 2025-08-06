@@ -45,7 +45,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
         icon: Icons.lightbulb_outline,
         label: 'Insights',
         routeAthlete: AppRoutes.athleteInsight,
-        routeCoach: '/coach_insights', // TODO: ajustar rota real do coach
+        routeCoach: '/coach_insights',
       ),
       _NavItem(
         icon: Icons.fitness_center,
@@ -62,7 +62,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
       _NavItem(
         icon: Icons.account_circle_outlined,
         label: 'Perfil',
-        routeAthlete: '/athlete_profile',
+        routeAthlete: AppRoutes.athleteProfile,
         routeCoach: '/coach_profile',
       ),
     ];
