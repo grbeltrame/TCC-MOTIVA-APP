@@ -30,7 +30,7 @@ class _AthleteProfileScreenState extends State<AthleteProfileScreen> {
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
           vertical: 16 * scale,
-          horizontal: 12 * scale,
+          horizontal: 8 * scale,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

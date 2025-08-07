@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/athlete_service.dart';
 import 'package:flutter_app/shared/models/athlete_profile.dart';
 import 'package:flutter_app/shared/widgets/icon_text_action_button.dart';
-import 'package:flutter_app/shared/widgets/text_action_button.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
@@ -13,7 +12,7 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 /// Seção de informações do perfil do atleta:
 /// • Container com borda arredondada
 /// • Foto, nome, categoria e botão Editar Perfil
-/// • Blocos: Perfil Referência, Boxes cadastrados
+/// • Blocos: Perfil Referência, Boxes cadastrados (em dropdown)
 /// • Barra de progresso e botões de ação
 class AthleteInfoSection extends StatefulWidget {
   const AthleteInfoSection({Key? key}) : super(key: key);
@@ -24,12 +23,12 @@ class AthleteInfoSection extends StatefulWidget {
 
 class _AthleteInfoSectionState extends State<AthleteInfoSection> {
   late Future<AthleteProfile> _futProfile;
+  String? _selectedBox;
 
   @override
   void initState() {
     super.initState();
-    _futProfile =
-        AthleteService.fetchAthleteProfile(); // TODO: implementar fetch real
+    _futProfile = AthleteService.fetchAthleteProfile(); // TODO: fetch real
   }
 
   @override
@@ -44,6 +43,11 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
         }
         final profile = snap.data!;
 
+        // Inicializa dropdown de box
+        if (profile.boxes.isNotEmpty && _selectedBox == null) {
+          _selectedBox = profile.boxes.first;
+        }
+
         // calcula % de perfil completo
         int filled = 0;
         if (profile.category != null) filled++;
@@ -56,7 +60,7 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
           margin: EdgeInsets.symmetric(vertical: 16 * scale),
           padding: EdgeInsets.symmetric(
             vertical: 16 * scale,
-            horizontal: 4 * scale,
+            horizontal: 6 * scale,
           ),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -66,24 +70,24 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ─── Foto + Nome + Categoria (label + valor/CTA) + Editar Perfil ───
+              // ─── Foto + Nome + Categoria + Editar Perfil ───
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Foto do atleta
                   CircleAvatar(
-                    radius: 32 * scale,
+                    radius: 28 * scale,
                     backgroundImage:
                         profile.photoUrl != null
                             ? NetworkImage(profile.photoUrl!)
                             : null,
                     child:
                         profile.photoUrl == null
-                            ? Icon(Icons.person, size: 32 * scale)
+                            ? Icon(Icons.person, size: 28 * scale)
                             : null,
                   ),
-                  SizedBox(width: 12 * scale),
-                  // Nome e Categoria em duas linhas
+                  SizedBox(width: 6 * scale),
+                  // Nome e Categoria
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,42 +98,46 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                           style: TextStyle(
                             fontFamily: AppFonts.roboto,
                             fontWeight: AppFontWeight.bold,
-                            fontSize: 20 * scale,
+                            fontSize: 18 * scale,
                             color: AppColors.darkText,
                           ),
                         ),
                         SizedBox(height: 4 * scale),
-                        // Categoria: label + valor ou CTA
+                        // Categoria: ícone + label decorado + valor/CTA
                         Row(
                           children: [
-                            Text(
-                              'Categoria:',
-                              style: TextStyle(
-                                fontFamily: AppFonts.roboto,
-                                fontWeight: AppFontWeight.bold,
-                                fontSize: 12 * scale,
-                                color: AppColors.darkText,
+                            Icon(
+                              Icons.star,
+                              size: 16 * scale,
+                              color: AppColors.darkBlue,
+                            ),
+                            SizedBox(width: 4 * scale),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6 * scale,
+                                vertical: 2 * scale,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.lightBlue.withAlpha(50),
+                                borderRadius: BorderRadius.circular(8 * scale),
+                              ),
+                              child: Text(
+                                'Categoria:',
+                                style: TextStyle(
+                                  fontFamily: AppFonts.roboto,
+                                  fontWeight: AppFontWeight.bold,
+                                  fontSize: 12 * scale,
+                                  color: AppColors.darkBlue,
+                                ),
                               ),
                             ),
                             SizedBox(width: 6 * scale),
                             if (profile.category != null)
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 8 * scale,
-                                  vertical: 2 * scale,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.lightGray,
-                                  borderRadius: BorderRadius.circular(
-                                    8 * scale,
-                                  ),
-                                ),
-                                child: Text(
-                                  profile.category!,
-                                  style: TextStyle(
-                                    fontSize: 12 * scale,
-                                    color: AppColors.darkText,
-                                  ),
+                              Text(
+                                profile.category!,
+                                style: TextStyle(
+                                  fontSize: 12 * scale,
+                                  color: AppColors.darkText,
                                 ),
                               )
                             else
@@ -146,33 +154,34 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                       ],
                     ),
                   ),
-                  // Botão Editar Perfil
+                  // Botão Editar Perfil com padding reduzido e ícone próximo
                   OutlinedButton.icon(
                     onPressed: () {
                       // TODO: navegar para editar perfil
                     },
                     icon: Icon(
                       Icons.edit,
-                      size: 16 * scale,
+                      size: 14 * scale,
                       color: AppColors.baseBlue,
                     ),
                     label: Text(
                       'Editar Perfil',
                       style: TextStyle(
-                        fontSize: 12 * scale,
+                        fontSize: 10 * scale,
                         color: AppColors.baseBlue,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 6 * scale,
-                        vertical: 1 * scale,
+                        horizontal: 4 * scale,
+                        vertical: 4,
                       ),
+                      minimumSize: Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       side: BorderSide(color: AppColors.baseBlue),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8 * scale),
                       ),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
                 ],
@@ -180,31 +189,66 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
 
               SizedBox(height: 16 * scale),
 
-              // ─── Blocos de informação (Perfil Referência, Boxes) ───
+              // ─── Blocos de informação ───
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Perfil de Referência
+                  // Perfil Referência
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Perfil de Referência:',
-                          style: TextStyle(
-                            fontFamily: AppFonts.roboto,
-                            fontWeight: AppFontWeight.bold,
-                            fontSize: 12 * scale,
-                            color: AppColors.darkText,
-                          ),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person_outline,
+                              size: 16 * scale,
+                              color: AppColors.darkBlue,
+                            ),
+                            SizedBox(width: 4 * scale),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6 * scale,
+                                vertical: 2 * scale,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.lightBlue.withAlpha(50),
+                                borderRadius: BorderRadius.circular(8 * scale),
+                              ),
+                              child: Text(
+                                'Perfil Referência:',
+                                style: TextStyle(
+                                  fontFamily: AppFonts.roboto,
+                                  fontWeight: AppFontWeight.bold,
+                                  fontSize: 12 * scale,
+                                  color: AppColors.darkBlue,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         SizedBox(height: 4 * scale),
                         if (profile.reference != null) ...[
-                          Text(profile.reference!.gender),
-                          Text(profile.reference!.ageRange),
-                          Text(profile.reference!.weightRange),
-                          Text(profile.reference!.practiceYears),
-                          Text(profile.reference!.heightRange),
+                          Text(
+                            profile.reference!.gender,
+                            style: TextStyle(color: AppColors.darkText),
+                          ),
+                          Text(
+                            profile.reference!.ageRange,
+                            style: TextStyle(color: AppColors.darkText),
+                          ),
+                          Text(
+                            profile.reference!.weightRange,
+                            style: TextStyle(color: AppColors.darkText),
+                          ),
+                          Text(
+                            profile.reference!.practiceYears,
+                            style: TextStyle(color: AppColors.darkText),
+                          ),
+                          Text(
+                            profile.reference!.heightRange,
+                            style: TextStyle(color: AppColors.darkText),
+                          ),
                         ] else
                           IconTextActionButton(
                             text: 'Complete seu perfil',
@@ -218,29 +262,68 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                     ),
                   ),
 
-                  SizedBox(width: 12 * scale),
+                  SizedBox(width: 18 * scale),
 
-                  // Boxes cadastrados
+                  // Boxes cadastrados agora em Dropdown
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Boxes Cadastrados:',
-                          style: TextStyle(
-                            fontFamily: AppFonts.roboto,
-                            fontWeight: AppFontWeight.bold,
-                            fontSize: 12 * scale,
-                            color: AppColors.darkText,
-                          ),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.storefront,
+                              size: 16 * scale,
+                              color: AppColors.darkBlue,
+                            ),
+                            SizedBox(width: 4 * scale),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6 * scale,
+                                vertical: 2 * scale,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.lightBlue.withAlpha(50),
+                                borderRadius: BorderRadius.circular(8 * scale),
+                              ),
+                              child: Text(
+                                'Boxes Cadastrados:',
+                                style: TextStyle(
+                                  fontFamily: AppFonts.roboto,
+                                  fontWeight: AppFontWeight.bold,
+                                  fontSize: 12 * scale,
+                                  color: AppColors.darkBlue,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         SizedBox(height: 4 * scale),
                         if (profile.boxes.isNotEmpty)
-                          Text(profile.boxes.join(', '))
+                          DropdownButton<String>(
+                            isExpanded: true,
+                            value: _selectedBox,
+                            underline: const SizedBox.shrink(),
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: AppColors.darkText,
+                            ),
+                            items:
+                                profile.boxes
+                                    .map(
+                                      (b) => DropdownMenuItem(
+                                        value: b,
+                                        child: Text(b),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (v) => setState(() => _selectedBox = v),
+                          )
                         else
-                          TextActionButton(
+                          IconTextActionButton(
                             text: 'Cadastrar-se em um box',
-                            icon: Icons.add,
+                            iconData: Icons.add,
+                            fontSize: 12 * scale,
                             onPressed:
                                 () => showAppBottomSheet(
                                   context,
@@ -253,23 +336,25 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                 ],
               ),
 
-              SizedBox(height: 16 * scale),
+              SizedBox(height: 24 * scale),
 
               // ─── Barra de progresso ───
-              Text(
-                'Status do perfil: ${(pct * 100).round()}% completo',
-                style: TextStyle(fontSize: 12 * scale),
-              ),
-              SizedBox(height: 4 * scale),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4 * scale),
-                child: LinearProgressIndicator(
-                  value: pct,
-                  minHeight: 6 * scale,
-                  backgroundColor: AppColors.lightGray,
-                  valueColor: AlwaysStoppedAnimation(AppColors.baseBlue),
+              if (pct < 1.0) ...[
+                Text(
+                  'Status do perfil: ${(pct * 100).round()}% completo',
+                  style: TextStyle(fontSize: 14 * scale),
                 ),
-              ),
+                SizedBox(height: 4 * scale),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4 * scale),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    minHeight: 6 * scale,
+                    backgroundColor: AppColors.lightGray,
+                    valueColor: AlwaysStoppedAnimation(AppColors.baseBlue),
+                  ),
+                ),
+              ],
 
               SizedBox(height: 16 * scale),
 
@@ -368,10 +453,6 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                   ),
                 ],
               ),
-
-              SizedBox(
-                height: 24 * scale,
-              ), // espaçamento para a próxima section
             ],
           ),
         );
