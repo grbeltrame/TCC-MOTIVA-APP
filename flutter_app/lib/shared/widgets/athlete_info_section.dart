@@ -8,10 +8,11 @@ import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_svg/svg.dart';
 
 /// Seção de informações do perfil do atleta:
 /// • Container com borda arredondada
-/// • Foto, nome, categoria e botão Editar Perfil
+/// • Foto, nome, categoria e botão Editar Perfil (posicionado)
 /// • Blocos: Perfil Referência, Boxes cadastrados (em dropdown)
 /// • Barra de progresso e botões de ação
 class AthleteInfoSection extends StatefulWidget {
@@ -56,6 +57,34 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
         const total = 3;
         final pct = filled / total;
 
+        // largura reservada para o botão "Editar Perfil" ao lado do nome
+        final btnReserve = 128 * scale;
+
+        // botão "Editar Perfil" (reutilizado no Stack)
+        final editBtn = OutlinedButton.icon(
+          onPressed: () {
+            // TODO: navegar para editar perfil
+          },
+          icon: Icon(Icons.edit, size: 14 * scale, color: AppColors.baseBlue),
+          label: Text(
+            'Editar Perfil',
+            style: TextStyle(fontSize: 10 * scale, color: AppColors.baseBlue),
+          ),
+          style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.symmetric(
+              horizontal: 4 * scale,
+              vertical: 12 * scale,
+            ),
+            minimumSize: const Size(0, 0),
+            visualDensity: VisualDensity.compact,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            side: BorderSide(color: AppColors.baseBlue),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8 * scale),
+            ),
+          ),
+        );
+
         return Container(
           margin: EdgeInsets.symmetric(vertical: 16 * scale),
           padding: EdgeInsets.symmetric(
@@ -70,120 +99,122 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ─── Foto + Nome + Categoria + Editar Perfil ───
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // ─── Cabeçalho em Stack: conteúdo ocupa 100% e o botão é posicionado ───
+              Stack(
                 children: [
-                  // Foto do atleta
-                  CircleAvatar(
-                    radius: 28 * scale,
-                    backgroundImage:
-                        profile.photoUrl != null
-                            ? NetworkImage(profile.photoUrl!)
-                            : null,
-                    child:
-                        profile.photoUrl == null
-                            ? Icon(Icons.person, size: 28 * scale)
-                            : null,
-                  ),
-                  SizedBox(width: 6 * scale),
-                  // Nome e Categoria
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Nome
-                        Text(
-                          profile.name,
-                          style: TextStyle(
-                            fontFamily: AppFonts.roboto,
-                            fontWeight: AppFontWeight.bold,
-                            fontSize: 18 * scale,
-                            color: AppColors.darkText,
-                          ),
-                        ),
-                        SizedBox(height: 4 * scale),
-                        // Categoria: ícone + label decorado + valor/CTA
-                        Row(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Foto do atleta
+                      CircleAvatar(
+                        radius: 28 * scale,
+                        backgroundImage:
+                            profile.photoUrl != null
+                                ? NetworkImage(profile.photoUrl!)
+                                : null,
+                        child:
+                            profile.photoUrl == null
+                                ? Icon(Icons.person, size: 28 * scale)
+                                : null,
+                      ),
+                      SizedBox(width: 6 * scale),
+
+                      // Nome e Categoria
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              Icons.star,
-                              size: 16 * scale,
-                              color: AppColors.darkBlue,
-                            ),
-                            SizedBox(width: 4 * scale),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 6 * scale,
-                                vertical: 2 * scale,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.lightBlue.withAlpha(50),
-                                borderRadius: BorderRadius.circular(8 * scale),
-                              ),
+                            // Nome (com padding à direita para não ficar sob o botão)
+                            Padding(
+                              padding: EdgeInsets.only(right: btnReserve),
                               child: Text(
-                                'Categoria:',
+                                profile.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontFamily: AppFonts.roboto,
                                   fontWeight: AppFontWeight.bold,
-                                  fontSize: 12 * scale,
-                                  color: AppColors.darkBlue,
+                                  fontSize: 18 * scale,
+                                  color: AppColors.darkText,
                                 ),
                               ),
                             ),
-                            SizedBox(width: 6 * scale),
-                            if (profile.category != null)
-                              Text(
-                                profile.category!,
-                                style: TextStyle(
-                                  fontSize: 12 * scale,
-                                  color: AppColors.darkText,
+                            SizedBox(height: 4 * scale),
+
+                            // Categoria: container decorado envolve apenas ícone + label
+                            Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 6 * scale,
+                                    vertical: 2 * scale,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.lightBlue.withAlpha(50),
+                                    borderRadius: BorderRadius.circular(
+                                      8 * scale,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SvgPicture.asset(
+                                        'assets/icons/rewards.svg', // ajuste se necessário
+                                        width: 16 * scale,
+                                        height: 16 * scale,
+                                        color: AppColors.darkBlue,
+                                      ),
+                                      SizedBox(width: 4 * scale),
+                                      Text(
+                                        'Categoria:',
+                                        style: TextStyle(
+                                          fontFamily: AppFonts.roboto,
+                                          fontWeight: AppFontWeight.bold,
+                                          fontSize: 12 * scale,
+                                          color: AppColors.darkBlue,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              )
-                            else
-                              IconTextActionButton(
-                                text: 'Complete seu perfil',
-                                iconData: Icons.add,
-                                fontSize: 12 * scale,
-                                onPressed: () {
-                                  // TODO: navegar para completar perfil
-                                },
-                              ),
+                                SizedBox(width: 6 * scale),
+
+                                // Valor/CTA fora do container decorado
+                                if (profile.category != null)
+                                  Expanded(
+                                    child: Text(
+                                      profile.category!,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12 * scale,
+                                        color: AppColors.darkText,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Expanded(
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: IconTextActionButton(
+                                        text: 'Complete seu perfil',
+                                        iconData: Icons.add,
+                                        fontSize: 12 * scale,
+                                        onPressed: () {
+                                          // TODO: navegar para completar perfil
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  // Botão Editar Perfil com padding reduzido e ícone próximo
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: navegar para editar perfil
-                    },
-                    icon: Icon(
-                      Icons.edit,
-                      size: 14 * scale,
-                      color: AppColors.baseBlue,
-                    ),
-                    label: Text(
-                      'Editar Perfil',
-                      style: TextStyle(
-                        fontSize: 10 * scale,
-                        color: AppColors.baseBlue,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 4 * scale,
-                        vertical: 4,
-                      ),
-                      minimumSize: Size(0, 0),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      side: BorderSide(color: AppColors.baseBlue),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8 * scale),
-                      ),
-                    ),
-                  ),
+
+                  // Botão Editar Perfil posicionado no topo-direito
+                  Positioned(top: 0, right: 0, child: editBtn),
                 ],
               ),
 
@@ -198,24 +229,25 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.person_outline,
-                              size: 16 * scale,
-                              color: AppColors.darkBlue,
-                            ),
-                            SizedBox(width: 4 * scale),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 6 * scale,
-                                vertical: 2 * scale,
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6 * scale,
+                            vertical: 2 * scale,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.lightBlue.withAlpha(50),
+                            borderRadius: BorderRadius.circular(8 * scale),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.search,
+                                size: 16 * scale,
+                                color: AppColors.darkBlue,
                               ),
-                              decoration: BoxDecoration(
-                                color: AppColors.lightBlue.withAlpha(50),
-                                borderRadius: BorderRadius.circular(8 * scale),
-                              ),
-                              child: Text(
+                              SizedBox(width: 4 * scale),
+                              Text(
                                 'Perfil Referência:',
                                 style: TextStyle(
                                   fontFamily: AppFonts.roboto,
@@ -224,8 +256,8 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                                   color: AppColors.darkBlue,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         SizedBox(height: 4 * scale),
                         if (profile.reference != null) ...[
@@ -264,29 +296,30 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
 
                   SizedBox(width: 18 * scale),
 
-                  // Boxes cadastrados agora em Dropdown
+                  // Boxes cadastrados em Dropdown
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.storefront,
-                              size: 16 * scale,
-                              color: AppColors.darkBlue,
-                            ),
-                            SizedBox(width: 4 * scale),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 6 * scale,
-                                vertical: 2 * scale,
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6 * scale,
+                            vertical: 2 * scale,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.lightBlue.withAlpha(50),
+                            borderRadius: BorderRadius.circular(8 * scale),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.home_outlined,
+                                size: 16 * scale,
+                                color: AppColors.darkBlue,
                               ),
-                              decoration: BoxDecoration(
-                                color: AppColors.lightBlue.withAlpha(50),
-                                borderRadius: BorderRadius.circular(8 * scale),
-                              ),
-                              child: Text(
+                              SizedBox(width: 4 * scale),
+                              Text(
                                 'Boxes Cadastrados:',
                                 style: TextStyle(
                                   fontFamily: AppFonts.roboto,
@@ -295,8 +328,8 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                                   color: AppColors.darkBlue,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         SizedBox(height: 4 * scale),
                         if (profile.boxes.isNotEmpty)
@@ -340,19 +373,58 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
 
               // ─── Barra de progresso ───
               if (pct < 1.0) ...[
-                Text(
-                  'Status do perfil: ${(pct * 100).round()}% completo',
-                  style: TextStyle(fontSize: 14 * scale),
+                // Label + texto ao lado (pedido)
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Status do Perfil: ',
+                        style: TextStyle(
+                          fontFamily: AppFonts.roboto,
+                          fontWeight: AppFontWeight.bold,
+                          fontSize: 14 * scale,
+                          color: AppColors.baseBlue,
+                        ),
+                      ),
+                      TextSpan(
+                        text: '${(pct * 100).round()}% completo',
+                        style: TextStyle(
+                          fontFamily: AppFonts.roboto,
+                          fontWeight: AppFontWeight.regular,
+                          fontSize: 14 * scale,
+                          color: AppColors.darkText,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 SizedBox(height: 4 * scale),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4 * scale),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    minHeight: 6 * scale,
-                    backgroundColor: AppColors.lightGray,
-                    valueColor: AlwaysStoppedAnimation(AppColors.baseBlue),
-                  ),
+
+                // Linha de status + porcentagem (apenas número) ao lado
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4 * scale),
+                        child: LinearProgressIndicator(
+                          value: pct,
+                          minHeight: 6 * scale,
+                          backgroundColor: AppColors.lightGray,
+                          valueColor: AlwaysStoppedAnimation(
+                            AppColors.baseBlue,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8 * scale),
+                    Text(
+                      '${(pct * 100).round()}%',
+                      style: TextStyle(
+                        fontSize: 12 * scale,
+                        color: AppColors.darkText,
+                      ),
+                    ),
+                  ],
                 ),
               ],
 

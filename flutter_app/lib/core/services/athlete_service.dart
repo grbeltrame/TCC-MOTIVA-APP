@@ -26,7 +26,7 @@ class AthleteService {
     return AthleteProfile(
       name: 'Camila Souza',
       photoUrl: null, // ou URL real
-      category: 'Intermediario', // simula perfil ainda incompleto
+      category: null, // simula perfil ainda incompleto
       reference: await AthleteService.fetchAthleteProfileReference(),
       boxes: await TrainingService.fetchUserBoxes().then(
         (list) => list.map((b) => b.name).toList(),

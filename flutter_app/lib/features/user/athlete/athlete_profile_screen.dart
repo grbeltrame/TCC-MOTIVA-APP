@@ -4,6 +4,7 @@ import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/athlete_info_section.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/profile_summarry_section.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 
 class AthleteProfileScreen extends StatefulWidget {
@@ -34,7 +35,13 @@ class _AthleteProfileScreenState extends State<AthleteProfileScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [const AthleteInfoSection(), const SizedBox(height: 24)],
+          children: [
+            // Informações sobre o perfil
+            AthleteInfoSection(),
+
+            // Informações de Resumo de Registros do Usuario
+            ProfileSummarySection(),
+          ],
         ),
       ),
     );

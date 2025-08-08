@@ -80,7 +80,7 @@ class _InsightsCarouselState extends State<InsightsCarousel> {
             children: [
               // ícone de medalha
               SvgPicture.asset(
-                'assets/icons/social_leaderboard.svg', // TODO: SVG real
+                'assets/icons/social_leaderboard.svg',
                 width: 28 * scale,
                 height: 28 * scale,
                 color: AppColors.lightBlue,

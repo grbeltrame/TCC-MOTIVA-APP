@@ -6,6 +6,8 @@ class CardInfoType {
   static const String esforcoMes = 'esforco_mes'; // Esforço médio no mês
   static const String prsTotal =
       'prs_total'; // PRs total (fora do widget atual)
+  static const String treinosTotal =
+      'prs_total'; // PRs total (fora do widget atual)
 
   // Aqui podemos adicionar outros tipos no futuro, conforme a necessidade
 }
@@ -26,7 +28,10 @@ class MiniCardService {
       case CardInfoType.esforcoMes:
         return '7.1/10';
       case CardInfoType.prsTotal:
-        return '28 movimentos';
+        return '12 PRs';
+      case CardInfoType.treinosTotal:
+        // TODO backend: GET /stats/total/workouts
+        return '63 treinos';
       default:
         return 'N/A';
     }
