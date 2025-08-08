@@ -1,9 +1,11 @@
 // lib/shared/screens/athlete_profile_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_app/shared/widgets/achievements_badges_section.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/athlete_info_section.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/profile_nav_hub_section.dart';
 import 'package:flutter_app/shared/widgets/profile_summarry_section.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 
@@ -41,6 +43,12 @@ class _AthleteProfileScreenState extends State<AthleteProfileScreen> {
 
             // Informações de Resumo de Registros do Usuario
             ProfileSummarySection(),
+
+            // Hub de navegação
+            ProfileNavHubSection(),
+
+            // Metas concluidas
+            AchievementsBadgesSection(),
           ],
         ),
       ),

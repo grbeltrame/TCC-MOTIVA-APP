@@ -128,6 +128,16 @@ class GoalService {
         badgeAsset: _badgeFor('goal2'),
         status: GoalStatus.inProgress, // será ajustado abaixo
       ),
+      Goal(
+        id: 'goal3',
+        title: 'Treinar 3 vezes por semana',
+        deadlineWeeks: 6,
+        startDate: twoWeeksAgo,
+        unitsPerWeek: 3,
+        completedUnits: 18,
+        badgeAsset: _badgeFor('goal3'),
+        status: GoalStatus.inProgress, // será ajustado abaixo
+      ),
     ];
 
     // Ajusta status: inProgress vs completed
@@ -156,6 +166,16 @@ class GoalService {
   static Future<List<Goal>> fetchCompletedUserGoals() async {
     final all = await fetchUserGoals();
     return all.where((g) => g.status == GoalStatus.completed).toList();
+  }
+
+  //retorna somente os assets dos badges de metas concluídas.
+  /// Por padrão deduplica por caminho do asset.
+  /// TODO (backend): expor um endpoint dedicado, ex.:
+  /// GET /users/{id}/badges?achieved=true  -> retorna lista de badges (id, nome, assetUrl)
+  static Future<List<String>> fetchCompletedBadges({bool dedupe = true}) async {
+    final completed = await fetchCompletedUserGoals();
+    final assets = completed.map((g) => g.badgeAsset);
+    return dedupe ? assets.toSet().toList() : assets.toList();
   }
 
   /// Retorna apenas as metas do usuário que ainda estão em andamento

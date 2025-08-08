@@ -72,6 +72,10 @@ flutter:
     - assets/icons/exercise.svg
     - assets/icons/calendar_clock.svg
     - assets/icons/rewards.svg
+    - assets/icons/bar_chart_4_bars.svg
+    - assets/icons/crisis_alert.svg
+    - assets/icons/settings.svg
+    - assets/icons/trending_up.svg
     - assets/icons/goal1.png
     - assets/icons/goal2.png
     - assets/icons/goal3.png
