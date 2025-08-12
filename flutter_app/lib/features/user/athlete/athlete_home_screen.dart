@@ -3,7 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/daily_training_summary_card.dart';
+import 'package:flutter_app/shared/widgets/home_greeting_section.dart';
+import 'package:flutter_app/shared/widgets/home_primary_actions.dart';
 import 'package:flutter_app/shared/widgets/monthly_summary_widget.dart';
+import 'package:flutter_app/shared/widgets/near_completion_section.dart';
+import 'package:flutter_app/shared/widgets/pending_actions_section.dart';
+import 'package:flutter_app/shared/widgets/performance_insights_carousel.dart';
 import 'package:flutter_app/shared/widgets/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/weekly_summary_widget.dart';
 
@@ -35,7 +41,25 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [const MonthlySummaryWidget(), const SizedBox(height: 24)],
+          children: [
+            // Saudação inicial
+            const HomeGreetingSection(),
+
+            // Inisghts de performance do usuario
+            const PerformanceInsightsCarousel(),
+
+            // Navegação incial
+            const HomePrimaryActions(),
+
+            // Resumo do Treino
+            const DailyTrainingSummaryCard(),
+
+            // Ações Pendentes
+            const PendingActionsSection(),
+
+            // Metas quase atingidas
+            const AlmostReachedGoalsSection(),
+          ],
         ),
       ),
     );

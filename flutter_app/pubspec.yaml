@@ -76,6 +76,7 @@ flutter:
     - assets/icons/crisis_alert.svg
     - assets/icons/settings.svg
     - assets/icons/trending_up.svg
+    - assets/icons/run.svg
     - assets/icons/goal1.png
     - assets/icons/goal2.png
     - assets/icons/goal3.png
@@ -100,6 +101,9 @@ flutter:
       fonts:
         - asset: assets/fonts/Montserrat/static/Montserrat-Bold.ttf
           weight: 700
+        - asset: assets/fonts/Montserrat/static/Montserrat-Regular.ttf
+          weight: 400
+
 
     - family: Roboto
       fonts:
@@ -107,6 +111,8 @@ flutter:
           weight: 300
         - asset: assets/fonts/Roboto/static/Roboto-Regular.ttf
           weight: 400
+        - asset: assets/fonts/Roboto/static/Roboto-Italic.ttf
+          weight: 400          
         - asset: assets/fonts/Roboto/static/Roboto-Bold.ttf
           weight: 700
         - asset: assets/fonts/Roboto/static/Roboto-Medium.ttf

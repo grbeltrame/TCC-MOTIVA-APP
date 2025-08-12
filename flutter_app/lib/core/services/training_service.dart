@@ -142,3 +142,99 @@ class TrainingService {
     return result;
   }
 }
+
+/// Resumo de um treino para o card “resumo do dia”.
+class DailyWorkoutSummary {
+  final String category; // ex.: WOD, LPO, Ginastica, Endurance
+  final List<String> stimuli; // ex.: ['Força', 'Cardio']
+  final String objectiveShort; // texto curtíssimo
+  final String quote; // frase motivacional
+
+  DailyWorkoutSummary({
+    required this.category,
+    required this.stimuli,
+    required this.objectiveShort,
+    required this.quote,
+  });
+}
+
+extension DailySummaries on TrainingService {
+  /// Retorna os resumos de treino do dia por box.
+  /// Usa os dados já existentes, mas preenche "stimuli/objective/quote" com mocks.
+  /// TODO (backend): substituir por payload real com fields equivalentes.
+  static Future<List<DailyWorkoutSummary>> fetchDailyWorkoutSummariesForBox({
+    required String boxId,
+    required DateTime date,
+  }) async {
+    // Podemos decidir com base em quais categorias têm bloco hoje:
+    final blocks = await TrainingService.fetchTrainingBlocksByCategoryForDate(
+      boxId: boxId,
+      date: date,
+    );
+
+    final List<DailyWorkoutSummary> list = [];
+
+    for (final entry in blocks.entries) {
+      final cat = entry.key;
+      final hasBlock = entry.value != null;
+      if (!hasBlock) continue;
+
+      // MOCKS por categoria — troque por dados reais quando houver
+      switch (cat) {
+        case 'WOD':
+          list.add(
+            DailyWorkoutSummary(
+              category: 'WOD',
+              stimuli: ['Força', 'Cardio'],
+              objectiveShort: 'Clean e resistência em rounds longos',
+              quote: 'Consistência vence intensidade. Hoje é mais um passo.',
+            ),
+          );
+          break;
+        case 'LPO':
+          list.add(
+            DailyWorkoutSummary(
+              category: 'LPO',
+              stimuli: ['Técnica', 'Força'],
+              objectiveShort: 'Arranco leve + base de força',
+              quote: 'Qualidade > quantidade — refine cada repetição.',
+            ),
+          );
+          break;
+        case 'Ginastica':
+          list.add(
+            DailyWorkoutSummary(
+              category: 'Ginástica',
+              stimuli: ['Técnica', 'Controle'],
+              objectiveShort: 'Pull-up estrito e estabilidade em HS',
+              quote: 'Controle do corpo, mente tranquila.',
+            ),
+          );
+          break;
+        case 'Endurance':
+          list.add(
+            DailyWorkoutSummary(
+              category: 'Endurance',
+              stimuli: ['Cardio'],
+              objectiveShort: 'Pacing constante no metcon longo',
+              quote: 'Respire, mantenha o ritmo e termine forte.',
+            ),
+          );
+          break;
+        default:
+          // fallback
+          list.add(
+            DailyWorkoutSummary(
+              category: cat,
+              stimuli: ['Geral'],
+              objectiveShort: 'Trabalho técnico do dia',
+              quote: 'Um pouco por dia leva longe.',
+            ),
+          );
+      }
+    }
+
+    // Se nenhuma categoria tiver bloco hoje, retorna lista vazia:
+    return list;
+  }
+}

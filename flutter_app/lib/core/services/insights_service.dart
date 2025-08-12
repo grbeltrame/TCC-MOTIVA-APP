@@ -5,11 +5,21 @@ import 'package:flutter_app/shared/models/inisght_model.dart';
 /// Serviço responsável por buscar insights diários.
 /// TODO: substituir mocks por chamadas reais ao backend.
 class InsightsService {
+  /// Tipo usado para insights de desempenho do atleta.
+  static const String performanceType = 'athlete_performance';
+
   /// Retorna o conjunto de tipos de insights que o usuário deixou habilitados.
   Future<Set<String>> fetchEnabledInsightTypes() async {
     await Future.delayed(const Duration(milliseconds: 100));
     // TODO: buscar preferência real do usuário
-    return {'training_performance', 'sleep_insight'};
+    return {'training_performance', 'sleep_insight', performanceType};
+  }
+
+  /// Mostrar/esconder a section de insights de desempenho.
+  /// TODO BACKEND: preferência específica do usuário para esta section
+  Future<bool> fetchShowPerformanceInsightsSection() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return true; // mock: ligado
   }
 
   /// Busca todos os insights gerados para o dia corrente.
@@ -30,6 +40,21 @@ class InsightsService {
             'Seu sono médio caiu 1h nos últimos 3 dias.\n'
             'Considere dormir 30 min a mais hoje.',
       ),
+      InsightsModel(
+        type: performanceType,
+        message:
+            'Você se sente mais constante quando treina de manhã.'
+            'Já reparou?',
+      ),
     ];
+  }
+
+  /// Apenas insights de desempenho para a data.
+  /// TODO BACKEND: aceitar filtro ?type=athlete_performance no endpoint.
+  Future<List<InsightsModel>> fetchDailyPerformanceInsights(
+    DateTime date,
+  ) async {
+    final all = await fetchDailyInsights(date);
+    return all.where((i) => i.type == performanceType).toList();
   }
 }

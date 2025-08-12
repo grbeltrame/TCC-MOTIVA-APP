@@ -6,7 +6,7 @@
 class ProfileService {
   // MOCK: dados estáticos até termos API
   final List<String> _roles = ['student', 'coach'];
-  String get currentRoleLabel => 'Coach'; // ou 'Coach'
+  String get currentRoleLabel => 'Aluno'; // ou 'Coach'
   List<String> get coachBoxNames => []; // boxes cadastrados
   String? get currentBoxName => null;
   int get unreadCount => 5;
