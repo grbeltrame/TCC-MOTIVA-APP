@@ -24,4 +24,24 @@ class EffortService {
       ); // Exemplo: 50%, 55%, 60%...
     });
   }
+
+  /// Valor padrão do esforço (1..10). Pode vir de preferências ou último registro.
+  Future<int> fetchDefaultEffort() async {
+    await Future.delayed(const Duration(milliseconds: 120));
+    // TODO(back): buscar valor default real no perfil/último treino
+    return 5; // mock
+  }
+
+  /// ====== NOVO ======
+  /// Envia o esforço para o backend.
+  /// [effort] deve ser 1..10. [classId] e [date] contextualizam o registro.
+  Future<void> submitEffort({
+    required int effort,
+    String? classId,
+    required DateTime date,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 240));
+    // TODO(back): POST /effort { effort(1..10), classId, date }
+    // Se necessário, incluir userId/athleteId via Auth/ProfileService.
+  }
 }

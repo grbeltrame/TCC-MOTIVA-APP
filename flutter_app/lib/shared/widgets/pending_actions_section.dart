@@ -52,7 +52,17 @@ class PendingActionsSection extends StatelessWidget {
               SizedBox(height: 6 * scale),
               // CTA (texto azul com ícone "edit")
               TextButton.icon(
-                onPressed: () => Navigator.of(context).pushNamed(action.route),
+                onPressed: () async {
+                  if (action.onTap != null) {
+                    await action.onTap!(
+                      context,
+                    ); // abre o bottom sheet na mesma tela
+                  } else if (action.route.isNotEmpty) {
+                    Navigator.of(
+                      context,
+                    ).pushNamed(action.route); // navega quando for o caso
+                  }
+                },
                 icon: Icon(
                   action.ctaIcon,
                   color: AppColors.baseBlue,

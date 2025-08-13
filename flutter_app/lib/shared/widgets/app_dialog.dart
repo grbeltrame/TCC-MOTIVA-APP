@@ -40,7 +40,7 @@ class AppDialog extends StatelessWidget {
     final scale = MediaQuery.of(context).size.width / 375.0;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: EdgeInsets.symmetric(horizontal: 40 * scale),
+      insetPadding: EdgeInsets.symmetric(horizontal: 30 * scale),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           24 * scale,
@@ -68,7 +68,7 @@ class AppDialog extends StatelessWidget {
             // Mensagem
             Text(
               message,
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.left,
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontWeight: AppFontWeight.regular,
