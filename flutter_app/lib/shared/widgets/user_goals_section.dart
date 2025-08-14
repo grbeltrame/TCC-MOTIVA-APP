@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/goal_service.dart';
+import 'package:flutter_app/shared/widgets/create_goal/create_goal_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/goal_card_widget.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
@@ -51,9 +52,7 @@ class UserGoalsSection extends StatelessWidget {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   TextButton.icon(
-                    onPressed: () {
-                      // TODO: navegar para o fluxo de criação de nova meta
-                    },
+                    onPressed: () => showCreateGoalBottomSheet(context),
                     icon: Icon(
                       Icons.add,
                       size: 20 * scale,

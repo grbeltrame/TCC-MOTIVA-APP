@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/goal_service.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 
 /// Section "Selos e Conquistas"
 /// - mostra apenas os badges das metas CONCLUÍDAS
@@ -44,9 +45,9 @@ class AchievementsBadgesSection extends StatelessWidget {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: () {
-                    // TODO: chamar fluxo de adicionar campeonato
-                  },
+                  onPressed:
+                      () =>
+                          Navigator.pushNamed(context, AppRoutes.athleteGoals),
                   icon: Icon(
                     Icons.add,
                     size: 20 * scale,

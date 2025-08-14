@@ -5,11 +5,38 @@ import 'package:flutter_app/core/services/goal_service.dart';
 import 'package:flutter_app/shared/widgets/goal_card_widget.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/routes/app_routes.dart'; // <-- necessário para navegar
 
 /// Seção que exibe título, subtítulo e até 3 metas sugeridas com botão “+”.
 /// Se não houver sugestões, nada (nem título) aparece.
 class SuggestedGoalsSection extends StatelessWidget {
   const SuggestedGoalsSection({Key? key}) : super(key: key);
+
+  Future<void> _handleAdd(BuildContext context, Goal suggested) async {
+    // 1) adiciona a sugestão à lista do usuário (origem: system)
+    final newId = await GoalService.addSuggestedGoalToUser(suggested);
+
+    if (!context.mounted) return;
+
+    // 2) feedback + atalho para All Goals (aba Sistema)
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Meta adicionada às suas metas do sistema.'),
+        action: SnackBarAction(
+          label: 'Ver',
+          onPressed: () {
+            Navigator.of(context, rootNavigator: true).pushNamed(
+              AppRoutes.athleteAllGoals,
+              arguments: {
+                'initialTab': 'system', // abre na aba Sistema
+                'highlightGoalId': newId, // destaca a meta criada
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +44,6 @@ class SuggestedGoalsSection extends StatelessWidget {
     const horizontalPad = 6.0;
 
     return FutureBuilder<List<Goal>>(
-      // <-- aqui:
       future: GoalService.fetchSuggestedGoals(),
       builder: (ctx, snapGoals) {
         if (snapGoals.connectionState != ConnectionState.done) {
@@ -70,9 +96,7 @@ class SuggestedGoalsSection extends StatelessWidget {
                       unitsPerWeek: filtered[i].unitsPerWeek,
                       completedUnits: filtered[i].completedUnits,
                       showAddButton: true,
-                      onAdd: () {
-                        // TODO: integrar adição da meta ao usuário
-                      },
+                      onAdd: () => _handleAdd(context, filtered[i]),
                     ),
                     if (i < filtered.length - 1) SizedBox(height: 12 * scale),
                   ],
