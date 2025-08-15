@@ -7,7 +7,7 @@ import 'package:flutter_app/core/services/mini_card_service.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 
-import 'mini_card_widget.dart';
+import 'cards/mini_card_widget.dart';
 
 /// Widget principal de Resumo Mensal.
 /// Carrega timestamp e exibe três MiniCards (PRs, Frequência, Esforço).

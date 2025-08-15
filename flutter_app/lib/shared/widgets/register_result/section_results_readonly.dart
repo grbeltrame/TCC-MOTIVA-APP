@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/core/services/workout_result_service.dart';
+import 'package:flutter_app/core/services/workout/workout_result_service.dart';
 
 class SectionResultsReadonly extends StatelessWidget {
   const SectionResultsReadonly({

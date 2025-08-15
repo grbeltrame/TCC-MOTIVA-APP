@@ -3,13 +3,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/effort_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/text_carousel.dart';
-import 'package:flutter_app/shared/widgets/text_action_button.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/effort_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/carousels/text_carousel.dart';
+import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:flutter_app/core/services/weekly_summary_service.dart';
+import 'package:flutter_app/shared/widgets/register_pr/register_pr_bottom_sheet.dart';
 
 /// O widget principal de Resumo Semanal, agora incluindo o título da seção.
 class WeeklySummaryWidget extends StatefulWidget {
@@ -359,7 +360,16 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                       child: TextActionButton(
                                         icon: Icons.add,
                                         text: 'Registrar PR',
-                                        onPressed: () {},
+                                        onPressed: () async {
+                                          await showRegisterPrBottomSheet(
+                                            context,
+                                          );
+                                          if (!mounted) return;
+                                          setState(() {
+                                            // reconsulta os PRs pra refletir o que acabou de ser registrado
+                                            _prsFut = _service.fetchPRs();
+                                          });
+                                        },
                                       ),
                                     ),
                                   ],

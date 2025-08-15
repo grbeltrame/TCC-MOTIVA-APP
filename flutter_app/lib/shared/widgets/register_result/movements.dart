@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/core/services/workout_result_service.dart';
-import 'package:flutter_app/core/services/movement_service.dart';
+import 'package:flutter_app/core/services/workout/workout_result_service.dart';
+import 'package:flutter_app/core/services/workout/movement_service.dart';
 
 /// ===== Model/Controllers da linha (público p/ orquestrador e seções) =====
 class MovementRowData {
@@ -49,6 +49,30 @@ class MovementRowData {
       expectsTimeSec: p.expectsTimeSec,
     );
   }
+  factory MovementRowData.empty({
+    bool expectsQuantity = true,
+    bool expectsLoadKg = false,
+    bool expectsTimeSec = false,
+  }) {
+    return MovementRowData(
+      qtyController: TextEditingController(),
+      nameController: TextEditingController(),
+      loadController: expectsLoadKg ? TextEditingController() : null,
+      timeController: expectsTimeSec ? TextEditingController() : null,
+      expectsQuantity: expectsQuantity,
+      expectsLoadKg: expectsLoadKg,
+      expectsTimeSec: expectsTimeSec,
+    );
+  }
+
+  // getters de conveniência (só leitura)
+  String get movement => nameController.text.trim();
+  int? get qty =>
+      expectsQuantity ? int.tryParse(qtyController.text.trim()) : null;
+  num? get loadKg =>
+      expectsLoadKg ? num.tryParse((loadController?.text ?? '').trim()) : null;
+  int? get timeSec =>
+      expectsTimeSec ? int.tryParse((timeController?.text ?? '').trim()) : null;
 
   void dispose() {
     qtyController.dispose();

@@ -1,9 +1,9 @@
 // lib/shared/widgets/exercise_weekly_summary_widget.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/services/user_preferences_service.dart';
-import 'exercise_weekly_summary_simple_card.dart';
-import 'exercise_weekly_summary_complex_card.dart';
+import 'package:flutter_app/core/services/users/user_preferences_service.dart';
+import 'cards/exercise_weekly_summary_simple_card.dart';
+import 'cards/exercise_weekly_summary_complex_card.dart';
 
 /// Mostra **ou** o Simple **ou** o Complex, conforme preferência do usuário.
 class ExerciseWeeklySummaryWidget extends StatelessWidget {

@@ -1,16 +1,16 @@
 // lib/shared/screens/athlete_training_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/services/training_service.dart';
+import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/box.dart';
 import 'package:flutter_app/shared/models/training.dart';
-import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
-import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/inisghts_section.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/inisghts_section.dart';
 import 'package:flutter_app/shared/widgets/monthly_summary_widget.dart';
-import 'package:flutter_app/shared/widgets/near_completion_section.dart';
-import 'package:flutter_app/shared/widgets/top_navbar.dart';
-import 'package:flutter_app/shared/widgets/training_info_section.dart';
+import 'package:flutter_app/shared/widgets/mocks/near_completion_section.dart';
+import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/training_info_section.dart';
 
 class AthleteTrainingScreen extends StatefulWidget {
   static const routeName = '/athlete_training';

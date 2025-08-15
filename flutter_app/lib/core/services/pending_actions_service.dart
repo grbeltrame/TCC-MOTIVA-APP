@@ -2,14 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/shared/widgets/effort_only_bottom_sheet.dart';
-import 'package:flutter_app/core/services/workout_result_service.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/effort_only_bottom_sheet.dart';
+import 'package:flutter_app/core/services/workout/workout_result_service.dart';
 
 // TODO backend: traga o papel do usuário de um ProfileService real
 // import 'package:flutter_app/core/services/profile_service.dart';
 
 // IMPORT do bottom sheet (ajuste o caminho se necessário)
-import 'package:flutter_app/shared/widgets/register_result_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 
 enum UserRole { athlete, coach }
 

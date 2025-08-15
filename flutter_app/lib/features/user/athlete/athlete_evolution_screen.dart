@@ -1,16 +1,16 @@
 // lib/shared/screens/athlete_home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/analysis_section.dart';
-import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
-import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/championship_section.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/analysis_section.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/championship_section.dart';
 import 'package:flutter_app/shared/widgets/exercise_weekly_summary_widget.dart';
-import 'package:flutter_app/shared/widgets/user_goals_section.dart';
-import 'package:flutter_app/shared/widgets/weekly_recomendation_section.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/user_goals_section.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/weekly_recomendation_section.dart';
 import 'package:flutter_app/shared/widgets/weekly_statistics_widget.dart';
-import 'package:flutter_app/shared/widgets/top_navbar.dart';
-import 'package:flutter_app/shared/widgets/well_being_section.dart';
+import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/well_being_section.dart';
 
 class AthleteEvolutionScreen extends StatefulWidget {
   static const routeName = '/athlete_evolution';

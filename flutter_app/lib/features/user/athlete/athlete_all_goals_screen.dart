@@ -1,17 +1,17 @@
 // lib/shared/screens/athlete_home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/back_button.dart';
-import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
-import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/top_navbar.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/utils/back_button.dart';
+import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 
 // ===== ADIÇÕES =====
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/goal_service.dart';
-import 'package:flutter_app/shared/widgets/goal_card_widget.dart';
-import 'package:flutter_app/shared/widgets/app_dialog.dart';
+import 'package:flutter_app/shared/widgets/cards/goal_card_widget.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 // ===================
 
 class AthleteAllGoalsScreen extends StatefulWidget {

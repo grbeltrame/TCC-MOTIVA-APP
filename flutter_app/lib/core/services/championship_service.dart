@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/models/championship.dart';
-import 'package:flutter_app/shared/widgets/app_dialog.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 
 class ChampionshipService {
   /// Retorna apenas os campeonatos cujo [startDate] está no mês corrente.

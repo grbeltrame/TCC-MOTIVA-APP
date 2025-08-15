@@ -1,5 +1,5 @@
 // lib/core/services/goal_service.dart
-import 'package:flutter_app/shared/widgets/goal_card_widget.dart'; // para Goal
+import 'package:flutter_app/shared/widgets/cards/goal_card_widget.dart'; // para Goal
 
 /// Situação de cada meta: sugerida, em andamento ou concluída.
 enum GoalStatus { suggested, inProgress, completed }

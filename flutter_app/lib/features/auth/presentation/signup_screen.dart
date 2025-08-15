@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/widgets/form_fields.dart';
-import 'package:flutter_app/shared/widgets/primary_button.dart';
-import 'package:flutter_app/shared/widgets/radio_option_tile.dart';
-import 'package:flutter_app/shared/widgets/text_action_button.dart';
+import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
+import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
+import 'package:flutter_app/shared/widgets/utils/radio_option_tile.dart';
+import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 
 /// Perfis básicos disponíveis para cadastro.
 enum ProfileOption { athlete, coach, intern, athleteCoach, athleteIntern }

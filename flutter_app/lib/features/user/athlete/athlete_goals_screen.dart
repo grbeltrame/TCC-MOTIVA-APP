@@ -1,14 +1,14 @@
 // lib/shared/screens/athlete_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/widgets/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/back_button.dart';
-import 'package:flutter_app/shared/widgets/bottom_navbar.dart';
-import 'package:flutter_app/shared/widgets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/utils/back_button.dart';
+import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/create_goal/create_goal_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/near_completion_section.dart';
-import 'package:flutter_app/shared/widgets/section_badges_summary.dart';
-import 'package:flutter_app/shared/widgets/top_navbar.dart';
+import 'package:flutter_app/shared/widgets/mocks/near_completion_section.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/section_badges_summary.dart';
+import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 
 class AthleteGoalsScreen extends StatefulWidget {
   static const routeName = '/athlete_goals';

@@ -1,4 +1,4 @@
-import 'package:flutter_app/shared/widgets/recomendations_carousel.dart';
+import 'package:flutter_app/shared/widgets/carousels/recomendations_carousel.dart';
 
 /// Serviço responsável por buscar os destaques e tipos habilitados.
 /// TODO: substituir mocks por chamadas reais ao backend.

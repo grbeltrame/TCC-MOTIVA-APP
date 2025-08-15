@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/widgets/back_button.dart';
-import 'package:flutter_app/shared/widgets/form_fields.dart';
-import 'package:flutter_app/shared/widgets/primary_button.dart';
+import 'package:flutter_app/shared/widgets/utils/back_button.dart';
+import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
+import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 
 /// -----FORGOT PASSWORD FLOW - STEP 1-----
 /// Solicita o e-mail do usuário e envia código de recuperação.

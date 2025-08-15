@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/widgets/back_button.dart';
-import 'package:flutter_app/shared/widgets/form_fields.dart';
-import 'package:flutter_app/shared/widgets/primary_button.dart';
-import 'package:flutter_app/shared/widgets/app_dialog.dart';
+import 'package:flutter_app/shared/widgets/utils/back_button.dart';
+import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
+import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 
 /// -----FORGOT PASSWORD FLOW - STEP 3-----
 /// Tela para o usuário inserir e confirmar a nova senha após verificar o código.

@@ -1,4 +1,4 @@
-import 'package:flutter_app/shared/widgets/alerts_carousel.dart';
+import 'package:flutter_app/shared/widgets/carousels/alerts_carousel.dart';
 import 'package:flutter_app/core/services/weekly_summary_service.dart'; // ↖ precise deste import
 
 /// Serviço responsável por buscar os alertas e tipos habilitados.
