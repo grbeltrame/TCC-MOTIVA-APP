@@ -7,11 +7,20 @@ import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 
 /// TopNavbar genérico: ele mesmo consulta o ProfileService e se atualiza.
-/// Basta usá-lo em qualquer Scaffold: appBar: const TopNavbar()
+/// Use em qualquer Scaffold: appBar: TopNavbar(onRegisterBox: ..., [showSystemBack:false])
 class TopNavbar extends StatefulWidget implements PreferredSizeWidget {
   /// Chamado quando o usuário clica em “Cadastrar box”
   final VoidCallback onRegisterBox;
-  const TopNavbar({Key? key, required this.onRegisterBox}) : super(key: key);
+
+  /// Se true, mostra a seta **nativa** do AppBar (rara necessidade).
+  /// Por padrão deixamos **false** porque você já usa o AppBackButton no corpo.
+  final bool showSystemBack;
+
+  const TopNavbar({
+    Key? key,
+    required this.onRegisterBox,
+    this.showSystemBack = false,
+  }) : super(key: key);
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -53,22 +62,29 @@ class _TopNavbarState extends State<TopNavbar> {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return AppBar(
+      // 🔧 Impede o Flutter de injetar a seta automaticamente
+      automaticallyImplyLeading: false,
+      // Se você QUISER a seta nativa em alguma tela específica, habilite:
+      leading: widget.showSystemBack ? const BackButton() : null,
+
       backgroundColor: Theme.of(context).colorScheme.surface,
       elevation: 0,
       centerTitle: false,
       titleSpacing: 16.0 * scale,
-      // aqui a “borda” de baixo:
+
+      // “borda” inferior
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(0.5 * scale),
         child: Container(height: 0.5 * scale, color: AppColors.mediumGray),
       ),
+
       title: Row(
         children: [
           // 1) Perfil: dropdown só se tiver ambos
           if (_hasStudent && _hasCoach)
             _buildMenu<String>(
               label: _currentRole,
-              items: ['Aluno', 'Coach'],
+              items: const ['Aluno', 'Coach'],
               onSelected: (v) {
                 // TODO BACKEND: setActiveRole(v)
                 setState(() => _currentRole = v);
@@ -78,13 +94,10 @@ class _TopNavbarState extends State<TopNavbar> {
           else
             Text(
               _currentRole,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge // que no seu ThemeData é Montserrat Bold 16px
-                  ?.copyWith(
-                    fontSize: 18 * scale, // se quiser manter o scale
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: 18 * scale,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
 
           SizedBox(width: 24 * scale),
@@ -102,7 +115,7 @@ class _TopNavbarState extends State<TopNavbar> {
                   scale: scale,
                 )
                 : TextActionButton(
-                  icon: Icons.add, // ícone de “+”
+                  icon: Icons.add,
                   text: 'Cadastrar box',
                   onPressed:
                       () => showAppBottomSheet(context, const BoxSignupCoach()),
@@ -120,7 +133,6 @@ class _TopNavbarState extends State<TopNavbar> {
                   size: 24 * scale,
                   color: Theme.of(context).colorScheme.onBackground,
                 ),
-
                 onPressed: () {
                   // TODO: navegar para notificações
                 },
@@ -163,7 +175,8 @@ class _TopNavbarState extends State<TopNavbar> {
     required double scale,
   }) {
     return PopupMenuButton<T>(
-      initialValue: items.contains(label as T) ? label as T : null,
+      initialValue:
+          items.whereType<String>().contains(label) ? (label as T?) : null,
       onSelected: (value) => onSelected(value.toString()),
       itemBuilder:
           (_) =>
@@ -173,12 +186,9 @@ class _TopNavbarState extends State<TopNavbar> {
                       value: e,
                       child: Text(
                         e.toString(),
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium // Roboto Regular 14px, definido no seu AppTheme
-                            ?.copyWith(
-                              color: Theme.of(context).colorScheme.onBackground,
-                            ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onBackground,
+                        ),
                       ),
                     ),
                   )
@@ -187,12 +197,10 @@ class _TopNavbarState extends State<TopNavbar> {
         children: [
           Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .bodyLarge // ou outro conforme sua hierarquia
-                ?.copyWith(color: Theme.of(context).colorScheme.onBackground),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
           ),
-
           const Icon(Icons.keyboard_arrow_down),
         ],
       ),

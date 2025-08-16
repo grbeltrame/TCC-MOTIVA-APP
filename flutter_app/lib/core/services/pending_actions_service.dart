@@ -61,7 +61,7 @@ class PendingActionsService {
   fetchAthletePendenciesForToday(DateTime day) async {
     await Future.delayed(const Duration(milliseconds: 200));
     // TODO backend: checar no servidor (hoje) se faltam registros
-    return (needResult: true, needEffort: false, needTime: false);
+    return (needResult: false, needEffort: true, needTime: false);
   }
 
   /// Mock da pendência do COACH (treinos de amanhã).

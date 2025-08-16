@@ -175,7 +175,6 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
         if (_selectedBox != null)
           CategoryTrainingSection(boxId: _selectedBox!.id, date: _selectedDate),
 
-        // dentro do build da TrainingInfoSection, logo após o CategoryTrainingSection:
         SizedBox(height: 12 * scale),
         Align(
           alignment: Alignment.center,

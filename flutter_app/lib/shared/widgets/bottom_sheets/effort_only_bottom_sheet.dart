@@ -1,3 +1,4 @@
+// lib/shared/widgets/register_result/effort_only_bottom_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
@@ -20,6 +21,7 @@ Future<void> showEffortOnlyBottomSheet(
   required String classId,
   required DateTime trainingDate,
 }) {
+  // Abre na hora; conteúdo carrega por dentro com skeletons
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -44,7 +46,8 @@ class _EffortOnlyContent extends StatefulWidget {
 class _EffortOnlyContentState extends State<_EffortOnlyContent> {
   final EffortService _effortService = EffortService();
 
-  late Future<void> _future;
+  // loading state
+  bool _loading = true;
 
   // Results (read-only)
   String _coachName = '';
@@ -61,7 +64,7 @@ class _EffortOnlyContentState extends State<_EffortOnlyContent> {
   @override
   void initState() {
     super.initState();
-    _future = _load();
+    _startLoad(); // carrega sem bloquear a abertura do sheet
   }
 
   @override
@@ -72,31 +75,39 @@ class _EffortOnlyContentState extends State<_EffortOnlyContent> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    // Coach
-    final coach = await CoachService.fetchCoachForClass(widget.classId);
-    _coachName = coach.name;
-
-    // Result preenchido pelo coach
-    _coachResult = await WorkoutResultService.fetchCoachFilledResult(
-      classId: widget.classId,
-      date: widget.trainingDate,
-    );
-
-    // Label da turma (busca pelas turmas do dia e casa pelo id)
-    final classes = await WorkoutResultService.fetchClassesForDate(
-      widget.trainingDate,
-    );
-    final cls = classes.where((c) => c.id == widget.classId).toList();
-    _classLabel = cls.isNotEmpty ? cls.first.label24() : '—';
-
-    // Adaptações: só se Adaptado == Sim
-    _showAdaptations = _coachResult?.adapted == true;
-    if (_showAdaptations) {
-      final presets = await WorkoutResultService.fetchMovementsForClass(
-        widget.classId,
+  Future<void> _startLoad() async {
+    try {
+      // Carrega em paralelo o que dá
+      final coachF = CoachService.fetchCoachForClass(widget.classId);
+      final filledF = WorkoutResultService.fetchCoachFilledResult(
+        classId: widget.classId,
+        date: widget.trainingDate,
       );
-      _applyMovementPresets(presets);
+      final classesF = WorkoutResultService.fetchClassesForDate(
+        widget.trainingDate,
+      );
+
+      final coach = await coachF;
+      final filled = await filledF;
+      final classes = await classesF;
+
+      _coachName = coach.name;
+      _coachResult = filled;
+
+      final cls = classes.where((c) => c.id == widget.classId).toList();
+      _classLabel = cls.isNotEmpty ? cls.first.label24() : '—';
+
+      // Se o coach marcou "adaptado", pre-carrega presets
+      _showAdaptations = _coachResult?.adapted == true;
+      if (_showAdaptations) {
+        final presets = await WorkoutResultService.fetchMovementsForClass(
+          widget.classId,
+        );
+        _applyMovementPresets(presets);
+      }
+    } finally {
+      if (!mounted) return;
+      setState(() => _loading = false);
     }
   }
 
@@ -180,7 +191,7 @@ class _EffortOnlyContentState extends State<_EffortOnlyContent> {
       Navigator.of(sheetContext).pop();
     }
 
-    // 4) Mostra o mesmo AppDialog do exemplo (Navigator raiz)
+    // 4) AppDialog no Navigator raiz
     await Future.microtask(() {});
     await showDialog(
       context: sheetContext,
@@ -191,7 +202,7 @@ class _EffortOnlyContentState extends State<_EffortOnlyContent> {
             icon: Icons.star_outline,
             title: 'Você está progredindo!',
             message:
-                'Cada resultado registrado te deixa mais próximo do seus objetivos.\n\n'
+                'Cada resultado registrado te deixa mais próximo dos seus objetivos.\n\n'
                 'Mantenha o foco!',
             primaryAction: TextButton(
               onPressed:
@@ -213,113 +224,146 @@ class _EffortOnlyContentState extends State<_EffortOnlyContent> {
       16 * scale,
     );
 
-    return FutureBuilder<void>(
-      future: _future,
-      builder: (ctx, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          return Padding(
-            padding: EdgeInsets.all(24 * scale),
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        // segurança
-        if (_coachResult == null) {
-          return Padding(
-            padding: EdgeInsets.all(24 * scale),
-            child: Text(
-              'Não foi possível carregar os dados do treino.',
-              style: TextStyle(
-                fontFamily: AppFonts.roboto,
-                fontSize: 14 * scale,
-                color: AppColors.darkText,
+    return AppBottomSheet(
+      child: Padding(
+        padding: contentPad,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // handle
+            Center(
+              child: Container(
+                width: 40 * scale,
+                height: 4 * scale,
+                decoration: BoxDecoration(
+                  color: AppColors.mediumGray.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(2 * scale),
+                ),
               ),
             ),
-          );
-        }
+            SizedBox(height: 12 * scale),
 
-        return AppBottomSheet(
-          child: Padding(
-            padding: contentPad,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // handle
-                Center(
-                  child: Container(
-                    width: 40 * scale,
-                    height: 4 * scale,
-                    decoration: BoxDecoration(
-                      color: AppColors.mediumGray.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(2 * scale),
-                    ),
+            // Results (read-only)
+            if (_loading)
+              _ResultsReadonlySkeleton(scale: scale)
+            else if (_coachResult != null)
+              SectionResultsReadonly(
+                coachName: _coachName,
+                result: _coachResult!,
+                classLabel: _classLabel,
+              )
+            else
+              Padding(
+                padding: EdgeInsets.only(bottom: 8 * scale),
+                child: Text(
+                  'Não foi possível carregar os dados do treino.',
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontSize: 14 * scale,
+                    color: AppColors.darkText,
                   ),
                 ),
-                SizedBox(height: 12 * scale),
+              ),
 
-                // Results (read-only) — mesma organização de linhas
-                SectionResultsReadonly(
-                  coachName: _coachName,
-                  result: _coachResult!,
-                  classLabel: _classLabel,
-                ),
+            SizedBox(height: 10 * scale),
 
-                SizedBox(height: 10 * scale),
+            const Divider(height: 24),
 
-                // Divider antes do próximo bloco (independente de adaptações)
-                const Divider(height: 24),
-
-                // Adaptações — só se Adaptado == Sim
-                if (_showAdaptations) ...[
-                  SectionAdaptations(
-                    visible: true,
-                    movementRows: _movementRows,
-                    inputDecorationBuilder: _inputDecoration,
-                  ),
-                  SizedBox(height: 10 * scale),
-                  const Divider(height: 24),
-                ],
-
-                // Esforço sempre
-                SectionEffort(
-                  classId: widget.classId,
-                  onEffortChanged: (val) => _effortValue = val,
-                ),
-
-                SizedBox(height: 14 * scale),
-
-                // Botões simples (substitua pelos seus, se já tiver)
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24 * scale),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            // Adaptações — só se Adaptado == Sim
+            if (_showAdaptations)
+              (_loading
+                  ? _AdaptationsSkeleton(scale: scale)
+                  : Column(
                     children: [
-                      ElevatedButton(
-                        style: AppTheme.secondaryButtonStyle(
-                          AppColors.darkBlue,
-                          AppColors.baseBlue,
-                        ),
-                        onPressed: () => _handleRegisterPressed(context),
-
-                        child: const Text('Registrar'),
+                      SectionAdaptations(
+                        visible: true,
+                        movementRows: _movementRows,
+                        inputDecorationBuilder: _inputDecoration,
                       ),
-
-                      OutlinedButton(
-                        style: AppTheme.tertiaryButtonStyle(
-                          AppColors.baseMagenta,
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Fechar'),
-                      ),
+                      SizedBox(height: 10 * scale),
+                      const Divider(height: 24),
                     ],
-                  ),
-                ),
-              ],
+                  )),
+
+            // Esforço sempre
+            SectionEffort(
+              classId: widget.classId,
+              onEffortChanged: (val) => _effortValue = val,
             ),
-          ),
-        );
-      },
+
+            SizedBox(height: 14 * scale),
+
+            // Botões
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 24 * scale),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    style: AppTheme.secondaryButtonStyle(
+                      AppColors.darkBlue,
+                      AppColors.baseBlue,
+                    ),
+                    onPressed: () => _handleRegisterPressed(context),
+                    child: const Text('Registrar'),
+                  ),
+                  OutlinedButton(
+                    style: AppTheme.tertiaryButtonStyle(AppColors.baseMagenta),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Fechar'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+}
+
+/// Skeletons para abrir sem travar o sheet
+class _ResultsReadonlySkeleton extends StatelessWidget {
+  const _ResultsReadonlySkeleton({required this.scale});
+  final double scale;
+
+  Widget _bar(double h) => Container(
+    height: h * scale,
+    decoration: BoxDecoration(
+      color: AppColors.lightGray,
+      borderRadius: BorderRadius.circular(6 * scale),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _bar(16),
+        SizedBox(height: 6 * scale),
+        _bar(36),
+        SizedBox(height: 6 * scale),
+        _bar(36),
+      ],
+    );
+  }
+}
+
+class _AdaptationsSkeleton extends StatelessWidget {
+  const _AdaptationsSkeleton({required this.scale});
+  final double scale;
+
+  Widget _row() => Container(
+    height: 40 * scale,
+    decoration: BoxDecoration(
+      color: AppColors.lightGray,
+      borderRadius: BorderRadius.circular(6 * scale),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [_row(), SizedBox(height: 6 * scale), _row()]);
   }
 }

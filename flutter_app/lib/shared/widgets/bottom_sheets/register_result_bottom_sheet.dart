@@ -1,3 +1,4 @@
+// lib/shared/widgets/register_result/register_result_bottom_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
@@ -5,7 +6,6 @@ import 'package:flutter_app/core/services/workout/movement_service.dart';
 import 'package:flutter_app/core/services/workout/workout_result_service.dart';
 import 'package:flutter_app/core/theme/app_theme.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/register_result/section_effort.dart';
 
 // sections & helpers
 import 'package:flutter_app/shared/widgets/register_result/section_results.dart';
@@ -16,6 +16,7 @@ import 'package:flutter_app/core/services/effort_service.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 
 Future<void> showRegisterResultBottomSheet(BuildContext context) {
+  // Abre o sheet imediatamente — conteúdo carrega por dentro.
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -37,8 +38,11 @@ class _RegisterResultSheetContent extends StatefulWidget {
 
 class _RegisterResultSheetContentState
     extends State<_RegisterResultSheetContent> {
-  late Future<_FormData> _future;
+  // --- loading / dados ---
+  bool _loading = true;
+  _FormData? _data;
 
+  // --- estado de formulário ---
   String? _selectedCategory;
   String? _selectedAdapted; // 'Sim' | 'Não'
   String? _selectedCompleted; // 'Sim' | 'Não'
@@ -55,48 +59,10 @@ class _RegisterResultSheetContentState
   String? _movementsForClassId;
   final List<MovementRowData> _movementRows = [];
 
-  Future<void> handleRegisterPressed(BuildContext sheetContext) async {
-    // 1) Envia pro service (1..10)
-    await _effortService.submitEffort(
-      effort: _effortValue,
-      classId: _selectedClassId,
-      date: DateTime.now(),
-    );
-
-    // 2) Fecha o bottom sheet (usa o contexto do sheet)
-    if (Navigator.of(sheetContext).canPop()) {
-      Navigator.of(sheetContext).pop();
-    }
-
-    // 3) Abre o dialog no Navigator raiz (evita confusão com o sheet)
-    //    Microtask só pra garantir o próximo frame.
-    await Future.microtask(() {});
-
-    await showDialog(
-      context: sheetContext, // pode ser o do sheet
-      useRootNavigator: true, // <- joga no Navigator raiz
-      barrierDismissible: false,
-      builder:
-          (dialogCtx) => AppDialog(
-            icon: Icons.star_outline,
-            title: 'Você está progredindo!',
-            message:
-                'Cada resultado registrado te deixa mais próximo do seus objetivos.\n\n'
-                'Mantenha o foco!',
-            primaryAction: TextButton(
-              onPressed:
-                  () => Navigator.of(dialogCtx, rootNavigator: true).pop(),
-              style: TextButton.styleFrom(foregroundColor: AppColors.darkBlue),
-              child: const Text('OK'),
-            ),
-          ),
-    );
-  }
-
   @override
   void initState() {
     super.initState();
-    _future = _load();
+    _startLoad(); // dispara o carregamento sem bloquear a abertura do sheet
   }
 
   @override
@@ -105,21 +71,26 @@ class _RegisterResultSheetContentState
     super.dispose();
   }
 
-  Future<_FormData> _load() async {
-    final cats = await WorkoutResultService.fetchUserCategories();
-    final defCat = await WorkoutResultService.fetchDefaultUserCategory();
-    final classes = await WorkoutResultService.fetchClassesForDate(
-      DateTime.now(),
-    );
-    final wodTypes = await WorkoutResultService.fetchWorkoutTypes();
+  Future<void> _startLoad() async {
+    // carrega tudo em paralelo
+    final catsF = WorkoutResultService.fetchUserCategories();
+    final defCatF = WorkoutResultService.fetchDefaultUserCategory();
+    final classesF = WorkoutResultService.fetchClassesForDate(DateTime.now());
+    final wodTypesF = WorkoutResultService.fetchWorkoutTypes();
 
+    final cats = await catsF;
+    final defCat = await defCatF;
+    final classes = await classesF;
+    final wodTypes = await wodTypesF;
+
+    // estados iniciais
     _selectedCategory = defCat;
     _selectedAdapted = 'Não';
     _selectedCompleted = 'Sim';
     _selectedClassId = classes.isNotEmpty ? classes.first.id : null;
     _selectedWodType = wodTypes.isNotEmpty ? wodTypes.first : null;
 
-    // Pré-carrega movimentos conforme a turma (sem o aluno enviar nada).
+    // Pré-carrega movimentos da turma default (se houver)
     final presets =
         _selectedClassId != null
             ? await WorkoutResultService.fetchMovementsForClass(
@@ -128,12 +99,15 @@ class _RegisterResultSheetContentState
             : <MovementPreset>[];
     _applyMovementPresets(_selectedClassId, presets);
 
-    return _FormData(
+    _data = _FormData(
       categories: cats,
       defaultCategory: defCat,
       classes: classes,
       wodTypes: wodTypes,
     );
+
+    if (!mounted) return;
+    setState(() => _loading = false);
   }
 
   void _applyMovementPresets(String? classId, List<MovementPreset> presets) {
@@ -147,6 +121,7 @@ class _RegisterResultSheetContentState
 
   Future<void> _reloadMovementsForClass(String classId) async {
     final presets = await WorkoutResultService.fetchMovementsForClass(classId);
+    if (!mounted) return;
     setState(() => _applyMovementPresets(classId, presets));
   }
 
@@ -182,6 +157,38 @@ class _RegisterResultSheetContentState
     );
   }
 
+  Future<void> _handleRegisterPressed(BuildContext sheetContext) async {
+    await _effortService.submitEffort(
+      effort: _effortValue,
+      classId: _selectedClassId,
+      date: DateTime.now(),
+    );
+
+    if (Navigator.of(sheetContext).canPop()) {
+      Navigator.of(sheetContext).pop();
+    }
+    await Future.microtask(() {});
+    await showDialog(
+      context: sheetContext,
+      useRootNavigator: true,
+      barrierDismissible: false,
+      builder:
+          (dialogCtx) => AppDialog(
+            icon: Icons.star_outline,
+            title: 'Você está progredindo!',
+            message:
+                'Cada resultado registrado te deixa mais próximo do seus objetivos.\n\n'
+                'Mantenha o foco!',
+            primaryAction: TextButton(
+              onPressed:
+                  () => Navigator.of(dialogCtx, rootNavigator: true).pop(),
+              style: TextButton.styleFrom(foregroundColor: AppColors.darkBlue),
+              child: const Text('OK'),
+            ),
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -192,134 +199,121 @@ class _RegisterResultSheetContentState
       16 * scale,
     );
 
-    return FutureBuilder<_FormData>(
-      future: _future,
-      builder: (ctx, snap) {
-        if (snap.connectionState != ConnectionState.done) {
-          return Padding(
-            padding: EdgeInsets.all(24 * scale),
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        }
-        final data = snap.data!;
-
-        return AppBottomSheet(
-          child: Padding(
-            padding: contentPad,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Center(
-                  child: Container(
-                    width: 40 * scale,
-                    height: 4 * scale,
-                    decoration: BoxDecoration(
-                      color: AppColors.mediumGray.withOpacity(.6),
-                      borderRadius: BorderRadius.circular(2 * scale),
-                    ),
-                  ),
+    return AppBottomSheet(
+      child: Padding(
+        padding: contentPad,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Center(
+              child: Container(
+                width: 40 * scale,
+                height: 4 * scale,
+                decoration: BoxDecoration(
+                  color: AppColors.mediumGray.withOpacity(.6),
+                  borderRadius: BorderRadius.circular(2 * scale),
                 ),
-                SizedBox(height: 12 * scale),
-                Text(
-                  'Vamos registrar seu resultado?',
-                  style: TextStyle(
-                    fontFamily: AppFonts.montserrat,
-                    fontWeight: AppFontWeight.bold,
-                    fontSize: 20 * scale,
-                    color: AppColors.darkText,
-                  ),
-                ),
-                SizedBox(height: 10 * scale),
-
-                // === Section: resultados (labels/dropdowns)
-                SectionResults(
-                  categories: data.categories,
-                  selectedCategory: _selectedCategory,
-                  onChangedCategory:
-                      (v) => setState(() => _selectedCategory = v),
-
-                  selectedAdapted: _selectedAdapted,
-                  onChangedAdapted: (v) => setState(() => _selectedAdapted = v),
-
-                  selectedCompleted: _selectedCompleted,
-                  onChangedCompleted:
-                      (v) => setState(() => _selectedCompleted = v),
-
-                  classes: data.classes,
-                  selectedClassId: _selectedClassId,
-                  onChangedClass: (v) async {
-                    setState(() => _selectedClassId = v);
-                    if (v != null) await _reloadMovementsForClass(v);
-                  },
-
-                  wodTypes: data.wodTypes,
-                  selectedWodType: _selectedWodType,
-                  onChangedWodType: (v) => setState(() => _selectedWodType = v),
-
-                  amrapRounds: _amrapRounds,
-                  amrapReps: _amrapReps,
-                  onChangedAmrapRounds:
-                      (val) => setState(() => _amrapRounds = val),
-                  onChangedAmrapReps: (val) => setState(() => _amrapReps = val),
-
-                  forTimeSeconds: _forTimeSeconds,
-                  onChangedForTime:
-                      (val) => setState(() => _forTimeSeconds = val),
-                ),
-
-                SizedBox(height: 10 * scale),
-
-                // === Section: adaptações (condicional)
-                SectionAdaptations(
-                  visible: _selectedAdapted == 'Sim',
-                  movementRows: _movementRows,
-                  inputDecorationBuilder: _inputDecoration,
-                ),
-
-                SizedBox(height: 8 * scale),
-
-                // ===== Divisor (sempre visível) =====
-                const Divider(height: 24),
-
-                // ===== Section: Esforço =====
-                SectionEffort(
-                  classId: _selectedClassId,
-                  onEffortChanged: (val) => _effortValue = val,
-                ),
-
-                //===== Botões no rodapé =====
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24 * scale),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton(
-                        style: AppTheme.secondaryButtonStyle(
-                          AppColors.darkBlue,
-                          AppColors.baseBlue,
-                        ),
-                        onPressed: () => handleRegisterPressed(context),
-
-                        child: const Text('Registrar'),
-                      ),
-
-                      OutlinedButton(
-                        style: AppTheme.tertiaryButtonStyle(
-                          AppColors.baseMagenta,
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Fechar'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        );
-      },
+            SizedBox(height: 12 * scale),
+            Text(
+              'Vamos registrar seu resultado?',
+              style: TextStyle(
+                fontFamily: AppFonts.montserrat,
+                fontWeight: AppFontWeight.bold,
+                fontSize: 20 * scale,
+                color: AppColors.darkText,
+              ),
+            ),
+            SizedBox(height: 10 * scale),
+
+            // === Section: resultados (ou skeleton enquanto carrega)
+            if (_loading)
+              _ResultsSkeleton(scale: scale)
+            else
+              SectionResults(
+                categories: _data!.categories,
+                selectedCategory: _selectedCategory,
+                onChangedCategory: (v) => setState(() => _selectedCategory = v),
+
+                selectedAdapted: _selectedAdapted,
+                onChangedAdapted: (v) => setState(() => _selectedAdapted = v),
+
+                selectedCompleted: _selectedCompleted,
+                onChangedCompleted:
+                    (v) => setState(() => _selectedCompleted = v),
+
+                classes: _data!.classes,
+                selectedClassId: _selectedClassId,
+                onChangedClass: (v) async {
+                  setState(() => _selectedClassId = v);
+                  if (v != null) await _reloadMovementsForClass(v);
+                },
+
+                wodTypes: _data!.wodTypes,
+                selectedWodType: _selectedWodType,
+                onChangedWodType: (v) => setState(() => _selectedWodType = v),
+
+                amrapRounds: _amrapRounds,
+                amrapReps: _amrapReps,
+                onChangedAmrapRounds:
+                    (val) => setState(() => _amrapRounds = val),
+                onChangedAmrapReps: (val) => setState(() => _amrapReps = val),
+
+                forTimeSeconds: _forTimeSeconds,
+                onChangedForTime:
+                    (val) => setState(() => _forTimeSeconds = val),
+              ),
+
+            SizedBox(height: 10 * scale),
+
+            // === Section: adaptações (ou skeleton)
+            if (_loading)
+              _AdaptationsSkeleton(scale: scale)
+            else
+              SectionAdaptations(
+                visible: _selectedAdapted == 'Sim',
+                movementRows: _movementRows,
+                inputDecorationBuilder: _inputDecoration,
+              ),
+
+            SizedBox(height: 8 * scale),
+
+            const Divider(height: 24),
+
+            // === Section: Esforço (pode abrir já visível; não depende do load)
+            SectionEffort(
+              classId: _selectedClassId,
+              onEffortChanged: (val) => _effortValue = val,
+            ),
+
+            // Botões
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 24 * scale),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    style: AppTheme.secondaryButtonStyle(
+                      AppColors.darkBlue,
+                      AppColors.baseBlue,
+                    ),
+                    onPressed: () => _handleRegisterPressed(context),
+                    child: const Text('Registrar'),
+                  ),
+                  OutlinedButton(
+                    style: AppTheme.tertiaryButtonStyle(AppColors.baseMagenta),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Fechar'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -336,4 +330,51 @@ class _FormData {
     required this.classes,
     required this.wodTypes,
   });
+}
+
+/// Skeletons simples (cinza) para abrir o sheet instantaneamente, sem flicker.
+class _ResultsSkeleton extends StatelessWidget {
+  const _ResultsSkeleton({required this.scale});
+  final double scale;
+
+  Widget _bar(double h) => Container(
+    height: h * scale,
+    decoration: BoxDecoration(
+      color: AppColors.lightGray,
+      borderRadius: BorderRadius.circular(6 * scale),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _bar(36),
+        SizedBox(height: 8 * scale),
+        _bar(36),
+        SizedBox(height: 8 * scale),
+        _bar(36),
+        SizedBox(height: 8 * scale),
+        _bar(36),
+      ],
+    );
+  }
+}
+
+class _AdaptationsSkeleton extends StatelessWidget {
+  const _AdaptationsSkeleton({required this.scale});
+  final double scale;
+
+  Widget _row() => Container(
+    height: 40 * scale,
+    decoration: BoxDecoration(
+      color: AppColors.lightGray,
+      borderRadius: BorderRadius.circular(6 * scale),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(children: [_row(), SizedBox(height: 6 * scale), _row()]);
+  }
 }

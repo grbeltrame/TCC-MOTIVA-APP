@@ -2,12 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+
+// Bottom sheet: perfis semelhantes
+import 'package:flutter_app/shared/widgets/bottom_sheets/similar_profile_bottom_sheets.dart';
 
 /// Section que exibe, em abas, o último bloco de treino de cada categoria
 /// para um dado box e data. Usa TabBar + IndexedStack para shrink-wrap automático.
@@ -61,6 +65,86 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
       date: widget.date,
     );
     setState(() {}); // força o FutureBuilder a rebuildar
+  }
+
+  // ===== Helpers para descobrir o alvo do bottom sheet =====
+
+  /// Tenta extrair o nome do WOD a partir do título do bloco.
+  /// Exemplos aceitos: 'WOD "Fran"', 'WOD “Fran”', 'WOD Fran'
+  String? _extractWodNameFromTitle(String title) {
+    final withQuotes = RegExp(
+      r'WOD\s*[\"“](.+?)[\"”]',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (withQuotes != null) return withQuotes.group(1)?.trim();
+
+    final noQuotes = RegExp(
+      r'WOD\s+(.+)$',
+      caseSensitive: false,
+    ).firstMatch(title);
+    if (noQuotes != null) return noQuotes.group(1)?.trim();
+
+    return null;
+  }
+
+  /// Heurística simples para pegar um “movimento principal” da lista de itens.
+  /// Ex.: '5×2 Snatch @ técnica' -> 'Snatch'
+  ///      '5×3 Clean & Jerk @ 70%' -> 'Clean & Jerk'
+  String? _guessPrimaryMovementFromItems(List<String> items) {
+    if (items.isEmpty) return null;
+    // pega a primeira linha com alguma letra
+    final line = items.firstWhere(
+      (l) => RegExp(r'[A-Za-zÀ-ú]').hasMatch(l),
+      orElse: () => items.first,
+    );
+    var s = line;
+    // corta tudo após '@'
+    final atIdx = s.indexOf('@');
+    if (atIdx != -1) s = s.substring(0, atIdx);
+    // remove prefixos com números, porcentagens etc.
+    // mantém palavras com letras e símbolos & e -
+    final tokens =
+        s.split(RegExp(r'\s+')).where((t) {
+          final hasLetter = RegExp(r'[A-Za-zÀ-ú]').hasMatch(t);
+          final looksCount = RegExp(
+            r'^\d|%|×|x',
+            caseSensitive: false,
+          ).hasMatch(t);
+          return hasLetter && !looksCount;
+        }).toList();
+
+    if (tokens.isEmpty) return null;
+
+    // junta tokens até um limite razoável
+    final candidate = tokens.join(' ').trim();
+    // pequenos ajustes de pontuação
+    return candidate.replaceAll(RegExp(r'[,\.;]+$'), '');
+  }
+
+  Future<void> _openSimilarProfilesForCategory(
+    String category,
+    TrainingBlock? block,
+  ) async {
+    String? benchmarkName;
+    String? movementName;
+
+    if (block != null) {
+      if (category.toLowerCase() == 'wod') {
+        benchmarkName = _extractWodNameFromTitle(block.title);
+      } else {
+        movementName = _guessPrimaryMovementFromItems(block.items);
+      }
+    }
+
+    // Abre o sheet e, no botão "Registrar", chamamos o sheet de RESULTADO
+    await showSimilarProfilesBottomSheet(
+      context,
+      benchmarkName: benchmarkName,
+      movementName: movementName,
+      onTapRegister: () async {
+        await showRegisterResultBottomSheet(context);
+      },
+    );
   }
 
   @override
@@ -153,9 +237,9 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
                             text: 'Ver resultados de perfis semelhantes',
                             iconData: Icons.groups_outlined,
                             fontSize: 9,
-                            onPressed: () {
-                              /* … */
-                            },
+                            onPressed:
+                                () =>
+                                    _openSimilarProfilesForCategory(cat, block),
                           ),
                         ],
                       ),
@@ -167,12 +251,16 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
                           IconTextActionButton(
                             text: 'Ver treino completo',
                             iconData: Icons.add,
-                            onPressed: () {},
+                            onPressed: () {
+                              // TODO(back): navegar para treino completo do dia
+                            },
                           ),
                           IconTextActionButton(
                             text: 'Registrar Resultado',
                             svgAsset: 'assets/icons/rewards.svg',
-                            onPressed: () {},
+                            onPressed: () async {
+                              await showRegisterResultBottomSheet(context);
+                            },
                           ),
                         ],
                       ),

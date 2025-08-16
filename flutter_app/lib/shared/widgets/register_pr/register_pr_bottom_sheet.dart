@@ -83,9 +83,10 @@ class _RegisterPrSheetState extends State<_RegisterPrSheet> {
             secondaryAction: TextButton(
               onPressed: () {
                 Navigator.of(dCtx, rootNavigator: true).pop();
-                Navigator.of(dCtx, rootNavigator: true).pushNamed(
-                  AppRoutes.athleteEvolution,
-                ); //TO DO: trocar para paginas de PR
+                Navigator.of(
+                  dCtx,
+                  rootNavigator: true,
+                ).pushNamed(AppRoutes.athletePrList);
               },
               style: TextButton.styleFrom(foregroundColor: AppColors.baseBlue),
               child: const Text('Ver lista de PRs'),
