@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/adaptations_suggestions_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
@@ -43,6 +44,25 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
 
   late Future<Map<String, TrainingBlock?>> _futBlocks;
   bool _tabListenerAttached = false;
+  Future<void> _openAdaptationsForCategory(
+    String category,
+    TrainingBlock? block,
+  ) async {
+    String? wodName;
+    if (block != null && category.toLowerCase() == 'wod') {
+      wodName = _extractWodNameFromTitle(block.title);
+    }
+
+    await showAdaptationSuggestionsBottomSheet(
+      context,
+      category: category, // "WOD", "LPO", "Ginastica", "Endurance"
+      wodName: wodName, // só preenche quando for WOD
+      onTapRegister: () async {
+        // em treino, registrar RESULTADO (não PR)
+        await showRegisterResultBottomSheet(context);
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -229,9 +249,8 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
                             text: 'Adaptações',
                             iconData: Icons.edit_outlined,
                             fontSize: 9,
-                            onPressed: () {
-                              /* … */
-                            },
+                            onPressed:
+                                () => _openAdaptationsForCategory(cat, block),
                           ),
                           IconTextActionButton(
                             text: 'Ver resultados de perfis semelhantes',

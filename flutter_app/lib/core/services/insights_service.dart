@@ -57,4 +57,49 @@ class InsightsService {
     final all = await fetchDailyInsights(date);
     return all.where((i) => i.type == performanceType).toList();
   }
+
+  /// insights específicos para o contexto de ADAPTAÇÕES.
+  /// Reaproveita este service, mantendo a tipagem única de InsightsModel.
+  /// TODO(back): endpoint que aceite filtros de contexto (categoria/wod/movimentos).
+  Future<List<InsightsModel>> fetchAdaptationInsights({
+    required String category, // "WOD", "LPO", "Ginastica", "Endurance"
+    String? wodName, // se vier de um WOD específico
+    DateTime? date,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    // mocks contextualizados
+    final base = <InsightsModel>[
+      InsightsModel(
+        type: 'adaptation_tip',
+        message:
+            'Com essa adaptação você fica entre os 3% melhores resultados do seu tipo de perfil!',
+      ),
+      InsightsModel(
+        type: 'fatigue',
+        message:
+            'Reduzir complexidade mantém a cadência e reduz a fadiga acumulada.',
+      ),
+    ];
+
+    if (category == 'LPO') {
+      base.add(
+        InsightsModel(
+          type: 'load_prog',
+          message:
+              'Ajuste cargas em passos de 2.5 kg para preservar a técnica.',
+        ),
+      );
+    }
+
+    if (category == 'WOD' && (wodName ?? '').isNotEmpty) {
+      base.add(
+        InsightsModel(
+          type: 'wod_specific',
+          message: 'Para $wodName, quebre as reps em blocos consistentes.',
+        ),
+      );
+    }
+
+    return base;
+  }
 }
