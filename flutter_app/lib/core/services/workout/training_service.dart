@@ -75,6 +75,75 @@ class TrainingService {
     return result;
   }
 
+  /// Busca TODOS os blocos do treino do dia/box/categoria.
+  /// Ex.: Warm Up, Extra Training, Skill, RX Work, WOD …
+  /// TODO(back): substituir por chamada real ao backend.
+  static Future<List<TrainingBlock>> fetchFullTrainingBlocks({
+    required String boxId,
+    required DateTime date,
+    required String category, // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300)); // simula latência
+
+    // MOCK inspirado na imagem de referência (treino completo de WOD “Isabel”)
+    if (category.toLowerCase() == 'wod') {
+      return [
+        TrainingBlock(
+          title: 'Warm Up - 5 min',
+          subtitle: '',
+          items: const [
+            '5 Muscle Snatch',
+            '20 Jumping Jacks',
+            '10 Air Squat',
+            '10 Push Up',
+          ],
+        ),
+        TrainingBlock(
+          title: 'Extra Training - 8 min',
+          subtitle: '',
+          items: const [
+            '20 Situp',
+            '30 Montain Climb',
+            '40 Flutter Kicks',
+            '50 The Hundred',
+            '40s Plank',
+            '30 Heel Touch',
+            '20 Russian Twist',
+          ],
+        ),
+        TrainingBlock(
+          title: 'Skill Work - 10 min',
+          subtitle: '',
+          items: const ['Snatch'],
+        ),
+        TrainingBlock(
+          title: 'RX Work - 10 min',
+          subtitle: '',
+          items: const ['Load to Wod'],
+        ),
+        TrainingBlock(
+          title: 'WOD - Isabel',
+          subtitle: 'For Time:',
+          items: const ['30 snatch (135/95 lbs)'],
+        ),
+      ];
+    }
+
+    // Outros tipos — mocks simples (ajuste como quiser)
+    return [
+      TrainingBlock(
+        title: '$category – Técnica',
+        subtitle: '10 min',
+        items: const ['Bloco técnico 1', 'Bloco técnico 2'],
+      ),
+      TrainingBlock(
+        title: '$category – Força',
+        subtitle: '10 min',
+        items: const ['Série principal', 'Série complementar'],
+      ),
+    ];
+  }
+
   /// Registra um novo box para o usuário.
   static Future<Box> registerBox(String boxName) async {
     await Future.delayed(const Duration(milliseconds: 300));

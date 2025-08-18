@@ -7,6 +7,7 @@ import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
+import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 
 class AthletePrListScreen extends StatefulWidget {
@@ -55,6 +56,7 @@ class _AthletePrListScreenState extends State<AthletePrListScreen>
       length: 4,
       child: Scaffold(
         appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+        bottomNavigationBar: const BottomNavBar(),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

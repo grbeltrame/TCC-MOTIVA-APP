@@ -1,6 +1,7 @@
 // lib/features/user/athlete/athlete_pr_item_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/carousels/highlights_carousel.dart';
+import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:flutter_app/core/constants/app_colors.dart';
@@ -136,6 +137,7 @@ class _AthletePrItemScreenState extends State<AthletePrItemScreen> {
 
     return Scaffold(
       appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+      bottomNavigationBar: const BottomNavBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

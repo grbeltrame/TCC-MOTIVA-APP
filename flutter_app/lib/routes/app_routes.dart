@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/features/user/athlete/athlete_all_goals_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_evolution_screen.dart';
+import 'package:flutter_app/features/user/athlete/athlete_full_training_screend.dart';
 import 'package:flutter_app/features/user/athlete/athlete_goals_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_home_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_insights_screen.dart';
@@ -44,6 +45,7 @@ class AppRoutes {
   static const String athleteAllGoals = AthleteAllGoalsScreen.routeName;
   static const String athletePrList = AthletePrListScreen.routeName;
   static const String athletePrItem = AthletePrItemScreen.routeName;
+  static const String athleteFullTraining = FullTrainingScreen.routeName;
 
   static const String coachHome = CoachHomeScreen.routeName;
 }
@@ -67,6 +69,7 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.athleteAllGoals: (_) => const AthleteAllGoalsScreen(),
   AppRoutes.athletePrList: (_) => const AthletePrListScreen(),
   AppRoutes.athletePrItem: (_) => const AthletePrItemScreen(),
+  AppRoutes.athleteFullTraining: (_) => const FullTrainingScreen(),
 
   AppRoutes.coachHome: (_) => const CoachHomeScreen(),
 };

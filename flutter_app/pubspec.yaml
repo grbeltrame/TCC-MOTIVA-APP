@@ -83,7 +83,9 @@ flutter:
     - assets/icons/goal2.png
     - assets/icons/goal3.png
     - assets/icons/goal4.png
-
+    - assets/muscles/snatch/
+    - assets/muscles/pullup/
+    - assets/muscles/burpee/
 
  
     

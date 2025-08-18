@@ -1,6 +1,7 @@
 // lib/shared/widgets/category_training_section.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/adaptations_suggestions_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
@@ -271,7 +272,14 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
                             text: 'Ver treino completo',
                             iconData: Icons.add,
                             onPressed: () {
-                              // TODO(back): navegar para treino completo do dia
+                              Navigator.of(context).pushNamed(
+                                AppRoutes.athleteFullTraining,
+                                arguments: {
+                                  'boxId': widget.boxId,
+                                  'date': widget.date,
+                                  'category': cat, // 'WOD' | 'LPO' | ...
+                                },
+                              );
                             },
                           ),
                           IconTextActionButton(
