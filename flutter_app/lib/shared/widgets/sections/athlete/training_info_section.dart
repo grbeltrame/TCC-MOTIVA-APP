@@ -3,6 +3,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/box.dart';
+import 'package:flutter_app/shared/widgets/dialogs/activity_status_dialogs.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/category_training_section.dart';
@@ -191,7 +192,7 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
             // “Não treinei hoje”
             OutlinedButton(
               onPressed: () {
-                /* TODO: ação Não treinei hoje */
+                showDidNotTrainDialog(context, date: DateTime.now());
               },
               style: OutlinedButton.styleFrom(
                 backgroundColor: AppColors.lightMagenta.withAlpha(50),
@@ -221,7 +222,11 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
             // “Fiz outra atividade física”
             OutlinedButton(
               onPressed: () {
-                /* TODO: ação Não treinei hoje */
+                showOtherActivityDialog(
+                  context,
+                  date: DateTime.now(),
+                  description: 'Caminhada leve', // opcional
+                );
               },
               style: OutlinedButton.styleFrom(
                 backgroundColor: AppColors.baseBlue.withAlpha(50),

@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/models/inisght_model.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
@@ -110,8 +111,8 @@ class _InsightsCarouselState extends State<InsightsCarousel> {
                         iconData: Icons.edit,
                         svgAsset: null,
                         fontSize: 12 * scale,
-                        onPressed: () {
-                          // TODO: ação específica do insight
+                        onPressed: () async {
+                          await showRegisterResultBottomSheet(context);
                         },
                       ),
                     ),

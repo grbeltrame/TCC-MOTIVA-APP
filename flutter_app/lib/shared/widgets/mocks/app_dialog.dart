@@ -57,6 +57,7 @@ class AppDialog extends StatelessWidget {
             // Título
             Text(
               title,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: AppFonts.montserrat,
                 fontWeight: AppFontWeight.bold,
