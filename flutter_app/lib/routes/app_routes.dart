@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app/features/user/athlete/athlete_all_goals_screen.dart';
+import 'package:flutter_app/features/user/athlete/athlete_class_details_screen.dart';
+import 'package:flutter_app/features/user/athlete/athlete_classes_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_evolution_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_full_training_screend.dart';
 import 'package:flutter_app/features/user/athlete/athlete_goals_screen.dart';
@@ -46,6 +48,8 @@ class AppRoutes {
   static const String athletePrList = AthletePrListScreen.routeName;
   static const String athletePrItem = AthletePrItemScreen.routeName;
   static const String athleteFullTraining = FullTrainingScreen.routeName;
+  static const String athleteClasses = ClassesOfDayScreen.routeName;
+  static const String athleteClassesDetails = ClassDetailScreen.routeName;
 
   static const String coachHome = CoachHomeScreen.routeName;
 }
@@ -70,6 +74,8 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.athletePrList: (_) => const AthletePrListScreen(),
   AppRoutes.athletePrItem: (_) => const AthletePrItemScreen(),
   AppRoutes.athleteFullTraining: (_) => const FullTrainingScreen(),
+  AppRoutes.athleteClasses: (_) => const ClassesOfDayScreen(),
+  AppRoutes.athleteClassesDetails: (_) => const ClassDetailScreen(),
 
   AppRoutes.coachHome: (_) => const CoachHomeScreen(),
 };

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
+import 'package:flutter_app/features/user/athlete/athlete_classes_screen.dart';
 import 'package:flutter_app/shared/models/box.dart';
 import 'package:flutter_app/shared/widgets/dialogs/activity_status_dialogs.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
@@ -181,7 +182,11 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
           alignment: Alignment.center,
           child: PrimaryButton(
             label: 'Ver turmas do dia',
-            onPressed: () {},
+            onPressed:
+                () => Navigator.of(context).pushNamed(
+                  ClassesOfDayScreen.routeName,
+                  arguments: {'date': DateTime.now()},
+                ),
           ), //redirecionar para pagina de turmas com info do profressores e informar qual turma deseja
         ),
         SizedBox(height: 12 * scale),

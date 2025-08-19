@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter_app/shared/models/box.dart';
 import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
+import 'package:flutter_app/core/services/workout/workout_result_service.dart';
+import 'package:flutter_app/core/services/users/coach/coach_service.dart';
 import 'package:intl/intl.dart';
 
 class TrainingService {
@@ -305,5 +307,58 @@ extension DailySummaries on TrainingService {
 
     // Se nenhuma categoria tiver bloco hoje, retorna lista vazia:
     return list;
+  }
+}
+// ===================== CLASSES DO DIA =====================
+
+/// Modelo enxuto para a lista de turmas do dia.
+class DayClass {
+  final String id;
+  final String timeLabel; // ex.: "07:00"
+  final String category; // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance' (mock)
+  final String coachName;
+
+  DayClass({
+    required this.id,
+    required this.timeLabel,
+    required this.category,
+    required this.coachName,
+  });
+}
+
+extension DayClasses on TrainingService {
+  /// Retorna as turmas do dia com professor.
+  /// Reaproveita WorkoutResultService.fetchClassesForDate (mock).
+  static Future<List<DayClass>> fetchDayClassesWithCoach(DateTime date) async {
+    // TODO(back): idealmente vir de um endpoint único GET /classes?date=...
+    final slots = await WorkoutResultService.fetchClassesForDate(date);
+
+    final List<DayClass> out = [];
+    for (final s in slots) {
+      final timeLabel = s.label24(); // já existe no seu ClassSlot
+      final category = 'WOD'; // TODO(back): usar categoria real do slot
+      final coach = await CoachService.fetchCoachForClass(s.id);
+
+      out.add(
+        DayClass(
+          id: s.id,
+          timeLabel: timeLabel,
+          category: category,
+          coachName: coach.name,
+        ),
+      );
+    }
+
+    out.sort((a, b) => a.timeLabel.compareTo(b.timeLabel));
+    return out;
+  }
+
+  /// Marca interesse do aluno em uma turma específica.
+  static Future<void> registerInterestInClass({
+    required String classId,
+    required DateTime date,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 250));
+    // TODO(back): POST /classes/{classId}/interest { date }
   }
 }
