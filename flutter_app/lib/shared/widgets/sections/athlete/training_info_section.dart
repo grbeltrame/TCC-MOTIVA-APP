@@ -4,6 +4,7 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/features/user/athlete/athlete_classes_screen.dart';
 import 'package:flutter_app/shared/models/box.dart';
+import 'package:flutter_app/shared/models/class.dart';
 import 'package:flutter_app/shared/widgets/dialogs/activity_status_dialogs.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
@@ -12,16 +13,16 @@ import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:flutter_app/shared/widgets/utils/date_selector.dart';
+import 'package:flutter_app/shared/widgets/cards/interested_class_card.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/rate_coach_bottom_sheet.dart';
 
 /// Seção responsável por:
 ///  • listar/selecionar o "Box:" do aluno
 ///  • notificar a tela pai via onBoxChanged(Box) e onDateChanged(DateTime)
 ///  • exibir botão de cadastro se não houver nenhum box.
 class TrainingInfoSection extends StatefulWidget {
-  /// Chamado sempre que o aluno seleciona ou cadastra um box.
   final ValueChanged<Box> onBoxChanged;
-
-  /// Chamado sempre que o aluno muda a data.
   final ValueChanged<DateTime> onDateChanged;
 
   const TrainingInfoSection({
@@ -41,6 +42,9 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
   // Estado para o date selector
   late DateTime _selectedDate;
 
+  // Interesses do dia
+  List<InterestedClass> _interests = [];
+
   @override
   void initState() {
     super.initState();
@@ -49,14 +53,23 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
     // notifica a data inicial
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onDateChanged(_selectedDate);
+      _reloadInterests(); // carrega interesses do dia inicial
     });
+  }
+
+  Future<void> _reloadInterests() async {
+    final list = await ClassInterestService.fetchInterestsForDate(
+      _selectedDate,
+    );
+    if (!mounted) return;
+    setState(() => _interests = list);
   }
 
   Future<void> _loadBoxes() async {
     final list = await TrainingService.fetchUserBoxes();
+    if (!mounted) return;
     setState(() {
       _boxes = list;
-      // se houver exatamente 1, já seleciona e notifica
       if (_boxes.isNotEmpty) {
         _selectedBox = _boxes.first;
         widget.onBoxChanged(_selectedBox!);
@@ -65,8 +78,8 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
   }
 
   Future<void> _onRegisterBox() async {
-    // TODO: exibir bottom sheet para cadastro real
     final novo = await TrainingService.registerBox('Nome do Box');
+    if (!mounted) return;
     setState(() {
       _boxes.add(novo);
       _selectedBox = novo;
@@ -85,6 +98,7 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
       _selectedDate = newDate;
     });
     widget.onDateChanged(newDate);
+    _reloadInterests(); // atualiza card(s) ao trocar a data
   }
 
   @override
@@ -173,31 +187,76 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
         ),
 
         SizedBox(height: 4 * scale),
+
         // Tabs com as categorias de treinos
         if (_selectedBox != null)
           CategoryTrainingSection(boxId: _selectedBox!.id, date: _selectedDate),
 
         SizedBox(height: 12 * scale),
+
+        // ====== Cards de interesse (só aparecem se houver pelo menos 1) ======
+        if (_interests.isNotEmpty) ...[
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+            child: Column(
+              children:
+                  _interests.map((it) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 10 * scale),
+                      child: InterestedClassCard(
+                        timeLabel: it.timeLabel,
+                        category: it.category,
+                        coachName: it.coachName,
+                        // 1) Trocar horário: navega primeiro; quando voltar, recarrega
+                        onChangeTime: () async {
+                          await Navigator.of(context).pushNamed(
+                            ClassesOfDayScreen.routeName,
+                            arguments: {'date': _selectedDate},
+                          );
+                          // ao voltar, recarrega interesses (o novo detalhe fará o upsert)
+                          await _reloadInterests();
+                        },
+                        // 2) Registrar resultado: abre o bottom sheet
+                        onRegisterResult: () async {
+                          await showRegisterResultBottomSheet(context);
+                        },
+                        // 3) Avaliar professor: stub
+                        onRateCoach: () async {
+                          await showRateCoachBottomSheet(context);
+                        },
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ),
+          SizedBox(height: 4 * scale),
+        ],
+
+        // ===== Botão “Ver turmas do dia" =====
         Align(
           alignment: Alignment.center,
           child: PrimaryButton(
             label: 'Ver turmas do dia',
-            onPressed:
-                () => Navigator.of(context).pushNamed(
-                  ClassesOfDayScreen.routeName,
-                  arguments: {'date': DateTime.now()},
-                ),
-          ), //redirecionar para pagina de turmas com info do profressores e informar qual turma deseja
+            onPressed: () async {
+              await Navigator.of(context).pushNamed(
+                ClassesOfDayScreen.routeName,
+                arguments: {'date': _selectedDate},
+              );
+              // quando voltar da lista de turmas, recarrega os interesses
+              await _reloadInterests();
+            },
+          ),
         ),
         SizedBox(height: 12 * scale),
 
+        // ===== Ações de status do dia =====
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // “Não treinei hoje”
             OutlinedButton(
               onPressed: () {
-                showDidNotTrainDialog(context, date: DateTime.now());
+                showDidNotTrainDialog(context, date: _selectedDate);
               },
               style: OutlinedButton.styleFrom(
                 backgroundColor: AppColors.lightMagenta.withAlpha(50),
@@ -221,7 +280,6 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
                 ),
               ),
             ),
-
             SizedBox(width: 16 * scale),
 
             // “Fiz outra atividade física”
@@ -229,8 +287,8 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
               onPressed: () {
                 showOtherActivityDialog(
                   context,
-                  date: DateTime.now(),
-                  description: 'Caminhada leve', // opcional
+                  date: _selectedDate,
+                  description: 'Caminhada leve',
                 );
               },
               style: OutlinedButton.styleFrom(

@@ -5,6 +5,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/box.dart';
+import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter_app/shared/models/box.dart';
+import 'package:flutter_app/shared/models/class.dart';
 import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/core/services/workout/workout_result_service.dart';
@@ -214,21 +215,6 @@ class TrainingService {
   }
 }
 
-/// Resumo de um treino para o card “resumo do dia”.
-class DailyWorkoutSummary {
-  final String category; // ex.: WOD, LPO, Ginastica, Endurance
-  final List<String> stimuli; // ex.: ['Força', 'Cardio']
-  final String objectiveShort; // texto curtíssimo
-  final String quote; // frase motivacional
-
-  DailyWorkoutSummary({
-    required this.category,
-    required this.stimuli,
-    required this.objectiveShort,
-    required this.quote,
-  });
-}
-
 extension DailySummaries on TrainingService {
   /// Retorna os resumos de treino do dia por box.
   /// Usa os dados já existentes, mas preenche "stimuli/objective/quote" com mocks.
@@ -311,32 +297,21 @@ extension DailySummaries on TrainingService {
 }
 // ===================== CLASSES DO DIA =====================
 
-/// Modelo enxuto para a lista de turmas do dia.
-class DayClass {
-  final String id;
-  final String timeLabel; // ex.: "07:00"
-  final String category; // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance' (mock)
-  final String coachName;
-
-  DayClass({
-    required this.id,
-    required this.timeLabel,
-    required this.category,
-    required this.coachName,
-  });
-}
-
 extension DayClasses on TrainingService {
   /// Retorna as turmas do dia com professor.
   /// Reaproveita WorkoutResultService.fetchClassesForDate (mock).
   static Future<List<DayClass>> fetchDayClassesWithCoach(DateTime date) async {
-    // TODO(back): idealmente vir de um endpoint único GET /classes?date=...
     final slots = await WorkoutResultService.fetchClassesForDate(date);
 
+    // ordem cíclica de categorias para MOCK
+    const catOrder = ['WOD', 'LPO', 'Ginastica', 'Endurance'];
+
     final List<DayClass> out = [];
-    for (final s in slots) {
-      final timeLabel = s.label24(); // já existe no seu ClassSlot
-      final category = 'WOD'; // TODO(back): usar categoria real do slot
+    for (var i = 0; i < slots.length; i++) {
+      final s = slots[i];
+
+      final timeLabel = s.label24(); // já existe no ClassSlot do seu mock
+      final category = catOrder[i % catOrder.length]; // <- round-robin
       final coach = await CoachService.fetchCoachForClass(s.id);
 
       out.add(
@@ -357,8 +332,114 @@ extension DayClasses on TrainingService {
   static Future<void> registerInterestInClass({
     required String classId,
     required DateTime date,
+    required String category,
+    required String coachName,
+    required String timeLabel,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 250));
-    // TODO(back): POST /classes/{classId}/interest { date }
+    // TODO(back): delegar p/ API real
+    await ClassInterestService.upsertInterest(
+      classId: classId,
+      date: date,
+      category: category,
+      coachName: coachName,
+      timeLabel: timeLabel,
+    );
+  }
+}
+
+/// Service mock: persiste em memória por data+categoria.
+/// Regra: no máximo 2 interesses por dia, obrigatoriamente de categorias diferentes.
+/// Se registrar uma categoria já existente no dia, faz upsert (substitui).
+/// Se tentar registrar uma 3ª categoria diferente, substitui a mais antiga.
+class ClassInterestService {
+  static final Map<String, Map<String, InterestedClass>> _store = {};
+  // key: yyyymmdd -> { category -> interest }
+
+  static String _key(DateTime d) {
+    return '${d.year.toString().padLeft(4, '0')}${d.month.toString().padLeft(2, '0')}${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Lista interesses do dia.
+  static Future<List<InterestedClass>> fetchInterestsForDate(
+    DateTime date,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 120));
+    final map = _store[_key(date)];
+    if (map == null) return [];
+    final list =
+        map.values.toList()..sort((a, b) => a.timeLabel.compareTo(b.timeLabel));
+    return list;
+  }
+
+  /// Upsert do interesse por categoria (máx. 2 categorias por dia).
+  /// TODO(back): POST /classes/interest
+  static Future<void> upsertInterest({
+    required String classId,
+    required DateTime date,
+    required String category,
+    required String coachName,
+    required String timeLabel,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 160));
+
+    final k = _key(date);
+    _store.putIfAbsent(k, () => {});
+    final dayMap = _store[k]!;
+
+    // Se já existe da mesma categoria, substitui:
+    if (dayMap.containsKey(category)) {
+      dayMap[category] = InterestedClass(
+        classId: classId,
+        date: date,
+        category: category,
+        coachName: coachName,
+        timeLabel: timeLabel,
+      );
+      return;
+    }
+
+    // Não existe: respeitar limite de 2 categorias
+    if (dayMap.length < 2) {
+      dayMap[category] = InterestedClass(
+        classId: classId,
+        date: date,
+        category: category,
+        coachName: coachName,
+        timeLabel: timeLabel,
+      );
+      return;
+    }
+
+    // Já tem 2 categorias diferentes: substituir a mais antiga
+    final oldestEntry = dayMap.values.reduce(
+      (a, b) => a.createdAt.isBefore(b.createdAt) ? a : b,
+    );
+    dayMap.remove(oldestEntry.category);
+    dayMap[category] = InterestedClass(
+      classId: classId,
+      date: date,
+      category: category,
+      coachName: coachName,
+      timeLabel: timeLabel,
+    );
+  }
+
+  /// Remove interesse de uma categoria no dia.
+  /// TODO(back): DELETE /classes/interest?date=...&category=...
+  static Future<void> removeInterestForCategory({
+    required DateTime date,
+    required String category,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 120));
+    final k = _key(date);
+    final dayMap = _store[k];
+    dayMap?.remove(category);
+  }
+
+  /// Limpa todos interesses de um dia (se precisar).
+  /// TODO(back): DELETE /classes/interest?date=...
+  static Future<void> clearInterestsForDate(DateTime date) async {
+    await Future.delayed(const Duration(milliseconds: 120));
+    _store.remove(_key(date));
   }
 }

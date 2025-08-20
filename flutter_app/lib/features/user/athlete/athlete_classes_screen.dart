@@ -1,5 +1,10 @@
+// lib/features/user/athlete/athlete_classes_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
+import 'package:flutter_app/shared/models/class.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:intl/intl.dart';
 
 import 'package:flutter_app/core/constants/app_colors.dart';
@@ -21,17 +26,18 @@ class ClassesOfDayScreen extends StatefulWidget {
 class _ClassesOfDayScreenState extends State<ClassesOfDayScreen> {
   late DateTime _date;
   late Future<List<DayClass>> _fut;
-  bool _bootstrapped = false; // <- opcional
+  bool _bootstrapped = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_bootstrapped) return; // <- opcional
+    if (_bootstrapped) return;
+
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
     _date = (args['date'] as DateTime?) ?? DateTime.now();
 
-    _fut = DayClasses.fetchDayClassesWithCoach(_date); // ok
-    _bootstrapped = true; // <- opcional
+    _fut = DayClasses.fetchDayClassesWithCoach(_date);
+    _bootstrapped = true;
   }
 
   Color _chipColor(String cat) {
@@ -49,13 +55,24 @@ class _ClassesOfDayScreenState extends State<ClassesOfDayScreen> {
     }
   }
 
+  /// Garante extrair apenas "HH:mm" mesmo que o label venha com texto extra.
+  String _justTime(String s) {
+    final m = RegExp(r'(\d{1,2}:\d{2})').firstMatch(s);
+    return (m?.group(1) ?? s).trim();
+  }
+
+  void _openRegisterBoxSheet(BuildContext context) {
+    showAppBottomSheet(context, const BoxSignupCoach());
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
     final dateFmt = DateFormat('EEEE, d/MM', 'pt_BR');
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: () {}), // opcional
+      appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+      bottomNavigationBar: const BottomNavBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -101,7 +118,8 @@ class _ClassesOfDayScreenState extends State<ClassesOfDayScreen> {
                     ),
                   );
                 }
-                // (opcional) garantir ordenação por horário
+
+                // Ordena pelo horário (string "HH:mm" funciona bem)
                 classes.sort((a, b) => a.timeLabel.compareTo(b.timeLabel));
 
                 return ListView.separated(
@@ -119,7 +137,7 @@ class _ClassesOfDayScreenState extends State<ClassesOfDayScreen> {
                             'classId': c.id,
                             'date': _date,
                             'category': c.category,
-                            'start': c.timeLabel, // já é "HH:mm"
+                            'start': c.timeLabel, // string "HH:mm"
                             'coachName': c.coachName,
                           },
                         );
@@ -133,26 +151,31 @@ class _ClassesOfDayScreenState extends State<ClassesOfDayScreen> {
                         ),
                         child: Row(
                           children: [
-                            // horário
+                            // ===== ESQUERDA: SÓ o horário (sem reticências)
                             SizedBox(
                               width: 64 * scale,
-                              child: Text(
-                                c.timeLabel, // <-- usa direto
-                                style: TextStyle(
-                                  fontFamily: AppFonts.roboto,
-                                  fontWeight: AppFontWeight.bold,
-                                  fontSize: 16 * scale,
-                                  color: AppColors.darkText,
+                              child: FittedBox(
+                                alignment: Alignment.centerLeft,
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _justTime(c.timeLabel),
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.roboto,
+                                    fontWeight: AppFontWeight.bold,
+                                    fontSize: 16 * scale,
+                                    color: AppColors.darkText,
+                                  ),
                                 ),
                               ),
                             ),
                             SizedBox(width: 8 * scale),
-                            // categoria + coach
+
+                            // ===== DIREITA: chip da categoria + professor
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // chip de categoria
+                                  // Chip de categoria (com cor por categoria)
                                   Container(
                                     padding: EdgeInsets.symmetric(
                                       horizontal: 8 * scale,
@@ -191,6 +214,7 @@ class _ClassesOfDayScreenState extends State<ClassesOfDayScreen> {
                                 ],
                               ),
                             ),
+
                             Icon(
                               Icons.chevron_right,
                               color: AppColors.mediumGray,
