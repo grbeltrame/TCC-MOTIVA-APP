@@ -1,3 +1,4 @@
+// lib/shared/widgets/sections/athlete/training_info_section.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
@@ -9,7 +10,6 @@ import 'package:flutter_app/shared/widgets/dialogs/activity_status_dialogs.dart'
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/category_training_section.dart';
-import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:flutter_app/shared/widgets/utils/date_selector.dart';
@@ -17,10 +17,9 @@ import 'package:flutter_app/shared/widgets/cards/interested_class_card.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/rate_coach_bottom_sheet.dart';
 
-/// Seção responsável por:
-///  • listar/selecionar o "Box:" do aluno
-///  • notificar a tela pai via onBoxChanged(Box) e onDateChanged(DateTime)
-///  • exibir botão de cadastro se não houver nenhum box.
+// 🚨 novo: vamos buscar o coach certo da turma
+import 'package:flutter_app/core/services/users/coach/coach_service.dart';
+
 class TrainingInfoSection extends StatefulWidget {
   final ValueChanged<Box> onBoxChanged;
   final ValueChanged<DateTime> onDateChanged;
@@ -50,10 +49,10 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
     super.initState();
     _selectedDate = DateTime.now();
     _loadBoxes();
-    // notifica a data inicial
+    // notifica a data inicial + carrega interesses
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onDateChanged(_selectedDate);
-      _reloadInterests(); // carrega interesses do dia inicial
+      _reloadInterests();
     });
   }
 
@@ -213,16 +212,39 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
                             ClassesOfDayScreen.routeName,
                             arguments: {'date': _selectedDate},
                           );
-                          // ao voltar, recarrega interesses (o novo detalhe fará o upsert)
                           await _reloadInterests();
                         },
                         // 2) Registrar resultado: abre o bottom sheet
                         onRegisterResult: () async {
                           await showRegisterResultBottomSheet(context);
                         },
-                        // 3) Avaliar professor: stub
+                        // 3) Avaliar professor: busca coach correto e abre o BS
                         onRateCoach: () async {
-                          await showRateCoachBottomSheet(context);
+                          try {
+                            // Se seu modelo já tiver coachId, use direto:
+                            // final coachId = it.coachId;
+                            // Caso contrário, buscamos pelo classId:
+                            final coach = await CoachService.fetchCoachForClass(
+                              it.classId,
+                            );
+
+                            await showRateCoachBottomSheet(
+                              context,
+                              coachId: coach.id,
+                              coachName: coach.name,
+                              classId: it.classId,
+                              date: _selectedDate,
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Não foi possível abrir a avaliação.',
+                                ),
+                              ),
+                            );
+                          }
                         },
                       ),
                     );
@@ -242,7 +264,6 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
                 ClassesOfDayScreen.routeName,
                 arguments: {'date': _selectedDate},
               );
-              // quando voltar da lista de turmas, recarrega os interesses
               await _reloadInterests();
             },
           ),

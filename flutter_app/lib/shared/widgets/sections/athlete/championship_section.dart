@@ -1,11 +1,13 @@
-// lib/shared/widgets/championships_section.dart
-
 import 'package:flutter/material.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_app/core/services/championship_service.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/shared/models/championship.dart';
-import 'package:intl/intl.dart';
+
+// bottom sheet novo:
+import 'package:flutter_app/shared/widgets/bottom_sheets/add_championship_bottom_sheet.dart';
 
 class ChampionshipsSection extends StatefulWidget {
   const ChampionshipsSection({Key? key}) : super(key: key);
@@ -25,6 +27,50 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
     _futureConcluded = ChampionshipService.fetchConcludedChampionships();
   }
 
+  Future<void> _reload() async {
+    setState(() {
+      _futureUpcoming = ChampionshipService.fetchUpcomingChampionships();
+      _futureConcluded = ChampionshipService.fetchConcludedChampionships();
+    });
+  }
+
+  Future<void> _onAddChampionshipPressed() async {
+    // 1) coleta dados no sheet
+    final input = await showAddChampionshipBottomSheet(context);
+    if (input == null) return;
+
+    // 2) cria via service (mock + TODO back)
+    final created = await ChampionshipService.createChampionship(
+      name: input.name,
+      date: input.date,
+    );
+
+    // 3) mostra AppDialog de sucesso
+    final fmt = DateFormat('dd/MM/yyyy');
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder:
+          (dialogCtx) => AppDialog(
+            icon: Icons.emoji_events_outlined,
+            iconColor: AppColors.darkBlue,
+            title: 'Campeonato cadastrado!',
+            message:
+                'O campeonato "${created.name}" em ${fmt.format(created.startDate)} '
+                'foi registrado com sucesso.',
+            primaryAction: TextButton(
+              onPressed:
+                  () => Navigator.of(dialogCtx, rootNavigator: true).pop(),
+              style: TextButton.styleFrom(foregroundColor: AppColors.darkBlue),
+              child: const Text('OK'),
+            ),
+          ),
+    );
+
+    // 4) recarrega listas para o card aparecer em "Próximos"
+    await _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -38,7 +84,7 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
         final upcoming = snap.data![0] as List<Championship>;
         final concluded = snap.data![1] as List<Championship>;
 
-        // dispara notificações in-app
+        // dispara notificações in-app (mantido)
         ChampionshipService.showInAppNotifications(context, upcoming);
         ChampionshipService.showPostEventNotification(context, concluded);
 
@@ -56,9 +102,7 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
                   ),
                   const Spacer(),
                   TextButton.icon(
-                    onPressed: () {
-                      // TODO: chamar fluxo de adicionar campeonato
-                    },
+                    onPressed: _onAddChampionshipPressed,
                     icon: Icon(
                       Icons.add,
                       size: 20 * scale,
@@ -107,7 +151,7 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
               )
             else
               SizedBox(
-                height: 100 * scale, // altura baseada no maior card
+                height: 100 * scale,
                 child: ListView.separated(
                   padding: EdgeInsets.symmetric(horizontal: 6 * scale),
                   scrollDirection: Axis.horizontal,
@@ -192,7 +236,6 @@ class _UpcomingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
-    // estilização inspirada no MiniCardWidget
     return Container(
       width: 140 * scale,
       padding: EdgeInsets.all(8 * scale),
@@ -204,7 +247,6 @@ class _UpcomingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // nome (quebra de linha automática)
           Text(
             champ.name,
             style: TextStyle(
@@ -214,7 +256,6 @@ class _UpcomingCard extends StatelessWidget {
               color: AppColors.darkText,
             ),
           ),
-          // data ou intervalo
           Text(
             champ.startDate == champ.endDate
                 ? DateFormat('dd/MM').format(champ.startDate)
@@ -226,7 +267,6 @@ class _UpcomingCard extends StatelessWidget {
               color: AppColors.darkText,
             ),
           ),
-          // botão registrar resultado
           Align(
             alignment: Alignment.bottomRight,
             child: TextButton(
