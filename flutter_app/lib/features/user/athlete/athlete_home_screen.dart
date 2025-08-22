@@ -7,12 +7,10 @@ import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/cards/daily_training_summary_card.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/home_greeting_section.dart';
 import 'package:flutter_app/shared/widgets/home_primary_actions.dart';
-import 'package:flutter_app/shared/widgets/monthly_summary_widget.dart';
 import 'package:flutter_app/shared/widgets/mocks/near_completion_section.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/pending_actions_section.dart';
 import 'package:flutter_app/shared/widgets/carousels/performance_insights_carousel.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
-import 'package:flutter_app/shared/widgets/weekly_summary_widget.dart';
 
 class AthleteHomeScreen extends StatefulWidget {
   static const routeName = '/athlete_home';

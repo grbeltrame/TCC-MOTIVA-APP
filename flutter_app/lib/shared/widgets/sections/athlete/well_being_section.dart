@@ -3,7 +3,6 @@ import 'package:flutter_app/core/services/well_being_service.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 
 /// Seção completa de “Bem‑estar” do usuário:
 /// – título + card

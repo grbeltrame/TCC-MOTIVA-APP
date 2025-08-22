@@ -3,8 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/highlights_service.dart';
 import 'package:flutter_app/shared/widgets/carousels/recomendations_carousel.dart';
-import 'package:flutter_app/core/constants/app_colors.dart';
-import 'package:flutter_app/core/constants/app_fonts.dart';
 
 /// Seção “Destaques da Semana”
 /// – busca todos os destaques estatísticos

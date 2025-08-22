@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/constants/app_colors.dart';
-import 'package:flutter_app/core/constants/app_fonts.dart';
+
 import 'package:flutter_app/shared/widgets/bottom_sheets/effort_only_bottom_sheet.dart';
 import 'package:flutter_app/core/services/workout/workout_result_service.dart';
 

@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/routes/app_routes.dart';
 
 /// Tela de Termos de Serviço
 class TermsScreen extends StatelessWidget {

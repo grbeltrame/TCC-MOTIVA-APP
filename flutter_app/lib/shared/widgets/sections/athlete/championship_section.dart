@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_champ_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_app/core/services/championship_service.dart';
@@ -6,7 +7,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/shared/models/championship.dart';
 
-// bottom sheet novo:
+// bottom sheet: adicionar campeonato
 import 'package:flutter_app/shared/widgets/bottom_sheets/add_championship_bottom_sheet.dart';
 
 class ChampionshipsSection extends StatefulWidget {
@@ -35,17 +36,14 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
   }
 
   Future<void> _onAddChampionshipPressed() async {
-    // 1) coleta dados no sheet
     final input = await showAddChampionshipBottomSheet(context);
     if (input == null) return;
 
-    // 2) cria via service (mock + TODO back)
     final created = await ChampionshipService.createChampionship(
       name: input.name,
       date: input.date,
     );
 
-    // 3) mostra AppDialog de sucesso
     final fmt = DateFormat('dd/MM/yyyy');
     await showDialog(
       context: context,
@@ -67,7 +65,6 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
           ),
     );
 
-    // 4) recarrega listas para o card aparecer em "Próximos"
     await _reload();
   }
 
@@ -84,7 +81,6 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
         final upcoming = snap.data![0] as List<Championship>;
         final concluded = snap.data![1] as List<Championship>;
 
-        // dispara notificações in-app (mantido)
         ChampionshipService.showInAppNotifications(context, upcoming);
         ChampionshipService.showPostEventNotification(context, concluded);
 
@@ -157,7 +153,12 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
                   scrollDirection: Axis.horizontal,
                   itemCount: upcoming.length,
                   separatorBuilder: (_, __) => SizedBox(width: 6 * scale),
-                  itemBuilder: (_, i) => _UpcomingCard(champ: upcoming[i]),
+                  itemBuilder:
+                      (_, i) => _UpcomingCard(
+                        champ: upcoming[i],
+                        // ✅ quando concluir o envio no BS, recarrega as listas
+                        onRegistered: _reload,
+                      ),
                 ),
               ),
 
@@ -231,7 +232,13 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
 /// Card de campeonato futuro
 class _UpcomingCard extends StatelessWidget {
   final Championship champ;
-  const _UpcomingCard({required this.champ});
+  final VoidCallback onRegistered; // ✅ callback para recarregar listas
+
+  const _UpcomingCard({
+    Key? key,
+    required this.champ,
+    required this.onRegistered, // ✅ obrigatório
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -267,11 +274,19 @@ class _UpcomingCard extends StatelessWidget {
               color: AppColors.darkText,
             ),
           ),
+          const Spacer(),
           Align(
             alignment: Alignment.bottomRight,
             child: TextButton(
-              onPressed: () {
-                // TODO: abrir fluxo de registro de resultado
+              onPressed: () async {
+                // ✅ Abre o BS; retorna true quando o envio foi concluído
+                final ok = await showRegisterChampResultBottomSheet(
+                  context,
+                  championship: champ,
+                );
+                if (ok == true) {
+                  onRegistered(); // atualiza listas (sai de Próximos → entra em Concluídos)
+                }
               },
               style: TextButton.styleFrom(
                 padding: EdgeInsets.symmetric(
@@ -307,7 +322,7 @@ class _UpcomingCard extends StatelessWidget {
 /// Card de campeonato concluído
 class _ConcludedCard extends StatelessWidget {
   final Championship champ;
-  const _ConcludedCard({required this.champ});
+  const _ConcludedCard({Key? key, required this.champ}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

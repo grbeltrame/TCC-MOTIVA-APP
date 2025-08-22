@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/constants/app_colors.dart';
-import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/widgets/cards/training_blocks_card.dart';
@@ -29,7 +27,7 @@ class _FullTrainingScreenState extends State<FullTrainingScreen> {
 
   bool _bootstrapped = false;
   late Future<List<TrainingBlock>> _blocksFut;
-  TrainingBlock? _lastBlock; // <- aqui
+  TrainingBlock? _lastBlock;
 
   @override
   void didChangeDependencies() {
@@ -130,9 +128,7 @@ class _FullTrainingScreenState extends State<FullTrainingScreen> {
                       ),
                       if (lastBlock != null) ...[
                         SizedBox(height: 16 * scale),
-                        WorkedMusclesSection(
-                          lastBlock: lastBlock,
-                        ), // << aparece no scroll
+                        WorkedMusclesSection(lastBlock: lastBlock),
                       ],
                     ],
                   );

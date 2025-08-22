@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/workout/movement_service.dart';
 
 /// Model da turma (classe) do dia.

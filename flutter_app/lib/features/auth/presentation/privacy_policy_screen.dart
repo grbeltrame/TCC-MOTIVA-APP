@@ -2,12 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/routes/app_routes.dart';
 
 /// Tela de Política de Privacidade
 class PrivacyPolicyScreen extends StatelessWidget {
   static const String routeName = '/privacy_policy';
-  const PrivacyPolicyScreen({Key? key}) : super(key: key);
+  const PrivacyPolicyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

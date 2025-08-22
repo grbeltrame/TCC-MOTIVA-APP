@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_app/core/services/workout/movement_service.dart';
-import 'package:flutter_app/core/services/workout/workout_result_service.dart';
 import 'package:flutter_app/shared/models/inisght_model.dart';
 
 // ===== Enums e modelos =====

@@ -6,20 +6,19 @@ import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 
 class ChampionshipService {
   // =========================================================
-  // Cache local para campeonatos criados nesta sessão.
-  // TODO(back): remover quando integrar POST/GET reais do backend.
+  // Caches locais desta sessão (mock).
+  // Remover quando integrar POST/GET reais do backend.
   static final List<Championship> _userCreatedUpcoming = [];
+  static final List<Championship> _userConcluded = [];
+  static final Set<String> _movedFromUpcomingIds = {};
+  static final Set<String> _firedInAppKeys = <String>{};
+
   // =========================================================
 
-  /// Retorna apenas os campeonatos cujo [startDate] está no mês corrente.
-  static Future<List<Championship>> fetchUpcomingChampionships() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+  /// Mocks "base" de campeonatos futuros do mês corrente.
+  static List<Championship> _builtInUpcomingForCurrentMonth() {
     final now = DateTime.now();
-    final monthStart = DateTime(now.year, now.month, 1);
-    final monthEnd = DateTime(now.year, now.month + 1, 0);
-
-    // Mocks originais
-    final all = <Championship>[
+    return <Championship>[
       Championship(
         id: 'c1',
         name: 'Sun Challenge',
@@ -33,17 +32,29 @@ class ChampionshipService {
         endDate: DateTime(now.year, now.month, 26),
       ),
     ];
+  }
 
-    // Mescla com os criados localmente nesta sessão
-    final merged = <Championship>[...all, ..._userCreatedUpcoming];
+  /// Retorna apenas os campeonatos cujo [startDate] está no mês corrente.
+  static Future<List<Championship>> fetchUpcomingChampionships() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month, 1);
+    final monthEnd = DateTime(now.year, now.month + 1, 0);
+
+    final allBase = _builtInUpcomingForCurrentMonth();
+    final merged = <Championship>[...allBase, ..._userCreatedUpcoming];
 
     final filtered =
-        merged.where((c) {
-            return c.startDate.isAfter(
-                  monthStart.subtract(const Duration(days: 1)),
-                ) &&
-                c.startDate.isBefore(monthEnd.add(const Duration(days: 1)));
-          }).toList()
+        merged
+            .where((c) => !_movedFromUpcomingIds.contains(c.id))
+            .where(
+              (c) =>
+                  c.startDate.isAfter(
+                    monthStart.subtract(const Duration(days: 1)),
+                  ) &&
+                  c.startDate.isBefore(monthEnd.add(const Duration(days: 1))),
+            )
+            .toList()
           ..sort((a, b) => a.startDate.compareTo(b.startDate));
 
     return filtered;
@@ -53,8 +64,8 @@ class ChampionshipService {
   static Future<List<Championship>> fetchConcludedChampionships() async {
     await Future.delayed(const Duration(milliseconds: 300));
     final now = DateTime.now();
-    // TODO: substituir por backend e ordenar por data de término desc.
-    final all = <Championship>[
+
+    final base = <Championship>[
       Championship(
         id: 'c3',
         name: 'TCB',
@@ -71,20 +82,17 @@ class ChampionshipService {
         userRanking: 10,
         totalParticipants: 40,
       ),
-      // ... até 5
     ];
-    return all.take(5).toList();
+
+    final merged = <Championship>[..._userConcluded, ...base];
+    return merged.take(5).toList();
   }
 
   /// Cria um campeonato (mock do POST) e coloca no cache local.
-  ///
-  /// TODO(back):
-  /// - POST /championships { name, startDate, endDate }
-  /// - retornar objeto criado pelo servidor e remover o cache local
   static Future<Championship> createChampionship({
     required String name,
     required DateTime date, // data única (start == end)
-    DateTime? endDate, // opcional para intervalos futuros
+    DateTime? endDate, // opcional para intervalos
   }) async {
     await Future.delayed(const Duration(milliseconds: 250));
 
@@ -105,9 +113,63 @@ class ChampionshipService {
 
     _userCreatedUpcoming.add(created);
     _userCreatedUpcoming.sort((a, b) => a.startDate.compareTo(b.startDate));
-
-    // TODO(back): substituir por resposta do servidor
     return created;
+  }
+
+  /// Envia o resultado e move de "Próximos" para "Concluídos" (mock).
+  ///
+  /// TODO(back):
+  /// POST /championships/{id}/results { totalCompetitors, placement, feelingScore }
+  static Future<void> submitChampionshipResult({
+    required String championshipId,
+    required int totalCompetitors,
+    required int placement,
+    required int feelingScore,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    Championship? found;
+    bool foundInUserCreated = false;
+
+    // 1) procurar no cache de criados pelo usuário
+    try {
+      found = _userCreatedUpcoming.firstWhere((c) => c.id == championshipId);
+      foundInUserCreated = true;
+    } catch (_) {
+      found = null;
+    }
+
+    // 2) se não achou, procurar nos mocks base do mês
+    if (found == null) {
+      final allBase = _builtInUpcomingForCurrentMonth();
+      try {
+        found = allBase.firstWhere((c) => c.id == championshipId);
+      } catch (_) {
+        // não achou em lugar nenhum: nada a fazer
+        return;
+      }
+    }
+
+    // 3) se veio do cache local, remove de lá
+    if (foundInUserCreated) {
+      _userCreatedUpcoming.removeWhere((c) => c.id == championshipId);
+    }
+
+    // 4) marca o id como "movido" para não aparecer mais em Próximos
+    _movedFromUpcomingIds.add(championshipId);
+
+    // 5) cria a versão concluída
+    final concluded = Championship(
+      id: found.id,
+      name: found.name,
+      startDate: found.startDate,
+      endDate: found.endDate,
+      userRanking: placement,
+      totalParticipants: totalCompetitors,
+    );
+
+    // adiciona no topo dos concluídos do usuário
+    _userConcluded.insert(0, concluded);
   }
 
   /// Deve agendar notificações push 7 dias, 3 dias e no dia do evento.
@@ -121,23 +183,35 @@ class ChampionshipService {
     List<Championship> ups,
   ) {
     final now = DateTime.now();
+    final todayKey = '${now.year}-${now.month}-${now.day}';
+
     for (var c in ups) {
-      final diff = c.startDate.difference(now).inDays;
+      final diff =
+          c.startDate.difference(DateTime(now.year, now.month, now.day)).inDays;
+
       if ({7, 3, 0}.contains(diff)) {
+        final key = '${c.id}|$todayKey|$diff';
+        if (_firedInAppKeys.contains(key)) continue; // já mostramos hoje
+        _firedInAppKeys.add(key);
+
         final title =
             diff == 0
                 ? 'Hoje é o dia de "${c.name}"!'
                 : 'Faltam $diff dias para "${c.name}"';
+
         WidgetsBinding.instance.addPostFrameCallback((_) {
           showDialog(
             context: context,
+            useRootNavigator: true,
             builder:
-                (_) => AppDialog(
+                (dialogCtx) => AppDialog(
                   icon: Icons.emoji_events,
                   title: title,
                   message: 'Não esqueça de se preparar.',
                   primaryAction: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed:
+                        () =>
+                            Navigator.of(dialogCtx, rootNavigator: true).pop(),
                     child: const Text('OK'),
                   ),
                 ),
@@ -177,9 +251,8 @@ class ChampionshipService {
   }
 
   /// Indica se o usuário quer ver a seção de Campeonatos.
-  /// TODO: substituir o hard-code por leitura de preferência real (backend ou local storage).
   static Future<bool> fetchChampionshipSectionEnabled() async {
     await Future.delayed(const Duration(milliseconds: 100));
-    return true; // ← por enquanto sempre ativo
+    return true; // por enquanto sempre ativo
   }
 }

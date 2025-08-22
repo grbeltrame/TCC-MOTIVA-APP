@@ -7,7 +7,6 @@ import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/inisghts_section.dart';
-import 'package:flutter_app/shared/widgets/monthly_summary_widget.dart';
 import 'package:flutter_app/shared/widgets/mocks/near_completion_section.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/training_info_section.dart';

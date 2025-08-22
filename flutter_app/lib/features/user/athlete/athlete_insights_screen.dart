@@ -1,14 +1,8 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/constants/app_colors.dart';
-import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/core/services/goal_service.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/alerts_section.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/cards/goal_card_widget.dart';
 import 'package:flutter_app/shared/widgets/carousels/highlights_carousel.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/highlights_section.dart';
 import 'package:flutter_app/shared/widgets/monthly_summary_widget.dart';
