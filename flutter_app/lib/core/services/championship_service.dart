@@ -1,21 +1,22 @@
 // lib/core/services/championship_service.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/models/championship.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 
 class ChampionshipService {
-  // =========================================================
-  // Caches locais desta sessão (mock).
-  // Remover quando integrar POST/GET reais do backend.
+  // ====== Caches locais (mock) =================================================
   static final List<Championship> _userCreatedUpcoming = [];
   static final List<Championship> _userConcluded = [];
   static final Set<String> _movedFromUpcomingIds = {};
+  static final Set<String> _deletedUpcomingIds = {};
   static final Set<String> _firedInAppKeys = <String>{};
 
-  // =========================================================
+  /// Notificador global de mudanças (criar, deletar, concluir)
+  static final ValueNotifier<int> changes = ValueNotifier<int>(0);
+  static void _bump() => changes.value = changes.value + 1;
+  // ============================================================================
 
-  /// Mocks "base" de campeonatos futuros do mês corrente.
+  // ---- Mocks base -------------------------------------------------------------
   static List<Championship> _builtInUpcomingForCurrentMonth() {
     final now = DateTime.now();
     return <Championship>[
@@ -34,38 +35,9 @@ class ChampionshipService {
     ];
   }
 
-  /// Retorna apenas os campeonatos cujo [startDate] está no mês corrente.
-  static Future<List<Championship>> fetchUpcomingChampionships() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+  static List<Championship> _builtInConcluded() {
     final now = DateTime.now();
-    final monthStart = DateTime(now.year, now.month, 1);
-    final monthEnd = DateTime(now.year, now.month + 1, 0);
-
-    final allBase = _builtInUpcomingForCurrentMonth();
-    final merged = <Championship>[...allBase, ..._userCreatedUpcoming];
-
-    final filtered =
-        merged
-            .where((c) => !_movedFromUpcomingIds.contains(c.id))
-            .where(
-              (c) =>
-                  c.startDate.isAfter(
-                    monthStart.subtract(const Duration(days: 1)),
-                  ) &&
-                  c.startDate.isBefore(monthEnd.add(const Duration(days: 1))),
-            )
-            .toList()
-          ..sort((a, b) => a.startDate.compareTo(b.startDate));
-
-    return filtered;
-  }
-
-  /// Retorna os últimos 5 campeonatos que já terminaram.
-  static Future<List<Championship>> fetchConcludedChampionships() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final now = DateTime.now();
-
-    final base = <Championship>[
+    return <Championship>[
       Championship(
         id: 'c3',
         name: 'TCB',
@@ -83,16 +55,74 @@ class ChampionshipService {
         totalParticipants: 40,
       ),
     ];
+  }
+  // -----------------------------------------------------------------------------
 
-    final merged = <Championship>[..._userConcluded, ...base];
+  /// Próximos **do mês corrente**
+  static Future<List<Championship>> fetchUpcomingChampionships() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month, 1);
+    final monthEnd = DateTime(now.year, now.month + 1, 0);
+
+    final merged = <Championship>[
+      ..._builtInUpcomingForCurrentMonth(),
+      ..._userCreatedUpcoming,
+    ];
+
+    return merged
+        .where((c) => !_movedFromUpcomingIds.contains(c.id))
+        .where((c) => !_deletedUpcomingIds.contains(c.id))
+        .where(
+          (c) =>
+              c.startDate.isAfter(
+                monthStart.subtract(const Duration(days: 1)),
+              ) &&
+              c.startDate.isBefore(monthEnd.add(const Duration(days: 1))),
+        )
+        .toList()
+      ..sort((a, b) => a.startDate.compareTo(b.startDate));
+  }
+
+  /// Concluídos (limitado a 5, mais recentes primeiro)
+  static Future<List<Championship>> fetchConcludedChampionships() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final merged = <Championship>[..._userConcluded, ..._builtInConcluded()];
+    merged.sort((a, b) => b.endDate.compareTo(a.endDate));
     return merged.take(5).toList();
   }
+
+  // ===== NOVOS para “Ver todos” ===============================================
+
+  /// TODOS os próximos (sem filtro de mês), ordenados do mais próximo p/ o mais distante.
+  static Future<List<Championship>> fetchAllUpcoming() async {
+    await Future.delayed(const Duration(milliseconds: 250)); // TODO(back)
+    final merged = <Championship>[
+      ..._builtInUpcomingForCurrentMonth(),
+      ..._userCreatedUpcoming,
+    ];
+
+    return merged
+        .where((c) => !_movedFromUpcomingIds.contains(c.id))
+        .where((c) => !_deletedUpcomingIds.contains(c.id))
+        .toList()
+      ..sort((a, b) => a.startDate.compareTo(b.startDate));
+  }
+
+  /// TODOS os concluídos (sem limite), ordenados do mais recente p/ o mais antigo.
+  static Future<List<Championship>> fetchAllConcluded() async {
+    await Future.delayed(const Duration(milliseconds: 250)); // TODO(back)
+    final merged = <Championship>[..._userConcluded, ..._builtInConcluded()];
+    merged.sort((a, b) => b.endDate.compareTo(a.endDate));
+    return merged;
+  }
+  // ============================================================================
 
   /// Cria um campeonato (mock do POST) e coloca no cache local.
   static Future<Championship> createChampionship({
     required String name,
-    required DateTime date, // data única (start == end)
-    DateTime? endDate, // opcional para intervalos
+    required DateTime date,
+    DateTime? endDate,
   }) async {
     await Future.delayed(const Duration(milliseconds: 250));
 
@@ -103,7 +133,7 @@ class ChampionshipService {
             : DateTime(endDate.year, endDate.month, endDate.day);
 
     final created = Championship(
-      id: 'local_${DateTime.now().millisecondsSinceEpoch}', // id local
+      id: 'local_${DateTime.now().millisecondsSinceEpoch}',
       name: name,
       startDate: start,
       endDate: end,
@@ -113,13 +143,24 @@ class ChampionshipService {
 
     _userCreatedUpcoming.add(created);
     _userCreatedUpcoming.sort((a, b) => a.startDate.compareTo(b.startDate));
+    _bump(); // >>> avisa UI que houve mudança
     return created;
   }
 
+  /// Exclui um campeonato de "Próximos" (mock).
+  static Future<void> deleteUpcomingChampionship(String id) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final before = _userCreatedUpcoming.length;
+    _userCreatedUpcoming.removeWhere((c) => c.id == id);
+    final removed = _userCreatedUpcoming.length < before;
+    if (!removed) {
+      // Não estava no cache do usuário → marcar como deletado dos mocks base
+      _deletedUpcomingIds.add(id);
+    }
+    _bump(); // >>> avisa UI que houve mudança
+  }
+
   /// Envia o resultado e move de "Próximos" para "Concluídos" (mock).
-  ///
-  /// TODO(back):
-  /// POST /championships/{id}/results { totalCompetitors, placement, feelingScore }
   static Future<void> submitChampionshipResult({
     required String championshipId,
     required int totalCompetitors,
@@ -131,53 +172,59 @@ class ChampionshipService {
     Championship? found;
     bool foundInUserCreated = false;
 
-    // 1) procurar no cache de criados pelo usuário
+    // 1) Procurar no cache do usuário
     try {
       found = _userCreatedUpcoming.firstWhere((c) => c.id == championshipId);
       foundInUserCreated = true;
     } catch (_) {
-      found = null;
+      // ignore
     }
 
-    // 2) se não achou, procurar nos mocks base do mês
+    // 2) Se não achou, procurar nos mocks base (filtrando os deletados)
     if (found == null) {
-      final allBase = _builtInUpcomingForCurrentMonth();
+      final base =
+          _builtInUpcomingForCurrentMonth()
+              .where((c) => !_deletedUpcomingIds.contains(c.id))
+              .toList();
       try {
-        found = allBase.firstWhere((c) => c.id == championshipId);
+        found = base.firstWhere((c) => c.id == championshipId);
       } catch (_) {
-        // não achou em lugar nenhum: nada a fazer
-        return;
+        found = null;
       }
     }
 
-    // 3) se veio do cache local, remove de lá
+    // 3) Se ainda não achou, nada a mover
+    if (found == null) return;
+
+    // 4) Remover do cache do usuário (se veio de lá)
     if (foundInUserCreated) {
       _userCreatedUpcoming.removeWhere((c) => c.id == championshipId);
     }
 
-    // 4) marca o id como "movido" para não aparecer mais em Próximos
+    // 5) Marcar como movido para não aparecer mais em "Próximos"
     _movedFromUpcomingIds.add(championshipId);
 
-    // 5) cria a versão concluída
-    final concluded = Championship(
-      id: found.id,
-      name: found.name,
-      startDate: found.startDate,
-      endDate: found.endDate,
-      userRanking: placement,
-      totalParticipants: totalCompetitors,
+    // 6) Adicionar versão concluída no topo
+    _userConcluded.insert(
+      0,
+      Championship(
+        id: found.id,
+        name: found.name,
+        startDate: found.startDate,
+        endDate: found.endDate,
+        userRanking: placement,
+        totalParticipants: totalCompetitors,
+      ),
     );
 
-    // adiciona no topo dos concluídos do usuário
-    _userConcluded.insert(0, concluded);
+    _bump(); // >>> avisa UI que houve mudança
   }
 
-  /// Deve agendar notificações push 7 dias, 3 dias e no dia do evento.
   static Future<void> schedulePushNotifications() async {
     // TODO: usar flutter_local_notifications ou outro plugin.
   }
 
-  /// Exibe in-app dialogs 7d, 3d e no dia do evento (chamar no build da seção).
+  /// Exibe in-app dialogs 7d, 3d e no dia do evento (uma vez por dia por campeonato).
   static void showInAppNotifications(
     BuildContext context,
     List<Championship> ups,

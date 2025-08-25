@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/features/user/athlete/athlete_all_championships_screen.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_champ_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 import 'package:intl/intl.dart';
@@ -179,29 +180,24 @@ class _ChampionshipsSectionState extends State<ChampionshipsSection> {
                     ),
                   ),
                   const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      // TODO: navegar para ver todos concluídos
-                    },
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Ver todos',
-                          style: TextStyle(
-                            fontFamily: AppFonts.roboto,
-                            fontWeight: AppFontWeight.medium,
-                            fontSize: 12 * scale,
-                            color: AppColors.baseBlue,
-                          ),
-                        ),
-                        SizedBox(width: 4 * scale),
-                        Icon(
-                          Icons.navigate_next,
-                          size: 20 * scale,
-                          color: AppColors.baseBlue,
-                        ),
-                      ],
+                  TextButton.icon(
+                    onPressed:
+                        () => Navigator.of(
+                          context,
+                        ).pushNamed(AllChampionshipsScreen.routeName),
+                    icon: Icon(
+                      Icons.add,
+                      size: 20 * scale,
+                      color: AppColors.baseBlue,
+                    ),
+                    label: Text(
+                      'Ver todos',
+                      style: TextStyle(
+                        fontFamily: AppFonts.roboto,
+                        fontWeight: AppFontWeight.medium,
+                        fontSize: 12 * scale,
+                        color: AppColors.baseBlue,
+                      ),
                     ),
                   ),
                 ],
