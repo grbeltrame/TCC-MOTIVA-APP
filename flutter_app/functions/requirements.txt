@@ -1,0 +1,12 @@
+# requirements.txt
+
+# Bibliotecas do Google e Firebase
+firebase-functions
+firebase-admin
+google-cloud-secret-manager
+
+# Bibliotecas de IA (LangChain)
+langchain
+langchain-google-genai
+
+# Adicione outras bibliotecas que você possa usar, como 'pydantic' se o seu 'parser' precisar.

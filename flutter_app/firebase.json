@@ -1,0 +1,29 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "python311",
+    "build": {
+      "timeoutSeconds": 10000
+    }
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "motiva-8b82f",
+          "appId": "1:430412921098:android:b43f08f241d0d5a8a422f3",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "motiva-8b82f",
+          "configurations": {
+            "android": "1:430412921098:android:b43f08f241d0d5a8a422f3",
+            "ios": "1:430412921098:ios:b4325bd4d8ff640ba422f3"
+          }
+        }
+      }
+    }
+  }
+}
