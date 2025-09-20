@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed:
                       () => Navigator.pushReplacementNamed(
                         context,
-                        AppRoutes.coachTraining,
+                        AppRoutes.athleteHome,
                       ), //leva direto pra pagina de atleta pra teste
                   // onPressed: () { ///DESCOMENTAR QUANDO TIVER VALIDAÇÃO DO BACKEND
                   //   // if (_formKey.currentState!.validate()) {
