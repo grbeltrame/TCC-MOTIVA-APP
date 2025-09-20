@@ -50,8 +50,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
       _NavItem(
         icon: Icons.fitness_center,
         label: 'Treinos',
-        routeAthlete: AppRoutes.athleteTraining,
-        routeCoach: '/coach_trainings',
+        routeAthlete: AppRoutes.coachTraining,
+        routeCoach: '/coach_training',
       ),
       _NavItem(
         icon: Icons.bar_chart,
