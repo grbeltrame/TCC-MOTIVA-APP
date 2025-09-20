@@ -23,6 +23,9 @@ import 'package:flutter_app/features/auth/presentation/reset_password_screen.dar
 import 'package:flutter_app/features/auth/presentation/terms_screen.dart';
 import 'package:flutter_app/features/auth/presentation/privacy_policy_screen.dart';
 import 'package:flutter_app/features/splash/presentation/splash_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_registered_trainings_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_training_detail_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_trainings_screen.dart';
 
 /// Centralização de nomes e mapeamento de rotas da aplicação.
 class AppRoutes {
@@ -55,6 +58,10 @@ class AppRoutes {
       AllChampionshipsScreen.routeName;
 
   static const String coachHome = CoachHomeScreen.routeName;
+  static const String coachTrainings = CoachTrainingScreen.routeName;
+  static const String coachRegisteredTrainings =
+      CoachRegisteredTrainingScreen.routeName;
+  static const String coachTrainingDetail = CoachTrainingDetailScreen.routeName;
 }
 
 /// Mapeamento de rotas para usar no MaterialApp(routes:)
@@ -82,4 +89,8 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.athleteAllChampionships: (_) => const AllChampionshipsScreen(),
 
   AppRoutes.coachHome: (_) => const CoachHomeScreen(),
+  AppRoutes.coachTrainings: (_) => const CoachTrainingScreen(),
+  AppRoutes.coachRegisteredTrainings:
+      (_) => const CoachRegisteredTrainingScreen(),
+  AppRoutes.coachTrainingDetail: (_) => const CoachTrainingDetailScreen(),
 };
