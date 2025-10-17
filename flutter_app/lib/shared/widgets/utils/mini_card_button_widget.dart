@@ -17,16 +17,21 @@ class MiniCardButtonWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min, // 🔹 encolhe ao conteúdo
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(icon, size: 16, color: iconColor),
         const SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(
+          maxLines: 1, // 🔹 garante uma linha
+          overflow: TextOverflow.ellipsis, // 🔹 evita overflow
+          softWrap: false,
+          style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: textColor,
-          ),
+          ).copyWith(color: textColor),
         ),
       ],
     );

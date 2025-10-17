@@ -20,6 +20,7 @@ class MiniCardWidget extends StatelessWidget {
   final Color iconColor;
   final bool showButton;
   final Widget? buttonWidget; // mesmo conceito para botão, se quiser
+  final double? titleFontSize;
 
   const MiniCardWidget({
     Key? key,
@@ -31,6 +32,7 @@ class MiniCardWidget extends StatelessWidget {
     required this.iconColor,
     this.showButton = false,
     this.buttonWidget,
+    this.titleFontSize,
   }) : super(key: key);
 
   @override
@@ -53,7 +55,7 @@ class MiniCardWidget extends StatelessWidget {
                 : snapshot.data ?? 'N/A';
 
         return Container(
-          width: 120 * scale,
+          width: 120 * scale, // mantém a largura original do card
           padding: EdgeInsets.symmetric(
             horizontal: 6 * scale,
             vertical: 8 * scale,
@@ -63,50 +65,60 @@ class MiniCardWidget extends StatelessWidget {
             border: Border.all(color: borderColor, width: 1 * scale),
             borderRadius: BorderRadius.circular(10 * scale),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // ── Linha de ícone + título ───────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // aqui usamos o widget passado
-                  iconWidget,
-                  SizedBox(width: 6 * scale),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontFamily: AppFonts.roboto,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14 * scale,
-                      color: iconColor,
+          // Faz a coluna ocupar toda a altura disponível do card,
+          // permitindo centralizar o botão verticalmente com Spacer().
+          child: SizedBox(
+            height: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                // ── Ícone + título ─────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    iconWidget,
+                    SizedBox(width: 6 * scale),
+                    // Protege o título de overflow lateral sem mudar largura
+                    Flexible(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppFonts.roboto,
+                          fontWeight: FontWeight.bold,
+                          fontSize: titleFontSize ?? 14,
+                          color: iconColor,
+                        ),
+                      ),
                     ),
+                  ],
+                ),
+
+                SizedBox(height: 4 * scale),
+
+                // ── Valor ───────────────────────────────────────
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14 * scale,
+                    color: AppColors.darkText,
                   ),
+                ),
+
+                // ── Botão centralizado AO MEIO ─────────────────
+                if (showButton && buttonWidget != null) ...[
+                  const Spacer(), // empurra o botão para o meio (para baixo)
+                  Center(child: buttonWidget!), // centraliza horizontalmente
+                  const Spacer(), // empurra o botão para o meio (para cima)
                 ],
-              ),
-
-              SizedBox(height: 4 * scale),
-
-              // ── Valor principal ────────────────────────────────
-              Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: AppFonts.roboto,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14 * scale,
-                  color: AppColors.darkText,
-                ),
-              ),
-
-              // ── Botão opcional ────────────────────────────────
-              if (showButton && buttonWidget != null)
-                Padding(
-                  padding: EdgeInsets.only(top: 8 * scale),
-                  child: buttonWidget!,
-                ),
-            ],
+              ],
+            ),
           ),
         );
       },

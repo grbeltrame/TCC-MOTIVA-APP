@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_summary_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_trainings_section.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_trainings_actions_section.dart';
@@ -33,15 +34,17 @@ class _CoachTrainingScreenState extends State<CoachTrainingScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: const [
+          children: [
             // Botoes inicais
-            CoachTrainingActionsSection(),
+            const CoachTrainingActionsSection(),
 
             // Resumo dos treinos do dia
             const SizedBox(height: 16),
-            CoachDailyTrainingsSection(
+            const CoachDailyTrainingsSection(
               boxId: '1',
             ), // TODO: passe o boxId real do coach
+            const SizedBox(height: 16),
+            CoachDailySummarySection(date: DateTime.now()),
           ],
         ),
       ),

@@ -347,6 +347,22 @@ extension DayClasses on TrainingService {
   }
 }
 
+extension DailyStats on TrainingService {
+  /// Quantidade total de resultados registrados no dia.
+  static Future<int> fetchResultsCountForDate(DateTime date) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    // TODO(back): consultar endpoint real de resultados diários.
+    return 15; // mock da imagem
+  }
+
+  /// Frequência geral de alunos no dia (0–100%).
+  static Future<double> fetchDailyAttendanceRate(DateTime date) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    // TODO(back): consultar backend (média ponderada por aula).
+    return 83.0; // mock da imagem
+  }
+}
+
 /// Service mock: persiste em memória por data+categoria.
 /// Regra: no máximo 2 interesses por dia, obrigatoriamente de categorias diferentes.
 /// Se registrar uma categoria já existente no dia, faz upsert (substitui).
