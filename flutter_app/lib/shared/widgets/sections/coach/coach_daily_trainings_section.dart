@@ -76,12 +76,7 @@ class _CoachDailyTrainingsSectionState
         // Título / Subtítulo (imutáveis)
         Text(
           'Treinos do Dia',
-          style: TextStyle(
-            fontFamily: AppFonts.montserrat,
-            fontWeight: AppFontWeight.bold,
-            fontSize: 16 * scale,
-            color: AppColors.darkText,
-          ),
+          style: Theme.of(context).textTheme.headlineSmall,
         ),
         SizedBox(height: 2 * scale),
         Text(

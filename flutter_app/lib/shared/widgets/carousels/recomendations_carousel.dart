@@ -1,4 +1,6 @@
 // lib/shared/widgets/recomendations_carousel.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
@@ -29,6 +31,7 @@ class RecomendationsCarousel extends StatefulWidget {
 class _RecomendationsCarouselState extends State<RecomendationsCarousel> {
   late final PageController _controller;
   late final List<RecomendationModel> _filtered;
+  Timer? _autoTimer;
 
   @override
   void initState() {
@@ -37,20 +40,48 @@ class _RecomendationsCarouselState extends State<RecomendationsCarousel> {
         widget.allRecomendations
             .where((a) => widget.enabledRecomendationsTypes.contains(a.type))
             .toList();
-    // mostra 1 cartão por página
+
     _controller = PageController(viewportFraction: 1);
-    Future.delayed(const Duration(seconds: 5), _nextPage);
+
+    if (_filtered.isNotEmpty) {
+      // Garante que o PageView esteja montado antes de agendar
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scheduleNext();
+      });
+    }
+  }
+
+  void _scheduleNext() {
+    _autoTimer?.cancel();
+    _autoTimer = Timer(const Duration(seconds: 5), _nextPage);
   }
 
   void _nextPage() {
     if (!mounted || _filtered.isEmpty) return;
-    final next = (_controller.page!.round() + 1) % _filtered.length;
+    if (!_controller.hasClients) {
+      // Se ainda não tem cliente, tenta novamente mais tarde
+      _scheduleNext();
+      return;
+    }
+
+    final current = _controller.page?.round() ?? 0;
+    final next = (current + 1) % _filtered.length;
+
     _controller.animateToPage(
       next,
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
-    Future.delayed(const Duration(seconds: 8), _nextPage);
+
+    // agenda o próximo ciclo
+    _autoTimer = Timer(const Duration(seconds: 8), _nextPage);
+  }
+
+  @override
+  void dispose() {
+    _autoTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -111,11 +142,5 @@ class _RecomendationsCarouselState extends State<RecomendationsCarousel> {
         },
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 }

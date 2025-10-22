@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_overview_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_summary_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_trainings_section.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
@@ -45,6 +46,13 @@ class _CoachTrainingScreenState extends State<CoachTrainingScreen> {
             ), // TODO: passe o boxId real do coach
             const SizedBox(height: 16),
             CoachDailySummarySection(date: DateTime.now()),
+
+            const SizedBox(height: 16),
+            CoachDailyOverviewSection(
+              date:
+                  DateTime.now(), // ou a data selecionada pelo seu DateSelector
+              boxId: '1', // TODO: passar o boxId real selecionado
+            ),
           ],
         ),
       ),
