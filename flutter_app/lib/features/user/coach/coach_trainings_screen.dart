@@ -41,9 +41,8 @@ class _CoachTrainingScreenState extends State<CoachTrainingScreen> {
 
             // Resumo dos treinos do dia
             const SizedBox(height: 16),
-            const CoachDailyTrainingsSection(
-              boxId: '1',
-            ), // TODO: passe o boxId real do coach
+            const CoachDailyTrainingsSection(boxId: '1'),
+            // TODO: passe o boxId real do coach
             const SizedBox(height: 16),
             CoachDailySummarySection(date: DateTime.now()),
 

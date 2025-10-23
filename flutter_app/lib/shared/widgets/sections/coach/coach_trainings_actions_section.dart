@@ -2,20 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/routes/app_routes.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart';
 
 class CoachTrainingActionsSection extends StatelessWidget {
   const CoachTrainingActionsSection({Key? key}) : super(key: key);
 
   void _openRegisterTraining(BuildContext context) {
-    // TODO: abrir bottom sheet de cadastro de treino
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder:
-          (ctx) => const Center(
-            child: Text('Bottom sheet de cadastro de treino (TODO)'),
-          ),
-    );
+    showRegisterTrainingBottomSheet(context);
   }
 
   void _goToRegisteredTrainings(BuildContext context) {

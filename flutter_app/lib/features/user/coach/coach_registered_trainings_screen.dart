@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/sections/coach/coach_registered_trainings_section.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
@@ -33,8 +34,12 @@ class _CoachRegisteredTrainingScreenState
           horizontal: 12 * scale,
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: const [AppBackButton()],
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            AppBackButton(),
+
+            const CoachRegisteredTrainingsSection(),
+          ],
         ),
       ),
     );

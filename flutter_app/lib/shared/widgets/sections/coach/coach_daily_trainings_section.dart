@@ -55,13 +55,12 @@ class _CoachDailyTrainingsSectionState
   }
 
   void _openDetail(String category) {
-    // Passe argumentos para a sua página de detalhe (ajusto para AppRoutes se você preferir).
     Navigator.of(context).pushNamed(
       AppRoutes.coachTrainingDetail,
       arguments: {
         'category': category,
-        'date': DateFormat('yyyy-MM-dd').format(_date),
-        'boxId': widget.boxId,
+        'date': _date, // << mande o DateTime diretamente
+        'boxId': widget.boxId, // mantém compat, mesmo sendo 1 box
       },
     );
   }
