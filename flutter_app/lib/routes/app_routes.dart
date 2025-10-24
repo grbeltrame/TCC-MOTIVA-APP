@@ -14,6 +14,9 @@ import 'package:flutter_app/features/user/athlete/athlete_pr_item_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_pr_list_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_profile_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_training_screen.dart';
+import 'package:flutter_app/features/user/coach/athlete_alerts_screen.dart';
+import 'package:flutter_app/features/user/coach/athlete_profile_detail_screen.dart';
+import 'package:flutter_app/features/user/coach/athlete_results_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_home_screen.dart';
 import 'package:flutter_app/features/auth/presentation/login_screen.dart';
 import 'package:flutter_app/features/auth/presentation/signup_screen.dart';
@@ -26,6 +29,9 @@ import 'package:flutter_app/features/splash/presentation/splash_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_registered_trainings_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_training_detail_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_trainings_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_evolutions_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_insights_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_training_insights_screen.dart';
 
 /// Centralização de nomes e mapeamento de rotas da aplicação.
 class AppRoutes {
@@ -62,6 +68,14 @@ class AppRoutes {
   static const String coachRegisteredTrainings =
       CoachRegisteredTrainingScreen.routeName;
   static const String coachTrainingDetail = CoachTrainingDetailScreen.routeName;
+  static const String athletesResults = AthleteResultsScreen.routeName;
+  static const String athleteAlerts = AthleteAlertsScreen.routeName;
+  static const String athleteProfileDetail =
+      AthleteProfileDetailScreen.routeName;
+  static const String coachEvolutions = CoachEvolutionsScreen.routeName;
+  static const String coachInsights = CoachInsightsScreen.routeName;
+  static const String coachTrainingInsights =
+      CoachTrainingInsightsScreen.routeName;
 }
 
 /// Mapeamento de rotas para usar no MaterialApp(routes:)
@@ -93,4 +107,10 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.coachRegisteredTrainings:
       (_) => const CoachRegisteredTrainingScreen(),
   AppRoutes.coachTrainingDetail: (_) => const CoachTrainingDetailScreen(),
+  AppRoutes.athletesResults: (_) => const AthleteResultsScreen(),
+  AppRoutes.athleteAlerts: (_) => const AthleteAlertsScreen(),
+  AppRoutes.athleteProfileDetail: (_) => const AthleteProfileDetailScreen(),
+  AppRoutes.coachEvolutions: (_) => const CoachEvolutionsScreen(),
+  AppRoutes.coachInsights: (_) => const CoachInsightsScreen(),
+  AppRoutes.coachTrainingInsights: (_) => const CoachTrainingInsightsScreen(),
 };

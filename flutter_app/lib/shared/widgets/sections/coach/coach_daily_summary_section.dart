@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/cards/mini_card_widget.dart';
 import 'package:flutter_app/shared/widgets/utils/mini_card_button_widget.dart';
 
@@ -55,11 +56,16 @@ class _CoachDailySummarySectionState extends State<CoachDailySummarySection> {
                     borderColor: AppColors.darkMagenta,
                     iconColor: AppColors.darkText,
                     showButton: true,
-                    buttonWidget: const MiniCardButtonWidget(
+                    buttonWidget: MiniCardButtonWidget(
                       icon: Icons.add,
                       label: 'Ver resultados',
                       textColor: AppColors.baseMagenta,
                       iconColor: AppColors.baseMagenta,
+                      onPressed:
+                          () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.athletesResults,
+                          ),
                     ),
                   );
                 },

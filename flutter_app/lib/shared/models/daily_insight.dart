@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/services/users/coach/daily_insights_service.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/carousels/recomendations_carousel.dart';
 
 /// Section que exibe um carrossel de insights do COACH para o dia,
@@ -135,7 +136,9 @@ class _CoachInsightsActions extends StatelessWidget {
         // Botão preenchido
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.coachEvolutions);
+            },
             icon: Icon(Icons.lightbulb_outline_rounded, size: 18 * scale),
             label: Text(
               'Análise semanal',
@@ -165,7 +168,9 @@ class _CoachInsightsActions extends StatelessWidget {
         // Botão vazado (outlined)
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.coachTrainingInsights);
+            },
             icon: Icon(
               Icons.show_chart_rounded,
               size: 18 * scale,

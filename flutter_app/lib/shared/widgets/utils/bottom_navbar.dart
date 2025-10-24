@@ -27,7 +27,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   void initState() {
     super.initState();
     // Sincrono por enquanto; quando tiver API, troque por chamada async:
-    _isCoach = _profileService.hasRole('athlete');
+    _isCoach = _profileService.hasRole('coach');
   }
 
   @override
@@ -45,7 +45,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
         icon: Icons.lightbulb_outline,
         label: 'Insights',
         routeAthlete: AppRoutes.athleteInsight,
-        routeCoach: '/coach_insights',
+        routeCoach: AppRoutes.coachInsights,
       ),
       _NavItem(
         icon: Icons.fitness_center,
@@ -57,7 +57,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
         icon: Icons.bar_chart,
         label: 'Evolução',
         routeAthlete: AppRoutes.athleteEvolution,
-        routeCoach: '/coach_progress',
+        routeCoach: AppRoutes.coachEvolutions,
       ),
       _NavItem(
         icon: Icons.account_circle_outlined,
