@@ -26,6 +26,8 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
   late String _boxId; // manter compat até trocar service
   late DateTime _date;
   late String _category; // 'WOD', 'LPO', ...
+  String? _blockId;
+  String? _expectedTitle;
 
   TrainingBlock? _lastBlock;
   bool _bootstrapped = false;
@@ -38,14 +40,12 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
 
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
     _boxId = (args['boxId'] ?? '1') as String;
-    final rawDate = args['date'];
     _category = (args['category'] ?? 'WOD') as String;
+    _expectedTitle = args['expectedTitle'] as String?;
+    _blockId = args['blockId'] as String?; // << NEW
 
-    if (rawDate is DateTime) {
-      _date = rawDate;
-    } else {
-      _date = DateTime.now(); // fallback
-    }
+    final rawDate = args['date'];
+    _date = (rawDate is DateTime) ? rawDate : DateTime.now();
 
     _blocksFut = TrainingService.fetchFullTrainingBlocks(
       boxId: _boxId,
@@ -56,23 +56,38 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
     _bootstrapped = true;
   }
 
-  TrainingBlock? _chooseLastBlock(List<TrainingBlock> blocks) {
+  TrainingBlock? _chooseTargetBlock(List<TrainingBlock> blocks) {
     if (blocks.isEmpty) return null;
 
-    // 1) tenta o bloco cujo título contenha "WOD"
+    // 1) Prioriza ID
+    if (_blockId != null && _blockId!.isNotEmpty) {
+      final i = blocks.indexWhere((b) => b.id == _blockId);
+      if (i != -1) return blocks[i];
+    }
+
+    // 2) Fallback por expectedTitle (compat com passado)
+    if (_expectedTitle != null && _expectedTitle!.trim().isNotEmpty) {
+      final i = blocks.indexWhere(
+        (b) =>
+            b.title.trim().toLowerCase() ==
+            _expectedTitle!.trim().toLowerCase(),
+      );
+      if (i != -1) return blocks[i];
+    }
+
+    // 3) Heurísticas antigas (WOD / for time / amrap)
     final wodIdx = blocks.indexWhere(
       (b) => b.title.toLowerCase().contains('wod'),
     );
     if (wodIdx != -1) return blocks[wodIdx];
 
-    // 2) tenta algo que indique o bloco “principal”
     final mainIdx = blocks.indexWhere((b) {
       final t = '${b.title} ${b.subtitle}'.toLowerCase();
       return t.contains('for time') || t.contains('amrap');
     });
     if (mainIdx != -1) return blocks[mainIdx];
 
-    // 3) fallback: último bloco da lista
+    // 4) Último como último recurso
     return blocks.last;
   }
 
@@ -134,7 +149,7 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final blocks = snap.data!;
-                  final lastBlock = _chooseLastBlock(blocks);
+                  final lastBlock = _chooseTargetBlock(blocks);
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,

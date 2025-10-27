@@ -1,3 +1,4 @@
+// lib/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart
 import 'dart:typed_data';
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -8,6 +9,8 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/core/services/users/coach/training_upload_service.dart';
+
+import 'package:flutter_app/shared/widgets/dialogs/pdf_upload_dialogs.dart';
 
 class RegisterTrainingBottomSheet extends StatefulWidget {
   const RegisterTrainingBottomSheet({super.key});
@@ -41,7 +44,7 @@ class _RegisterTrainingBottomSheetState
   }
 
   Future<void> _uploadPdf() async {
-    if (_pickedFile == null) return;
+    if (_pickedFile == null || _uploading) return;
 
     try {
       setState(() => _uploading = true);
@@ -50,12 +53,10 @@ class _RegisterTrainingBottomSheetState
       if (kIsWeb) {
         bytes = _pickedFile!.bytes!;
       } else {
-        // Em mobile/desktop, lemos do path
         final path = _pickedFile!.path!;
         bytes = await File(path).readAsBytes();
       }
 
-      // Passe os metadados reais quando integrar (ex.: boxId e data do dia)
       final result = await _service.uploadTrainingPdf(
         bytes: bytes,
         filename: _pickedFile!.name,
@@ -69,21 +70,21 @@ class _RegisterTrainingBottomSheetState
         _uploading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PDF enviado com sucesso (mock)!')),
-      );
+      // ⬇️ Sucesso: dialog fecha a si e o bottom sheet
+      await showPdfUploadSuccessDialog(context);
     } catch (e) {
       if (!mounted) return;
       setState(() => _uploading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Falha ao enviar PDF: $e')));
+
+      // ⬇️ Erro: dialog com “Tentar novamente”
+      await showPdfUploadErrorDialog(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
+    final hasFile = _pickedFile != null && !_uploading;
 
     return AppBottomSheet(
       child: Padding(
@@ -150,26 +151,36 @@ class _RegisterTrainingBottomSheetState
               ),
             ),
 
-            if (_uploadedUrl != null) ...[
-              SizedBox(height: 8 * scale),
-              Text(
-                'Arquivo enviado (mock): $_uploadedUrl',
-                style: TextStyle(
-                  fontSize: 12 * scale,
-                  color: AppColors.baseBlue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-
             SizedBox(height: 16 * scale),
 
-            // Botão Enviar
+            // Botão Enviar (cinza sem arquivo; azul com arquivo)
             SizedBox(
               height: 44 * scale,
               child: ElevatedButton.icon(
-                onPressed:
-                    (_pickedFile != null && !_uploading) ? _uploadPdf : null,
+                onPressed: hasFile ? _uploadPdf : null,
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.resolveWith((states) {
+                    if (states.contains(MaterialState.disabled)) {
+                      return AppColors.lightGray; // cinza sem arquivo/disable
+                    }
+                    return AppColors.baseBlue; // azul com arquivo selecionado
+                  }),
+                  foregroundColor: MaterialStateProperty.resolveWith((states) {
+                    if (states.contains(MaterialState.disabled)) {
+                      return AppColors.mediumGray;
+                    }
+                    return Colors.white; // texto/ícone brancos quando ativo
+                  }),
+                  shape: MaterialStateProperty.all(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10 * scale),
+                    ),
+                  ),
+                  elevation: const MaterialStatePropertyAll(0),
+                  padding: MaterialStatePropertyAll(
+                    EdgeInsets.symmetric(horizontal: 12 * scale),
+                  ),
+                ),
                 icon:
                     _uploading
                         ? SizedBox(
@@ -177,6 +188,9 @@ class _RegisterTrainingBottomSheetState
                           height: 18 * scale,
                           child: const CircularProgressIndicator(
                             strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                         : const Icon(Icons.cloud_upload),

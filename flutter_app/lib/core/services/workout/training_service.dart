@@ -27,12 +27,14 @@ class TrainingService {
     required DateTime date,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300)); // simula latência
+    final dayKey = '${date.year}-${date.month}-${date.day}';
 
     final formattedDate = DateFormat('dd/MM/yyyy').format(date);
     final Map<String, TrainingBlock?> result = {};
 
-    // Mock de ultimo bloco para cada categoria:
+    // WOD
     result['WOD'] = TrainingBlock(
+      id: 'tb-$dayKey-wod-fran', // << estável
       title: 'WOD “Fran”',
       subtitle: '$formattedDate – 21-15-9 Thrusters e Pull-ups',
       items: [
@@ -45,7 +47,9 @@ class TrainingService {
       ],
     );
 
+    // LPO
     result['LPO'] = TrainingBlock(
+      id: 'tb-$dayKey-lpo-snatch-tech',
       title: 'Olympic Lifts',
       subtitle: '$formattedDate – Técnica e força',
       items: [
@@ -55,7 +59,9 @@ class TrainingService {
       ],
     );
 
+    // Ginástica
     result['Ginastica'] = TrainingBlock(
+      id: 'tb-$dayKey-gym-pullups',
       title: 'Ginástica',
       subtitle: '$formattedDate – Habilidades corporais',
       items: [
@@ -65,7 +71,9 @@ class TrainingService {
       ],
     );
 
+    // Endurance
     result['Endurance'] = TrainingBlock(
+      id: 'tb-$dayKey-endu-cardio', // << adicionado
       title: 'Endurance',
       subtitle: '$formattedDate – Cardio intenso',
       items: [
@@ -87,11 +95,13 @@ class TrainingService {
     required String category, // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
   }) async {
     await Future.delayed(const Duration(milliseconds: 300)); // simula latência
+    final dayKey = '${date.year}-${date.month}-${date.day}';
+    final catKey = category.toLowerCase();
 
-    // MOCK inspirado na imagem de referência (treino completo de WOD “Isabel”)
-    if (category.toLowerCase() == 'wod') {
+    if (catKey == 'wod') {
       return [
         TrainingBlock(
+          id: 'tb-$dayKey-wod-warmup',
           title: 'Warm Up - 5 min',
           subtitle: '',
           items: const [
@@ -102,6 +112,7 @@ class TrainingService {
           ],
         ),
         TrainingBlock(
+          id: 'tb-$dayKey-wod-extra',
           title: 'Extra Training - 8 min',
           subtitle: '',
           items: const [
@@ -115,31 +126,37 @@ class TrainingService {
           ],
         ),
         TrainingBlock(
+          id: 'tb-$dayKey-wod-skill',
           title: 'Skill Work - 10 min',
           subtitle: '',
           items: const ['Snatch'],
         ),
         TrainingBlock(
+          id: 'tb-$dayKey-wod-rx',
           title: 'RX Work - 10 min',
           subtitle: '',
           items: const ['Load to Wod'],
         ),
+        // << PRINCIPAL: mesmo ID e mesmo treino do card
         TrainingBlock(
-          title: 'WOD - Isabel',
+          id: 'tb-$dayKey-wod-fran',
+          title: 'WOD - Fran',
           subtitle: 'For Time:',
-          items: const ['30 snatch (135/95 lbs)'],
+          items: const ['21-15-9 Thrusters (43/30kg) + Pull-ups'],
         ),
       ];
     }
 
-    // Outros tipos — mocks simples (ajuste como quiser)
+    // Outros tipos — mocks simples com IDs estáveis
     return [
       TrainingBlock(
+        id: 'tb-$dayKey-$catKey-tech',
         title: '$category – Técnica',
         subtitle: '10 min',
         items: const ['Bloco técnico 1', 'Bloco técnico 2'],
       ),
       TrainingBlock(
+        id: 'tb-$dayKey-$catKey-strength',
         title: '$category – Força',
         subtitle: '10 min',
         items: const ['Série principal', 'Série complementar'],

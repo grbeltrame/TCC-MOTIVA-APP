@@ -6,6 +6,8 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
+import 'package:flutter_app/routes/app_routes.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 
 /// Section: “Esses são todos os treinos cadastrados do Box”
 class CoachRegisteredTrainingsSection extends StatefulWidget {
@@ -33,10 +35,35 @@ class _CoachRegisteredTrainingsSectionState
 
   void _reload() {
     _fut = TrainingService.fetchTrainingBlocksByCategoryForDate(
-      boxId: 'DEFAULT_BOX', // ignorado na sua infra atual; mantido por compat.
+      boxId: 'DEFAULT_BOX', // compat
       date: _date,
     );
     setState(() {});
+  }
+
+  void _openCoachTrainingDetail(TrainingBlock block) {
+    Navigator.of(context).pushNamed(
+      AppRoutes.coachTrainingDetail,
+      arguments: {
+        'boxId': '1',
+        'date': _date,
+        'category': _category,
+        'blockId': block.id,
+        'expectedTitle': block.title, // << envia o título mostrado no card
+      },
+    );
+  }
+
+  Future<void> _openRegisterResult() async {
+    await showRegisterResultBottomSheet(context);
+  }
+
+  // TODOs vazios (ficam prontos pra integrar):
+  void _onTapVerResultadosAlunos() {
+    /* TODO: implementar */
+  }
+  void _onTapComentariosDoCriador() {
+    /* TODO: implementar */
   }
 
   @override
@@ -75,7 +102,7 @@ class _CoachRegisteredTrainingsSectionState
         ),
         SizedBox(height: 12 * scale),
 
-        // 3) TypePicker
+        // 3) TypePicker (estética igual ao DateSelector compacto)
         Align(
           alignment: Alignment.center,
           child: TypePicker(
@@ -86,7 +113,7 @@ class _CoachRegisteredTrainingsSectionState
         ),
         SizedBox(height: 12 * scale),
 
-        // 4) Card com o último bloco do tipo selecionado
+        // 4) Card com o último bloco do tipo selecionado + FOOTER interno
         FutureBuilder<Map<String, TrainingBlock?>>(
           future: _fut,
           builder: (ctx, snap) {
@@ -101,7 +128,6 @@ class _CoachRegisteredTrainingsSectionState
 
             return Container(
               margin: EdgeInsets.symmetric(horizontal: 4 * scale),
-              padding: EdgeInsets.all(12 * scale),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10 * scale),
@@ -114,49 +140,210 @@ class _CoachRegisteredTrainingsSectionState
                   ),
                 ],
               ),
+              clipBehavior: Clip.antiAlias,
               child:
                   block == null
-                      ? Text(
-                        'Não há treino de $_category para esta data.',
-                        style: TextStyle(
-                          fontFamily: AppFonts.roboto,
-                          fontSize: 12 * scale,
-                          color: AppColors.mediumGray,
+                      ? Padding(
+                        padding: EdgeInsets.all(12 * scale),
+                        child: Text(
+                          'Não há treino de $_category para a data selecionada.',
+                          style: TextStyle(
+                            fontFamily: AppFonts.roboto,
+                            fontSize: 12 * scale,
+                            color: AppColors.mediumGray,
+                          ),
                         ),
                       )
                       : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            block.title,
-                            style: TextStyle(
-                              fontFamily: AppFonts.roboto,
-                              fontWeight: AppFontWeight.bold,
-                              fontSize: 16 * scale,
-                              color: AppColors.darkText,
+                          // Conteúdo
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              12 * scale,
+                              12 * scale,
+                              12 * scale,
+                              0,
                             ),
-                          ),
-                          SizedBox(height: 4 * scale),
-                          Text(
-                            block.subtitle,
-                            style: TextStyle(
-                              fontFamily: AppFonts.roboto,
-                              fontSize: 12 * scale,
-                              color: AppColors.mediumGray,
-                            ),
-                          ),
-                          SizedBox(height: 8 * scale),
-                          ...block.items.map(
-                            (line) => Padding(
-                              padding: EdgeInsets.only(bottom: 4 * scale),
-                              child: Text(
-                                line,
-                                style: TextStyle(
-                                  fontFamily: AppFonts.roboto,
-                                  fontSize: 12 * scale,
-                                  color: AppColors.mediumGray,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  block.title,
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.roboto,
+                                    fontWeight: AppFontWeight.bold,
+                                    fontSize: 16 * scale,
+                                    color: AppColors.darkText,
+                                  ),
                                 ),
-                              ),
+                                SizedBox(height: 4 * scale),
+                                Text(
+                                  block.subtitle,
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.roboto,
+                                    fontSize: 12 * scale,
+                                    color: AppColors.mediumGray,
+                                  ),
+                                ),
+                                SizedBox(height: 8 * scale),
+                                ...block.items.map(
+                                  (line) => Padding(
+                                    padding: EdgeInsets.only(bottom: 4 * scale),
+                                    child: Text(
+                                      line,
+                                      style: TextStyle(
+                                        fontFamily: AppFonts.roboto,
+                                        fontSize: 12 * scale,
+                                        color: AppColors.mediumGray,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 8 * scale),
+                              ],
+                            ),
+                          ),
+
+                          // Divider do footer
+                          Container(height: 1, color: AppColors.lightGray),
+
+                          // Footer interno (linha 1)
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8 * scale,
+                              vertical: 6 * scale,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: _onTapVerResultadosAlunos,
+                                  icon: Icon(
+                                    Icons.group_outlined,
+                                    size: 14 * scale,
+                                    color: AppColors.baseBlue,
+                                  ),
+                                  label: Text(
+                                    'Ver resultados dos alunos',
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.roboto,
+                                      fontWeight: AppFontWeight.bold,
+                                      fontSize: 11 * scale,
+                                      color: AppColors.baseBlue,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 8 * scale,
+                                      vertical: 4 * scale,
+                                    ),
+                                    minimumSize: const Size(0, 0),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                                SizedBox(width: 2 * scale),
+                                TextButton.icon(
+                                  onPressed: _onTapComentariosDoCriador,
+                                  icon: Icon(
+                                    Icons.comment_outlined,
+                                    size: 14 * scale,
+                                    color: AppColors.baseBlue,
+                                  ),
+                                  label: Text(
+                                    'Comentários do criador',
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.roboto,
+                                      fontWeight: AppFontWeight.bold,
+                                      fontSize: 11 * scale,
+                                      color: AppColors.baseBlue,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 8 * scale,
+                                      vertical: 4 * scale,
+                                    ),
+                                    minimumSize: const Size(0, 0),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // divisor entre as duas linhas do footer
+                          Container(
+                            height: 1,
+                            color: AppColors.lightGray.withOpacity(0.6),
+                          ),
+
+                          // Footer interno (linha 2)
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8 * scale,
+                              vertical: 6 * scale,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  onPressed:
+                                      () => _openCoachTrainingDetail(block),
+                                  icon: Icon(
+                                    Icons.visibility_outlined,
+                                    size: 16 * scale,
+                                    color: AppColors.baseBlue,
+                                  ),
+                                  label: Text(
+                                    'Ver treino completo',
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.roboto,
+                                      fontWeight: AppFontWeight.bold,
+                                      fontSize: 13 * scale,
+                                      color: AppColors.baseBlue,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 8 * scale,
+                                      vertical: 4 * scale,
+                                    ),
+                                    minimumSize: const Size(0, 0),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                                SizedBox(width: 6 * scale),
+                                TextButton.icon(
+                                  onPressed: _openRegisterResult,
+                                  icon: Icon(
+                                    Icons.emoji_events_outlined,
+                                    size: 16 * scale,
+                                    color: AppColors.baseBlue,
+                                  ),
+                                  label: Text(
+                                    'Registrar resultado',
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.roboto,
+                                      fontWeight: AppFontWeight.bold,
+                                      fontSize: 13 * scale,
+                                      color: AppColors.baseBlue,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 8 * scale,
+                                      vertical: 4 * scale,
+                                    ),
+                                    minimumSize: const Size(0, 0),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -167,7 +354,7 @@ class _CoachRegisteredTrainingsSectionState
 
         SizedBox(height: 12 * scale),
 
-        // 5) Linha com 2 botões (Outlined translúcidos)
+        // 5) Linha com 2 botões (Outlined translúcidos) — fora do card
         Row(
           children: [
             Expanded(
@@ -200,14 +387,14 @@ class _CoachRegisteredTrainingsSectionState
                   /* TODO: editar */
                 },
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.baseBlue, width: 1.2),
+                  side: const BorderSide(color: AppColors.baseBlue, width: 1.2),
                   backgroundColor: AppColors.baseBlue.withAlpha(32),
                   minimumSize: Size(0, 36 * scale),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8 * scale),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'Editar Treino',
                   style: TextStyle(
                     fontFamily: AppFonts.roboto,

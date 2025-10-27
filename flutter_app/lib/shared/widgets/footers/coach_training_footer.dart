@@ -29,46 +29,41 @@ class CoachTrainingFooter extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
+                child: TextButton.icon(
                   onPressed: onTapVerResultados, // TODO
                   icon: Icon(
                     Icons.groups_outlined,
-                    size: 16 * scale,
+                    size: 14 * scale,
                     color: AppColors.baseBlue,
                   ),
                   label: Text(
-                    'Ver resultados dos alunos',
+                    'Resultados dos alunos',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontFamily: AppFonts.roboto,
                       fontWeight: AppFontWeight.bold,
-                      fontSize: 12.5 * scale,
+                      fontSize: 11 * scale,
                       color: AppColors.baseBlue,
                     ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: AppColors.baseBlue, width: 1.2),
-                    backgroundColor: AppColors.baseBlue.withAlpha(32),
+                  style: TextButton.styleFrom(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 10 * scale,
-                      vertical: 8 * scale,
+                      horizontal: 8 * scale,
+                      vertical: 4 * scale,
                     ),
                     minimumSize: const Size(0, 0),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8 * scale),
-                    ),
                   ),
                 ),
               ),
               SizedBox(width: 8 * scale),
               Expanded(
-                child: OutlinedButton.icon(
+                child: TextButton.icon(
                   onPressed: onTapComentariosDoCriador, // TODO
                   icon: Icon(
                     Icons.comment_outlined,
-                    size: 16 * scale,
+                    size: 14 * scale,
                     color: AppColors.baseBlue,
                   ),
                   label: Text(
@@ -78,22 +73,17 @@ class CoachTrainingFooter extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: AppFonts.roboto,
                       fontWeight: AppFontWeight.bold,
-                      fontSize: 12.5 * scale,
+                      fontSize: 11 * scale,
                       color: AppColors.baseBlue,
                     ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: AppColors.baseBlue, width: 1.2),
-                    backgroundColor: Colors.white,
+                  style: TextButton.styleFrom(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 10 * scale,
-                      vertical: 8 * scale,
+                      horizontal: 8 * scale,
+                      vertical: 4 * scale,
                     ),
                     minimumSize: const Size(0, 0),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8 * scale),
-                    ),
                   ),
                 ),
               ),
