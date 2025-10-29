@@ -8,6 +8,8 @@ import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
+// ⤵️ ADIÇÃO: import dos diálogos
+import 'package:flutter_app/shared/widgets/dialogs/confirm_delete_training.dart';
 
 /// Section: “Esses são todos os treinos cadastrados do Box”
 class CoachRegisteredTrainingsSection extends StatefulWidget {
@@ -26,6 +28,9 @@ class _CoachRegisteredTrainingsSectionState
   String _category = _categories[0];
 
   Future<Map<String, TrainingBlock?>>? _fut;
+
+  // ⤵️ ADIÇÃO: manter referência ao bloco atual para o diálogo de exclusão
+  TrainingBlock? _currentBlock;
 
   @override
   void initState() {
@@ -64,6 +69,55 @@ class _CoachRegisteredTrainingsSectionState
   }
   void _onTapComentariosDoCriador() {
     /* TODO: implementar */
+  }
+
+  // ⤵️ ADIÇÃO: helper para exibir data no diálogo
+  String _fmtDate(DateTime d) {
+    final dd = d.day.toString().padLeft(2, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    final yy = d.year.toString().padLeft(4, '0');
+    return '$dd/$mm/$yy';
+  }
+
+  // ⤵️ ADIÇÃO: fluxo dos diálogos de exclusão
+  Future<void> _onTapApagarTreino() async {
+    final block = _currentBlock;
+    if (block == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não há treino para apagar nesta data/categoria.'),
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showConfirmDeleteTrainingDialog(
+      context,
+      trainingTitle: block.title,
+      dateLabel: _fmtDate(_date),
+      categoryLabel: _category.toUpperCase(),
+    );
+
+    if (confirmed != true) return;
+
+    // Chama o service (implemente no backend depois)
+    await TrainingService.deleteTraining(
+      boxId: 'DEFAULT_BOX',
+      date: _date,
+      category: _category,
+      blockId: block.id,
+    );
+
+    if (!mounted) return;
+
+    await showTrainingDeletedDialog(
+      context,
+      trainingTitle: block.title,
+      dateLabel: _fmtDate(_date),
+      categoryLabel: _category.toUpperCase(),
+    );
+
+    _reload();
   }
 
   @override
@@ -125,6 +179,9 @@ class _CoachRegisteredTrainingsSectionState
             }
             final map = snap.data ?? {};
             final block = map[_category];
+
+            // ⤵️ ADIÇÃO: manter o bloco atual para o botão externo "Apagar Treino"
+            _currentBlock = block;
 
             return Container(
               margin: EdgeInsets.symmetric(horizontal: 4 * scale),
@@ -359,9 +416,8 @@ class _CoachRegisteredTrainingsSectionState
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: () {
-                  /* TODO: apagar */
-                },
+                onPressed:
+                    _onTapApagarTreino, // ⤵️ ADIÇÃO: chama o fluxo dos diálogos
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: Colors.red.shade700, width: 1.2),
                   backgroundColor: Colors.red.withOpacity(0.1),

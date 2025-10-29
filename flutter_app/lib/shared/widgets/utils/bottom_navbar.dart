@@ -1,4 +1,3 @@
-// lib/shared/widgets/bottom_navbar.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/routes/app_routes.dart';
@@ -20,8 +19,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
   /// true se o usuário atual tiver a role 'coach'
   late final bool _isCoach;
 
-  /// índice do item selecionado (home=0, insights=1, ...)
-  int _selectedIndex = 0;
+  /// índice do item selecionado (home=0, insights=1, ...). -1 = nenhum.
+  int _selectedIndex = -1;
 
   @override
   void initState() {
@@ -63,24 +62,28 @@ class _BottomNavBarState extends State<BottomNavBar> {
         icon: Icons.account_circle_outlined,
         label: 'Perfil',
         routeAthlete: AppRoutes.athleteProfile,
-        routeCoach: '/coach_profile',
+        routeCoach: '/coach_profile', // ajuste quando existir a rota real
       ),
     ];
 
     // Descobre a rota atual (para marcar o botão ativo)
     final currentRoute = ModalRoute.of(context)?.settings.name;
+    // debugPrint('BottomNavBar - currentRoute: $currentRoute');
+
     final idx = items.indexWhere(
       (i) => (_isCoach ? i.routeCoach : i.routeAthlete) == currentRoute,
     );
-    _selectedIndex = idx >= 0 ? idx : 0;
+
+    // Se não for rota da navbar, não acende ninguém.
+    _selectedIndex = idx >= 0 ? idx : -1;
 
     void onTap(int idx) {
       final item = items[idx];
       final destination = _isCoach ? item.routeCoach : item.routeAthlete;
       if (destination == currentRoute) return;
-      // TODO: você pode informar o backend sobre a navegação aqui, se necessário
+
+      // Troca a página mantendo a navbar — sem precisar dar setState aqui.
       Navigator.pushReplacementNamed(context, destination);
-      setState(() => _selectedIndex = idx);
     }
 
     return Container(

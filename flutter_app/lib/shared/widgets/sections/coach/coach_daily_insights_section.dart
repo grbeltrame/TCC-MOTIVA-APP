@@ -13,21 +13,25 @@ class CoachDailyInsightsSection extends StatelessWidget {
   final DateTime date;
   final String boxId;
 
-  /// NOVO (opcionais): treino específico
+  /// (Opcional) treino específico
   final String? selectedCategory; // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
   final String? trainingId;
 
-  /// NOVO: título opcional. Se não vier:
+  /// Título opcional. Se não vier:
   /// - com treino específico → "Insights do Treino"
   /// - legado → "Insights do dia"
   final String? title;
 
-  /// NOVO: exibir botão “ver todos os insights” ao lado do título (padrão: false).
+  /// Exibir botão “ver todos os insights” ao lado do título (padrão: false).
   final bool showSeeAllButton;
 
-  /// NOVO: callback do botão “ver todos os insights”.
+  /// Callback do botão “ver todos os insights”.
   /// Se não vier, faz fallback para uma navegação padrão (coachEvolutions).
   final VoidCallback? onSeeAll;
+
+  /// NOVO: botões do footer opcionais (true = mantém comportamento atual).
+  final bool showWeeklyAnalysisButton;
+  final bool showCycleProjectionButton;
 
   const CoachDailyInsightsSection({
     super.key,
@@ -38,19 +42,30 @@ class CoachDailyInsightsSection extends StatelessWidget {
     this.title,
     this.showSeeAllButton = false,
     this.onSeeAll,
+    this.showWeeklyAnalysisButton = true,
+    this.showCycleProjectionButton = true,
   });
 
   bool get _isTrainingScoped => selectedCategory != null && trainingId != null;
+  bool get _showActionsRow =>
+      showWeeklyAnalysisButton || showCycleProjectionButton;
 
   String _defaultTitle() =>
       title ?? (_isTrainingScoped ? 'Insights do Treino' : 'Insights do dia');
 
-  /// Evita “use_of_void_result”: sempre retorna um VoidCallback válido.
+  /// Sempre retorna um VoidCallback válido (evita "use_of_void_result").
   VoidCallback _resolveSeeAll(BuildContext context) {
     return onSeeAll ??
         () {
-          Navigator.pushNamed(context, AppRoutes.coachEvolutions);
+          Navigator.pushNamed(context, AppRoutes.coachTrainingInsights);
         };
+  }
+
+  String _fmtDateLong(DateTime d) {
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$day/$m/$y';
   }
 
   @override
@@ -125,12 +140,18 @@ class CoachDailyInsightsSection extends StatelessWidget {
                     allRecomendations: recos,
                     enabledRecomendationsTypes: {cat},
                   ),
-                  SizedBox(height: 16 * scale),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6 * scale),
-                    child: _CoachInsightsActions(scale: scale),
-                  ),
-                  SizedBox(height: 8 * scale),
+                  if (_showActionsRow) ...[
+                    SizedBox(height: 16 * scale),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+                      child: _CoachInsightsActions(
+                        scale: scale,
+                        showWeekly: showWeeklyAnalysisButton,
+                        showCycleProjection: showCycleProjectionButton,
+                      ),
+                    ),
+                    SizedBox(height: 8 * scale),
+                  ],
                 ],
               );
             },
@@ -209,12 +230,18 @@ class CoachDailyInsightsSection extends StatelessWidget {
                         existing,
                       ),
                     ),
-                    SizedBox(height: 16 * scale),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 6 * scale),
-                      child: _CoachInsightsActions(scale: scale),
-                    ),
-                    SizedBox(height: 8 * scale),
+                    if (_showActionsRow) ...[
+                      SizedBox(height: 16 * scale),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+                        child: _CoachInsightsActions(
+                          scale: scale,
+                          showWeekly: showWeeklyAnalysisButton,
+                          showCycleProjection: showCycleProjectionButton,
+                        ),
+                      ),
+                      SizedBox(height: 8 * scale),
+                    ],
                   ],
                 );
               },
@@ -223,13 +250,6 @@ class CoachDailyInsightsSection extends StatelessWidget {
         );
       },
     );
-  }
-
-  String _fmtDateLong(DateTime d) {
-    final y = d.year.toString().padLeft(4, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '$day/$m/$y';
   }
 }
 
@@ -310,13 +330,21 @@ class _TitleAndEmpty extends StatelessWidget {
 
 class _CoachInsightsActions extends StatelessWidget {
   final double scale;
-  const _CoachInsightsActions({required this.scale});
+  final bool showWeekly;
+  final bool showCycleProjection;
+
+  const _CoachInsightsActions({
+    required this.scale,
+    required this.showWeekly,
+    required this.showCycleProjection,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // Botão preenchido
+    final children = <Widget>[];
+
+    if (showWeekly) {
+      children.add(
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {
@@ -346,9 +374,15 @@ class _CoachInsightsActions extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(width: 8 * scale),
+      );
+    }
 
-        // Botão vazado (outlined)
+    if (showWeekly && showCycleProjection) {
+      children.add(SizedBox(width: 8 * scale));
+    }
+
+    if (showCycleProjection) {
+      children.add(
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
@@ -381,7 +415,9 @@ class _CoachInsightsActions extends StatelessWidget {
             ),
           ),
         ),
-      ],
-    );
+      );
+    }
+
+    return Row(children: children);
   }
 }

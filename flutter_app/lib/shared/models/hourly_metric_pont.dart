@@ -1,6 +1,6 @@
 class HourlyMetricPoint {
-  final String hour; // ex.: "06h", "07h", ...
-  final int value;
+  final String hour; // ex.: '06h'
+  final double value; // numérico!
 
-  const HourlyMetricPoint(this.hour, this.value);
+  HourlyMetricPoint(this.hour, num v) : value = v.toDouble();
 }

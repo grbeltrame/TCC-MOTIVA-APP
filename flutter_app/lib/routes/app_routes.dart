@@ -32,6 +32,7 @@ import 'package:flutter_app/features/user/coach/coach_trainings_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_evolutions_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_insights_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_training_insights_screen.dart';
+import 'package:flutter_app/features/user/coach/interested_athletes_per_class.dart';
 
 /// Centralização de nomes e mapeamento de rotas da aplicação.
 class AppRoutes {
@@ -76,6 +77,7 @@ class AppRoutes {
   static const String coachInsights = CoachInsightsScreen.routeName;
   static const String coachTrainingInsights =
       CoachTrainingInsightsScreen.routeName;
+  static const String interestedAtlhetes = InterestedAthletesScreen.routeName;
 }
 
 /// Mapeamento de rotas para usar no MaterialApp(routes:)
@@ -113,4 +115,5 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.coachEvolutions: (_) => const CoachEvolutionsScreen(),
   AppRoutes.coachInsights: (_) => const CoachInsightsScreen(),
   AppRoutes.coachTrainingInsights: (_) => const CoachTrainingInsightsScreen(),
+  AppRoutes.interestedAtlhetes: (_) => const InterestedAthletesScreen(),
 };

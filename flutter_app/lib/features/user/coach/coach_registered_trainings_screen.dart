@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/sections/coach/coach_class_registration_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_insights_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_registered_trainings_section.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
@@ -23,6 +24,7 @@ class _CoachRegisteredTrainingScreenState
   DateTime _selectedDate = DateTime.now();
   String? _selectedCategory; // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
   String? _selectedTrainingId; // id do bloco/treino exibido no card
+  final String _boxId = 'DEFAULT_BOX';
 
   void _onSelectionChanged({
     required DateTime date,
@@ -80,6 +82,15 @@ class _CoachRegisteredTrainingScreenState
               trainingId: _selectedTrainingId, // opcional
               title: 'Insights do Treino',
               showSeeAllButton: true,
+              showWeeklyAnalysisButton: false,
+              showCycleProjectionButton: false,
+            ),
+            SizedBox(height: 16 * scale),
+
+            CoachClassRegistrationsSection(
+              date:
+                  DateTime.now(), // ou a mesma data da section acima, se elevar o estado
+              boxId: _boxId, // opcional: nº de barras por página
             ),
           ],
         ),

@@ -230,6 +230,19 @@ class TrainingService {
 
     return result;
   }
+
+  /// Apaga permanentemente um treino (bloco) do dia/categoria/box.
+  /// TODO(back): implementar chamada real ao backend para remoção definitiva.
+  static Future<void> deleteTraining({
+    required String boxId,
+    required DateTime date,
+    required String category,
+    required String blockId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    // TODO(back): DELETE /boxes/{boxId}/trainings?date=...&category=...&blockId=...
+    // Remover do banco e invalidar caches. Aqui é apenas mock.
+  }
 }
 
 extension DailySummaries on TrainingService {

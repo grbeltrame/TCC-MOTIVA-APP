@@ -1,7 +1,9 @@
 // lib/features/coach/coach_training_detail_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/worked_muscles_section.dart';
+import 'package:flutter_app/shared/widgets/sections/coach/coach_interested_per_class_section.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
@@ -154,6 +156,20 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      CoachInterestedPerClassSection(
+                        date: _date,
+                        boxId: 'DEFAULT_BOX',
+                        category:
+                            _category, // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
+                        // opcionalmente, trate a navegação:
+                        onViewStudents: (hour, count) {
+                          // TODO(nav): trocar rota quando a tela de interessados existir
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.interestedAtlhetes,
+                          );
+                        },
+                      ),
                       TrainingBlocksCard(
                         blocks: blocks,
                         onTapRegisterResult: _onTapRegistrarResultado,
