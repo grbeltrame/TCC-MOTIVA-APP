@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/sections/coach/coach_training_insights_overview_section.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
@@ -14,7 +15,7 @@ class CoachInsightsScreen extends StatefulWidget {
 }
 
 class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
-  void _openRegisterBoxSheet() {
+  void _openRegisterBoxSheet(BuildContext context) {
     showAppBottomSheet(context, const BoxSignupCoach());
   }
 
@@ -23,31 +24,21 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: _openRegisterBoxSheet),
+      appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
       bottomNavigationBar: const BottomNavBar(),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Back
-          Padding(
-            padding: EdgeInsets.only(
-              top: 8 * scale,
-              left: 6 * scale,
-              right: 6 * scale,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          vertical: 8 * scale,
+          horizontal: 12 * scale,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            CoachTrainingInsightsOverviewSection(
+              boxId: '1', // ou o boxId real do coach logado
             ),
-            child: const AppBackButton(),
-          ),
-
-          // Conteúdo
-          Expanded(
-            child: Center(
-              child: Text(
-                'Insights dos Treinos\n(estrutura mínima / placeholder)',
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

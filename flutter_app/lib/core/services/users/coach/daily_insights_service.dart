@@ -152,4 +152,98 @@ class CoachDailyInsightsService {
 
     return out;
   }
+
+  /// Insights de OVERVIEW dos treinos (todas as categorias) para o período
+  /// semanal da data selecionada.
+  ///
+  /// ⚠️ MOCK: tudo aqui é hardcoded. Quando tiver backend:
+  /// - esse método deve chamar o endpoint real
+  /// - titles, keys e mensagens virão do payload da API.
+  Future<CoachDayOverviewInsights> fetchDayOverviewInsights({
+    required String boxId,
+    required DateTime date,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    // calcula semana: segunda (1) até domingo (7) contendo [date]
+    final startOfWeek = date.subtract(
+      Duration(days: date.weekday - DateTime.monday),
+    );
+    final endOfWeek = startOfWeek.add(const Duration(days: 6));
+
+    return CoachDayOverviewInsights(
+      periodStart: startOfWeek,
+      periodEnd: endOfWeek,
+      buckets: [
+        CoachDayOverviewInsightsBucket(
+          key: 'analysis',
+          title: 'Análise:',
+          messages: [
+            'Os treinos desta semana priorizaram estímulos combinando força '
+                'e condicionamento, com foco especial em WODs de intensidade '
+                'moderada e volume controlado.',
+            'Os atletas apresentaram boa aderência nas sessões principais, '
+                'com presença estável nas turmas das 18h e 19h.',
+          ],
+        ),
+        CoachDayOverviewInsightsBucket(
+          key: 'alerts',
+          title: 'Alertas:',
+          messages: [
+            'Queda de presença nas turmas da manhã nos últimos 3 dias. '
+                'Considere revisar a comunicação com esse público.',
+            'A percepção de esforço relatada em alguns treinos longos está alta. '
+                'Talvez seja interessante ajustar o briefing e reforçar pacing.',
+          ],
+        ),
+        CoachDayOverviewInsightsBucket(
+          key: 'highlights',
+          title: 'Acertos:',
+          messages: [
+            'Boa resposta dos alunos aos blocos de técnica antes do WOD, '
+                'principalmente nos dias com foco em movimentos olímpicos.',
+            'Os treinos com combinações simples de movimentos tiveram mais '
+                'participação e melhor execução geral.',
+          ],
+        ),
+        CoachDayOverviewInsightsBucket(
+          key: 'suggestions',
+          title: 'Sugestões:',
+          messages: [
+            'Inserir ao menos um dia com foco maior em skill/gymnastic para '
+                'equilibrar a semana e dar sensação de progresso técnico.',
+            'Testar um WOD com estímulo mais curto em um dos dias de menor '
+                'presença para incentivar alunos com menos tempo disponível.',
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Bucket de insights de overview do dia/semana.
+/// Ex.: key = 'analysis', title = 'Análise:', messages = [ ... ].
+class CoachDayOverviewInsightsBucket {
+  final String key; // identificador técnico (analysis/alerts/…)
+  final String title; // texto mostrado no chip colorido (ex.: 'Análise:')
+  final List<String> messages; // textos longos (carrossel)
+
+  CoachDayOverviewInsightsBucket({
+    required this.key,
+    required this.title,
+    required this.messages,
+  });
+}
+
+/// Payload completo do overview de insights do dia/semana.
+class CoachDayOverviewInsights {
+  final DateTime periodStart; // início da semana (seg)
+  final DateTime periodEnd; // fim da semana (dom)
+  final List<CoachDayOverviewInsightsBucket> buckets;
+
+  CoachDayOverviewInsights({
+    required this.periodStart,
+    required this.periodEnd,
+    required this.buckets,
+  });
 }
