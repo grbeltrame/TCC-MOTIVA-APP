@@ -26,7 +26,8 @@ class CoachDailyInsightsSection extends StatelessWidget {
   final bool showSeeAllButton;
 
   /// Callback do botão “ver todos os insights”.
-  /// Se não vier, faz fallback para uma navegação padrão (coachEvolutions).
+  /// Se não vier, faz fallback para a tela de projeção de ciclo
+  /// (`CoachTrainingInsightsScreen`) já com o mês atual.
   final VoidCallback? onSeeAll;
 
   /// NOVO: botões do footer opcionais (true = mantém comportamento atual).
@@ -54,11 +55,24 @@ class CoachDailyInsightsSection extends StatelessWidget {
       title ?? (_isTrainingScoped ? 'Insights do Treino' : 'Insights do dia');
 
   /// Sempre retorna um VoidCallback válido (evita "use_of_void_result").
+  /// Se não receber [onSeeAll], navega para CoachTrainingInsights com o mês atual.
   VoidCallback _resolveSeeAll(BuildContext context) {
-    return onSeeAll ??
-        () {
-          Navigator.pushNamed(context, AppRoutes.coachTrainingInsights);
-        };
+    if (onSeeAll != null) return onSeeAll!;
+
+    return () {
+      final now = DateTime.now();
+      final currentMonth = DateTime(now.year, now.month);
+
+      Navigator.pushNamed(
+        context,
+        AppRoutes.coachTrainingInsights,
+        arguments: {
+          'month': currentMonth,
+          // se quiser depois, pode passar boxId aqui também:
+          // 'boxId': boxId,
+        },
+      );
+    };
   }
 
   String _fmtDateLong(DateTime d) {
@@ -386,7 +400,20 @@ class _CoachInsightsActions extends StatelessWidget {
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.coachTrainingInsights);
+              // 🔹 Navega para a tela de insights de ciclo
+              //     já com o MÊS ATUAL selecionado.
+              final now = DateTime.now();
+              final currentMonth = DateTime(now.year, now.month);
+
+              Navigator.pushNamed(
+                context,
+                AppRoutes.coachTrainingInsights,
+                arguments: {
+                  'month': currentMonth,
+                  // se quiser depois passar boxId aqui, é só incluir:
+                  // 'boxId': '1',
+                },
+              );
             },
             icon: Icon(
               Icons.show_chart_rounded,
