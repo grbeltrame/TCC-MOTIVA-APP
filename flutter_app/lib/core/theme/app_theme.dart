@@ -179,21 +179,21 @@ class AppTheme {
       // ======================
       // Dialogs
       // ======================
-      dialogTheme: DialogTheme(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titleTextStyle: TextStyle(
-          fontFamily: AppFonts.montserrat,
-          fontWeight: AppFontWeight.bold,
-          fontSize: 20,
-          color: AppColors.darkText,
-        ),
-        contentTextStyle: TextStyle(
-          fontFamily: AppFonts.roboto,
-          fontWeight: AppFontWeight.regular,
-          fontSize: 14,
-          color: AppColors.darkText,
-        ),
-      ),
+      // dialogTheme: DialogTheme(
+      //   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      //   titleTextStyle: TextStyle(
+      //     fontFamily: AppFonts.montserrat,
+      //     fontWeight: AppFontWeight.bold,
+      //     fontSize: 20,
+      //     color: AppColors.darkText,
+      //   ),
+      //   contentTextStyle: TextStyle(
+      //     fontFamily: AppFonts.roboto,
+      //     fontWeight: AppFontWeight.regular,
+      //     fontSize: 14,
+      //     color: AppColors.darkText,
+      //   ),
+      // ),
 
       // ======================
       // SnackBar

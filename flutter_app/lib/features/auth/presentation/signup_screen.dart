@@ -1,4 +1,6 @@
 // lib/features/auth/presentation/signup_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
@@ -55,13 +57,41 @@ class _SignupScreenState extends State<SignupScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      // BACKEND TODO: implementar AuthService.signUp(
-      //   name: _nameController.text,
-      //   email: _emailController.text,
-      //   password: _passwordController.text,
-      //   profile: _selectedProfile,
-      // );
-      await Future.delayed(const Duration(seconds: 1)); // simula delay
+      // --- Início da Lógica de Cadastro Firebase ---
+
+      // 1. Criar o usuário no Firebase Authentication
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        // 2. Salvar os dados adicionais no Cloud Firestore
+        final userDoc = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid);
+
+        // Converte o enum para uma string (ex: "ProfileOption.athlete" -> "athlete")
+        final String profileString =
+            _selectedProfile.toString().split('.').last;
+
+        await userDoc.set({
+          'uid': user.uid,
+          'name': _nameController.text.trim(),
+          'email': user.email, // Pega o email do objeto 'user' para garantir
+          'photoURL':
+              user.photoURL ?? '', // Perfil de email não tem foto inicial
+          'profile': profileString, // Salva o perfil selecionado
+          'provider': 'email', // Indica que foi cadastro por email/senha
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        // 3. (Opcional) Atualiza o nome do usuário no Firebase Auth
+        await user.updateDisplayName(_nameController.text.trim());
+      }
 
       // navegação condicional:
       // se atletaeCoach/intern -> coach home
@@ -78,9 +108,21 @@ class _SignupScreenState extends State<SignupScreen> {
         Navigator.pushReplacementNamed(context, AppRoutes.athleteHome);
       }
     } catch (e) {
+      // Trata erros comuns do Firebase
+
+      String errorMessage = 'Ocorreu um erro ao criar a conta.';
+      if (e is FirebaseAuthException) {
+        if (e.code == 'email-already-in-use') {
+          errorMessage = 'Este e-mail já está sendo usado por outra conta.';
+        } else if (e.code == 'weak-password') {
+          errorMessage = 'A senha é muito fraca. Tente uma mais forte.';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'O formato do e-mail é inválido.';
+        } 
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       setState(() => _isSubmitting = false);
     }

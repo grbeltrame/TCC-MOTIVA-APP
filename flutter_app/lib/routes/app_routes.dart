@@ -1,5 +1,5 @@
 // lib/routes/app_routes.dart
-
+import 'package:flutter_app/features/auth/presentation/select_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/features/user/athlete/athlete_all_championships_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_all_goals_screen.dart';
@@ -39,6 +39,7 @@ class AppRoutes {
   static const String splash = SplashScreen.routeName; // '/'
   static const String login = LoginScreen.routeName; // '/login'
   static const String signup = SignupScreen.routeName; // '/signup'
+  static const String selectProfile = SelectProfileScreen.routeName;
   static const String forgotPassword =
       ForgotPasswordScreen.routeName; // '/forgot_password'
   static const String verifyOtp = VerifyOtpScreen.routeName; // '/verify_otp'
@@ -85,6 +86,7 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.splash: (_) => const SplashScreen(),
   AppRoutes.login: (_) => const LoginScreen(),
   AppRoutes.signup: (_) => const SignupScreen(),
+  AppRoutes.selectProfile: (_) => const SelectProfileScreen(),
   AppRoutes.forgotPassword: (_) => const ForgotPasswordScreen(),
   AppRoutes.verifyOtp: (_) => const VerifyOtpScreen(email: ''),
   AppRoutes.resetPassword: (_) => const ResetPasswordScreen(email: ''),
