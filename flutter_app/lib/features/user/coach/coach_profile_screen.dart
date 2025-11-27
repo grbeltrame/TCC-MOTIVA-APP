@@ -4,6 +4,7 @@ import 'package:flutter_app/shared/widgets/sections/athlete/achievements_badges_
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/athlete_info_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_info_section.dart';
+import 'package:flutter_app/shared/widgets/sections/coach/coach_recent_cycles_section.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/profile_nav_hub_section.dart';
@@ -41,6 +42,9 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           children: [
             // Informações sobre o perfil
             CoachInfoSection(),
+
+            // Resumo dos ciclos
+            CoachRecentCyclesSection(boxId: '1'),
           ],
         ),
       ),

@@ -489,3 +489,52 @@ class ClassInterestService {
     _store.remove(_key(date));
   }
 }
+// ===================== CYCLES (MENSAL) =====================
+
+extension CycleMonths on TrainingService {
+  /// Retorna os últimos [limit] meses (normalizados para dia 1),
+  /// sempre trazendo os MAIS RECENTES primeiro.
+  /// TODO(back): substituir por chamada real ao backend que devolva os ciclos do box.
+  static Future<List<DateTime>> fetchRecentCycleMonths({
+    required String boxId,
+    int limit = 3,
+    bool useRangeLabel = false, // <- opção B (desligada por padrão)
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    // MOCK: mês atual e dois anteriores
+    final now = DateTime.now();
+    final current = DateTime(now.year, now.month);
+    final prev1 = DateTime(now.year, now.month - 1);
+    final prev2 = DateTime(now.year, now.month - 2);
+
+    // Se quiser variar quantidade depois, só ajustar a lista.
+    final base = <DateTime>[current, prev1, prev2];
+
+    // Mantém somente os [limit] primeiros (mais recentes)
+    return base.take(limit).toList();
+  }
+
+  /// Formata o rótulo do mês para mostrar no card.
+  /// Padrão: "Mar/2025".
+  /// Se a opção B for adotada no futuro, este método pode
+  /// formatar "01/03 – 31/03".
+  static String formatCycleMonthLabel(
+    DateTime month, {
+    bool useRangeLabel = false,
+  }) {
+    if (useRangeLabel) {
+      // Opção B (DESLIGADA por padrão): exibir faixa de datas do mês
+      final start = DateTime(month.year, month.month, 1);
+      final end = DateTime(month.year, month.month + 1, 0);
+      String fmt(DateTime d) =>
+          '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+      return '${fmt(start)} – ${fmt(end)}';
+    }
+
+    // Opção A (padrão): "Mar/2025"
+    final m = DateFormat('MMM', 'pt_BR').format(month);
+    final monthLabel = m[0].toUpperCase() + m.substring(1); // capitaliza
+    return '$monthLabel/${month.year}';
+  }
+}
