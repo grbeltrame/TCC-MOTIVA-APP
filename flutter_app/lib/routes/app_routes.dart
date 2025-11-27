@@ -26,6 +26,7 @@ import 'package:flutter_app/features/auth/presentation/reset_password_screen.dar
 import 'package:flutter_app/features/auth/presentation/terms_screen.dart';
 import 'package:flutter_app/features/auth/presentation/privacy_policy_screen.dart';
 import 'package:flutter_app/features/splash/presentation/splash_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_profile_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_registered_trainings_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_training_detail_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_trainings_screen.dart';
@@ -79,6 +80,7 @@ class AppRoutes {
   static const String coachTrainingInsights =
       CoachTrainingInsightsScreen.routeName;
   static const String interestedAtlhetes = InterestedAthletesScreen.routeName;
+  static const String coachProfile = CoachProfileScreen.routeName;
 }
 
 /// Mapeamento de rotas para usar no MaterialApp(routes:)
@@ -118,4 +120,5 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.coachInsights: (_) => const CoachInsightsScreen(),
   AppRoutes.coachTrainingInsights: (_) => const CoachTrainingInsightsScreen(),
   AppRoutes.interestedAtlhetes: (_) => const InterestedAthletesScreen(),
+  AppRoutes.coachProfile: (_) => const CoachProfileScreen(),
 };

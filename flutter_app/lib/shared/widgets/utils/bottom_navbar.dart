@@ -62,7 +62,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
         icon: Icons.account_circle_outlined,
         label: 'Perfil',
         routeAthlete: AppRoutes.athleteProfile,
-        routeCoach: '/coach_profile', // ajuste quando existir a rota real
+        routeCoach: AppRoutes.coachProfile,
       ),
     ];
 

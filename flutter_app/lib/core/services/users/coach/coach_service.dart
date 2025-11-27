@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_app/shared/models/coach.dart';
+import 'package:flutter_app/shared/models/coach_profile.dart';
 
 /// Service para dados de coach (mock + TODO back)
 class CoachService {
@@ -8,6 +9,17 @@ class CoachService {
     await Future.delayed(const Duration(milliseconds: 120));
     // TODO(back): buscar coach da turma no backend
     return Coach(id: 'coach_$classId', name: 'Fulano'); // mock
+  }
+
+  static Future<CoachProfile> fetchCoachProfile() async {
+    await Future.delayed(const Duration(milliseconds: 250));
+    return CoachProfile(
+      name: 'Giovanni Saraiva',
+      photoUrl: null, // se quiser testar com foto, coloque uma URL válida
+      cref: '012345-G/RJ',
+      specialties: const ['LPO', 'Planejamento Estratégico', 'Mobilidade'],
+      certifications: const ['Bacharel em Educação Física', 'CrossFit L1'],
+    );
   }
 
   /// Resumo completo do professor para a turma.
