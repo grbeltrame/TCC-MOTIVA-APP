@@ -538,3 +538,52 @@ extension CycleMonths on TrainingService {
     return '$monthLabel/${month.year}';
   }
 }
+// ===================== TODAY WORKOUT CARD HELPERS =====================
+
+extension TodayWorkoutHelpers on TrainingService {
+  /// Lista as CATEGORIAS disponíveis para o dia (ex.: ['WOD','LPO',...]).
+  /// Usa o mesmo mock dos blocos do dia.
+  /// TODO(back): GET /boxes/{boxId}/workouts?date=YYYY-MM-DD (retornar categorias do dia)
+  static Future<List<String>> fetchAvailableCategoriesForDate({
+    required String boxId,
+    required DateTime date,
+  }) async {
+    final byCat = await TrainingService.fetchTrainingBlocksByCategoryForDate(
+      boxId: boxId,
+      date: date,
+    );
+
+    // Mantém somente as que têm bloco não-nulo
+    final list = <String>[];
+    for (final e in byCat.entries) {
+      if (e.value != null) list.add(e.key);
+    }
+    // Sem ordenação obrigatória (virá do back). Apenas retorna.
+    return list;
+  }
+
+  /// Retorna o resumo do treino (valências/objetivo) para uma CATEGORIA do dia.
+  /// Reaproveita o mock de "DailyWorkoutSummary".
+  /// TODO(back): GET /boxes/{boxId}/workouts/summary?date=...&category=...
+  static Future<DailyWorkoutSummary?> fetchDailyWorkoutSummaryByCategory({
+    required String boxId,
+    required DateTime date,
+    required String category,
+  }) async {
+    final all = await DailySummaries.fetchDailyWorkoutSummariesForBox(
+      boxId: boxId,
+      date: date,
+    );
+
+    // Normaliza para comparar 'Ginastica' vs 'Ginástica'
+    String norm(String s) =>
+        s.toLowerCase().replaceAll('á', 'a').replaceAll('ã', 'a');
+
+    final wanted = norm(category);
+    try {
+      return all.firstWhere((s) => norm(s.category) == wanted);
+    } catch (_) {
+      return null;
+    }
+  }
+}
