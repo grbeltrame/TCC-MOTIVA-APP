@@ -28,12 +28,11 @@ class CoachDailyOverviewSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // ----- TÍTULO DA SECTION -----
-        Text('Resumo do dia', style: Theme.of(context).textTheme.headlineSmall),
-        SizedBox(height: 8 * scale),
+        // Text('Resumo do dia', style: Theme.of(context).textTheme.headlineSmall),
+        // SizedBox(height: 8 * scale),
 
-        // ----- SUBSECTION: TAB BAR + GRÁFICOS + ESFORÇO -----
-        CoachDailySummaryTabs(date: date, boxId: boxId),
-
+        // // ----- SUBSECTION: TAB BAR + GRÁFICOS + ESFORÇO -----
+        // CoachDailySummaryTabs(date: date, boxId: boxId),
         CoachDailyInsightsSection(
           date: DateTime.now(),
           boxId: 'BOX_123', // passe o id real do seu box

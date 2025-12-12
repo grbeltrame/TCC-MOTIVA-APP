@@ -156,20 +156,20 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      CoachInterestedPerClassSection(
-                        date: _date,
-                        boxId: 'DEFAULT_BOX',
-                        category:
-                            _category, // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
-                        // opcionalmente, trate a navegação:
-                        onViewStudents: (hour, count) {
-                          // TODO(nav): trocar rota quando a tela de interessados existir
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.interestedAtlhetes,
-                          );
-                        },
-                      ),
+                      // CoachInterestedPerClassSection(
+                      //   date: _date,
+                      //   boxId: 'DEFAULT_BOX',
+                      //   category:
+                      //       _category, // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
+                      //   // opcionalmente, trate a navegação:
+                      //   onViewStudents: (hour, count) {
+                      //     // TODO(nav): trocar rota quando a tela de interessados existir
+                      //     Navigator.pushNamed(
+                      //       context,
+                      //       AppRoutes.interestedAtlhetes,
+                      //     );
+                      //   },
+                      // ),
                       TrainingBlocksCard(
                         blocks: blocks,
                         onTapRegisterResult: _onTapRegistrarResultado,

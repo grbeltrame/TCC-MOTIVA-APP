@@ -243,6 +243,23 @@ class TrainingService {
     // TODO(back): DELETE /boxes/{boxId}/trainings?date=...&category=...&blockId=...
     // Remover do banco e invalidar caches. Aqui é apenas mock.
   }
+
+  /// Salva TODOS os blocos do treino do dia/categoria/box.
+  /// MOCK: apenas aguarda e retorna. Trocar por PUT/POST real depois.
+  static Future<void> saveFullTrainingBlocks({
+    required String boxId,
+    required DateTime date,
+    required String category,
+    required List<TrainingBlock> blocks,
+  }) async {
+    // Simula latência e “persistência”
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    // Se quiser manter isso em memória para ver refletir sem recarregar do back,
+    // você pode adicionar um cache estático e sobrescrever aqui.
+    // Por agora, apenas “finge” que salvou.
+    return;
+  }
 }
 
 extension DailySummaries on TrainingService {

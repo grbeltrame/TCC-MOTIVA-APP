@@ -87,11 +87,11 @@ class _CoachRegisteredTrainingScreenState
             ),
             SizedBox(height: 16 * scale),
 
-            CoachClassRegistrationsSection(
-              date:
-                  DateTime.now(), // ou a mesma data da section acima, se elevar o estado
-              boxId: _boxId, // opcional: nº de barras por página
-            ),
+            // CoachClassRegistrationsSection(
+            //   date:
+            //       DateTime.now(), // ou a mesma data da section acima, se elevar o estado
+            //   boxId: _boxId, // opcional: nº de barras por página
+            // ),
           ],
         ),
       ),

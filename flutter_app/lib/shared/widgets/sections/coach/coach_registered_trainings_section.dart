@@ -274,32 +274,32 @@ class _CoachRegisteredTrainingsSectionState
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                TextButton.icon(
-                                  onPressed: _onTapVerResultadosAlunos,
-                                  icon: Icon(
-                                    Icons.group_outlined,
-                                    size: 14 * scale,
-                                    color: AppColors.baseBlue,
-                                  ),
-                                  label: Text(
-                                    'Ver resultados dos alunos',
-                                    style: TextStyle(
-                                      fontFamily: AppFonts.roboto,
-                                      fontWeight: AppFontWeight.bold,
-                                      fontSize: 11 * scale,
-                                      color: AppColors.baseBlue,
-                                    ),
-                                  ),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8 * scale,
-                                      vertical: 4 * scale,
-                                    ),
-                                    minimumSize: const Size(0, 0),
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                ),
+                                // TextButton.icon(
+                                //   onPressed: _onTapVerResultadosAlunos,
+                                //   icon: Icon(
+                                //     Icons.group_outlined,
+                                //     size: 14 * scale,
+                                //     color: AppColors.baseBlue,
+                                //   ),
+                                //   label: Text(
+                                //     'Ver resultados dos alunos',
+                                //     style: TextStyle(
+                                //       fontFamily: AppFonts.roboto,
+                                //       fontWeight: AppFontWeight.bold,
+                                //       fontSize: 11 * scale,
+                                //       color: AppColors.baseBlue,
+                                //     ),
+                                //   ),
+                                //   style: TextButton.styleFrom(
+                                //     padding: EdgeInsets.symmetric(
+                                //       horizontal: 8 * scale,
+                                //       vertical: 4 * scale,
+                                //     ),
+                                //     minimumSize: const Size(0, 0),
+                                //     tapTargetSize:
+                                //         MaterialTapTargetSize.shrinkWrap,
+                                //   ),
+                                // ),
                                 SizedBox(width: 2 * scale),
                                 TextButton.icon(
                                   onPressed: _onTapComentariosDoCriador,
@@ -374,32 +374,32 @@ class _CoachRegisteredTrainingsSectionState
                                   ),
                                 ),
                                 SizedBox(width: 6 * scale),
-                                TextButton.icon(
-                                  onPressed: _openRegisterResult,
-                                  icon: Icon(
-                                    Icons.emoji_events_outlined,
-                                    size: 16 * scale,
-                                    color: AppColors.baseBlue,
-                                  ),
-                                  label: Text(
-                                    'Registrar resultado',
-                                    style: TextStyle(
-                                      fontFamily: AppFonts.roboto,
-                                      fontWeight: AppFontWeight.bold,
-                                      fontSize: 13 * scale,
-                                      color: AppColors.baseBlue,
-                                    ),
-                                  ),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8 * scale,
-                                      vertical: 4 * scale,
-                                    ),
-                                    minimumSize: const Size(0, 0),
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                ),
+                                // TextButton.icon(
+                                //   onPressed: _openRegisterResult,
+                                //   icon: Icon(
+                                //     Icons.emoji_events_outlined,
+                                //     size: 16 * scale,
+                                //     color: AppColors.baseBlue,
+                                //   ),
+                                //   label: Text(
+                                //     'Registrar resultado',
+                                //     style: TextStyle(
+                                //       fontFamily: AppFonts.roboto,
+                                //       fontWeight: AppFontWeight.bold,
+                                //       fontSize: 13 * scale,
+                                //       color: AppColors.baseBlue,
+                                //     ),
+                                //   ),
+                                //   style: TextButton.styleFrom(
+                                //     padding: EdgeInsets.symmetric(
+                                //       horizontal: 8 * scale,
+                                //       vertical: 4 * scale,
+                                //     ),
+                                //     minimumSize: const Size(0, 0),
+                                //     tapTargetSize:
+                                //         MaterialTapTargetSize.shrinkWrap,
+                                //   ),
+                                // ),
                               ],
                             ),
                           ),
@@ -440,8 +440,37 @@ class _CoachRegisteredTrainingsSectionState
             Expanded(
               child: OutlinedButton(
                 onPressed: () {
-                  /* TODO: editar */
+                  final block = _currentBlock;
+                  if (block == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Não há treino para editar.'),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.coachTrainingEdit, // <- nova rota
+                    arguments: {
+                      'boxId': '1', // troque pelo seu box real
+                      'date': _date,
+                      'category': _category,
+                      'blockId':
+                          block.id, // ajuda a pré-destacar o bloco principal
+                    },
+                  ).then((saved) {
+                    if (saved == true) {
+                      _reload();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Treino atualizado com sucesso.'),
+                        ),
+                      );
+                    }
+                  });
                 },
+
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.baseBlue, width: 1.2),
                   backgroundColor: AppColors.baseBlue.withAlpha(32),

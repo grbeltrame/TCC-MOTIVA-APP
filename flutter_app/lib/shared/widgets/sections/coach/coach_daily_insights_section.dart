@@ -43,7 +43,7 @@ class CoachDailyInsightsSection extends StatelessWidget {
     this.title,
     this.showSeeAllButton = false,
     this.onSeeAll,
-    this.showWeeklyAnalysisButton = true,
+    this.showWeeklyAnalysisButton = false,
     this.showCycleProjectionButton = true,
   });
 
