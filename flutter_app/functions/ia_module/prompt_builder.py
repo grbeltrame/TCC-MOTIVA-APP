@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict, List
 from datetime import datetime
 # Importa a FUNÇÃO em vez do objeto
-from models import get_parser
+from .models import get_parser
 
 # Função auxiliar para converter datas antes de serializar
 def json_converter(o):
@@ -67,7 +67,12 @@ def create_evaluation_prompt(
     json_instructions = parser.get_format_instructions()
     
     footer = (
-        "⚠️ **Importante**: Sua resposta DEVE ser um único bloco de código JSON, sem nenhum texto ou formatação extra fora dele.\n"
+        "⚠️ **Regras RÍGIDAS de Formatação**:\n"
+        "1. Responda APENAS com o JSON válido.\n"
+        "2. Seja EXTREMAMENTE CONCISO. Seus textos serão lidos em celular.\n"
+        "3. **Tamanho Máximo:** Cada campo de texto (overview, detail, message) DEVE ter no máximo 400 caracteres (aprox 40 palavras). Resuma brutalmente se necessário.\n"
+        "4. Não use Markdown (negrito/itálico) dentro dos valores JSON.\n"
+        "5. Sua resposta DEVE ser um único bloco de código JSON, sem nenhum texto ou formatação extra fora dele.\n"
         f"{json_instructions}"
     )
 

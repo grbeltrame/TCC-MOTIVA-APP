@@ -6,7 +6,7 @@ from typing import List, Dict
 # NENHUMA importação do LangChain aqui no topo.
 
 class Summary(BaseModel):
-    overview: str = Field(..., max_length=500, description="Resumo até 500 caracteres")
+    overview: str = Field(..., max_length=600, description="Resumo até 600 caracteres")
     key_metrics: List[str] = Field(..., description="Lista de métricas-chave")
 
 class HistoryAnalysis(BaseModel):
@@ -15,7 +15,7 @@ class HistoryAnalysis(BaseModel):
 
 class InsightDetail(BaseModel):
     """O valor de um insight, já que o título será a chave."""
-    detail: str = Field(..., max_length=500, description="Detalhe até 500 caracteres")
+    detail: str = Field(..., max_length=600, description="Detalhe até 600 caracteres")
 
 class AlertDetail(BaseModel):
     """O valor de um alerta, já que o tipo será a chave."""
@@ -40,5 +40,5 @@ def get_parser():
     Cria e retorna uma instância do PydanticOutputParser sob demanda.
     A importação pesada acontece aqui dentro, evitando timeout no deploy.
     """
-    from langchain.output_parsers import PydanticOutputParser
+    from langchain_core.output_parsers import PydanticOutputParser
     return PydanticOutputParser(pydantic_object=TrainingAnalysis)
