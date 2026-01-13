@@ -40,6 +40,8 @@ dependencies:
   intl: any
   percent_indicator: ^4.2.2
   file_picker: ^10.3.3
+  image_picker: ^1.1.2
+  image_cropper: ^8.0.2
 
   # Firebase (atualizadas para famílias compatíveis com GoogleUtilities 8.x)
   firebase_core: ^4.2.1

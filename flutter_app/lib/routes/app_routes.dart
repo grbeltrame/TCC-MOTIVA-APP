@@ -33,6 +33,7 @@ import 'package:flutter_app/features/user/coach/coach_trainings_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_evolutions_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_insights_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_training_insights_screen.dart';
+import 'package:flutter_app/features/user/coach/edit_profile_coach_screen.dart';
 import 'package:flutter_app/features/user/coach/interested_athletes_per_class.dart';
 import 'package:flutter_app/features/user/coach/coach_training_edit_screen.dart';
 
@@ -83,6 +84,7 @@ class AppRoutes {
   static const String interestedAtlhetes = InterestedAthletesScreen.routeName;
   static const String coachProfile = CoachProfileScreen.routeName;
   static const String coachTrainingEdit = CoachTrainingEditScreen.routeName;
+  static const String coachProfileEdit = EditProfileCoachScreen.routeName;
 }
 
 /// Mapeamento de rotas para usar no MaterialApp(routes:)
@@ -127,4 +129,5 @@ final Map<String, WidgetBuilder> appRouteMap = {
     final settings = ModalRoute.of(ctx)!.settings;
     return CoachTrainingEditScreen.fromArgs(settings);
   },
+  AppRoutes.coachProfileEdit: (_) => const EditProfileCoachScreen(),
 };

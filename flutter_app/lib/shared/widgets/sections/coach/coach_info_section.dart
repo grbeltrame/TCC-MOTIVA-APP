@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/users/coach/coach_service.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/coach_profile.dart';
 import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
 
@@ -54,9 +55,19 @@ class _CoachInfoSectionState extends State<CoachInfoSection> {
         final btnReserve = 128 * scale;
 
         final editBtn = OutlinedButton.icon(
-          onPressed: () {
-            // TODO: navegar para editar perfil do coach
+          onPressed: () async {
+            final changed = await Navigator.of(
+              context,
+            ).pushNamed(AppRoutes.coachProfileEdit);
+
+            if (changed == true) {
+              setState(() {
+                _futProfile =
+                    CoachService.fetchCoachProfile(); // ou o service real do coach
+              });
+            }
           },
+
           icon: Icon(Icons.edit, size: 14 * scale, color: AppColors.baseBlue),
           label: Text(
             'Editar Perfil',
