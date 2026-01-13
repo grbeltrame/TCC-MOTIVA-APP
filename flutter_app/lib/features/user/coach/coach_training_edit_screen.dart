@@ -1,10 +1,15 @@
 // lib/features/user/coach/coach_training_edit_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 
 class CoachTrainingEditScreen extends StatefulWidget {
   static const routeName = '/coach_training_edit';
@@ -45,18 +50,28 @@ class CoachTrainingEditScreen extends StatefulWidget {
 const _kSectionTypes = <String>['WarmUp', 'ExtraTraining', 'Skill', 'WOD'];
 
 class EditableMovement {
-  String name;
-  String quantity;
-  String? unit;
+  /// Ex.: "21", "400m", "12'", "5x5", "21-15-9" (mas aqui a gente já separa em linhas)
+  String reps;
 
-  EditableMovement({required this.name, this.quantity = '', this.unit});
+  /// Apenas o nome do movimento. Ex.: "Thrusters", "Muscle Snatch", "Run"
+  String name;
+
+  /// Carga (opcional). Ex.: "40/25", "60kg", "Rx", etc.
+  String? load;
+
+  EditableMovement({required this.reps, required this.name, this.load});
 }
 
 class EditableSection {
   String id;
   String type; // WarmUp/ExtraTraining/Skill/WOD
+
+  /// Nome da seção SEM tempo (ex.: "WOD - Fran")
   String? name;
+
+  /// Tempo (minutos) separado (ex.: 5)
   int? timeMinutes;
+
   final List<EditableMovement> movements;
 
   EditableSection({
@@ -81,9 +96,20 @@ class EditableTraining {
 class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
   late Future<EditableTraining> _futureEditable;
 
+  /// Mantém sempre o último estado editado vindo do _EditBody.
+  EditableTraining? _currentEdited;
+
+  // TODO(DB-SAVE): quando o backend estiver pronto, mude para false
+  // e implemente _persistEditedTraining(...) de verdade.
+  static const bool _kUseMockPersistence = true;
+
   @override
   void initState() {
     super.initState();
+
+    // TODO(DB-LOAD): quando conectar no banco de dados "de verdade",
+    // este Future já deve ser alimentado por um serviço/repositório real
+    // (ex.: TrainingRepository / TrainingService).
     _futureEditable = _loadEditableFromService(
       boxId: widget.boxId,
       date: widget.date,
@@ -92,6 +118,16 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     );
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // AppBar solicitado
+  // ───────────────────────────────────────────────────────────────────────────
+
+  void _openRegisterBoxSheet(BuildContext context) {
+    showAppBottomSheet(context, const BoxSignupCoach());
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+
   String _fmtDate(DateTime d) {
     final dd = d.day.toString().padLeft(2, '0');
     final mm = d.month.toString().padLeft(2, '0');
@@ -99,102 +135,170 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     return '$dd/$mm/$yy';
   }
 
-  /// Separa "quantidade" e "movimento" a partir de uma linha
-  (String qty, String name) _splitQtyAndName(String line) {
-    final s = line.trim();
-    if (s.isEmpty) return ('', '');
+  // ── Parsers ────────────────────────────────────────────────────────────────
 
-    // 21-15-9 Thrusters
-    final dashRe = RegExp(r'^\s*(\d+(?:-\d+)+)\s+(.+)$');
+  /// Divide título em nome + tempo. Exemplos:
+  /// "Warm Up - 5 min" => ("Warm Up", 5)
+  /// "WarmUp 10min"    => ("WarmUp", 10)
+  /// "WOD - Fran"      => ("WOD - Fran", null)
+  (String name, int? minutes) _splitTitleNameAndTime(String title) {
+    final t = title.trim();
+
+    // ... - 5 min | ... - 10min
+    final dashMin = RegExp(
+      r'^(.*?)[\s\-–—]+(\d+)\s*min\s*$',
+      caseSensitive: false,
+    );
+    final m1 = dashMin.firstMatch(t);
+    if (m1 != null) {
+      return (m1.group(1)!.trim(), int.tryParse(m1.group(2)!) ?? 0);
+    }
+
+    // ... 5 min | ... 10min
+    final tailMin = RegExp(r'^(.*?)[\s]+(\d+)\s*min\s*$', caseSensitive: false);
+    final m2 = tailMin.firstMatch(t);
+    if (m2 != null) {
+      return (m2.group(1)!.trim(), int.tryParse(m2.group(2)!) ?? 0);
+    }
+
+    return (t, null);
+  }
+
+  /// "21-15-9 Thrusters (40/25)" → 3 linhas:
+  ///   (21, Thrusters, 40/25), (15, Thrusters, 40/25), (9, Thrusters, 40/25)
+  ///
+  /// "5 Muscle Snatch" → (5, Muscle Snatch, null)
+  /// "400m Run" → (400m, Run, null)
+  ///
+  /// OBS: aqui a gente só parseia linha a linha (movimento),
+  /// o tempo da seção fica no header (name/timeMinutes).
+  List<EditableMovement> _parseLineIntoMovements(String raw) {
+    final s = raw.trim();
+    if (s.isEmpty) return const [];
+
+    // 21-15-9 Thrusters (40/25)
+    final dashRe = RegExp(
+      r'^\s*(\d+(?:-\d+)+)\s+([A-Za-z].*?)(?:\s*\(([^)]+)\))?\s*$',
+    );
     final dashM = dashRe.firstMatch(s);
     if (dashM != null) {
-      return (dashM.group(1)!.trim(), dashM.group(2)!.trim());
+      final repsSeq = dashM
+          .group(1)!
+          .split('-')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty);
+      final name = dashM.group(2)!.trim();
+      final load = dashM.group(3)?.trim();
+
+      return repsSeq
+          .map(
+            (r) => EditableMovement(
+              reps: r,
+              name: name,
+              load: (load?.trim().isEmpty ?? true) ? null : load!.trim(),
+            ),
+          )
+          .toList();
     }
 
-    // 5x5 Back Squat
-    final setRe = RegExp(r'^\s*(\d+\s*x\s*\d+)\s+(.+)$', caseSensitive: false);
+    // 400m Run | 1km Row | 12' Burpees
+    //
+    // Aceita unidades:
+    // - m, km, min, sec
+    // - ' e " (usando \x27 e \x22 para evitar problema de escape)
+    final distRe = RegExp(
+      r"^\s*(\d+\s*(?:m|km|min|sec|[\x27\x22]))\s+(.+?)(?:\s*\(([^)]+)\))?\s*$",
+      caseSensitive: false,
+    );
+    final distM = distRe.firstMatch(s);
+    if (distM != null) {
+      final reps = distM.group(1)!.trim();
+      final name = distM.group(2)!.trim();
+      final load = distM.group(3)?.trim();
+
+      return [
+        EditableMovement(
+          reps: reps,
+          name: name,
+          load: (load?.trim().isEmpty ?? true) ? null : load!.trim(),
+        ),
+      ];
+    }
+
+    // 5x5 Back Squat (60/40) → reps "5x5"
+    final setRe = RegExp(
+      r'^\s*(\d+\s*x\s*\d+)\s+(.+?)(?:\s*\(([^)]+)\))?\s*$',
+      caseSensitive: false,
+    );
     final setM = setRe.firstMatch(s);
     if (setM != null) {
-      return (
-        setM.group(1)!.replaceAll(RegExp(r'\s+'), ''),
-        setM.group(2)!.trim(),
-      );
+      final reps = setM.group(1)!.replaceAll(RegExp(r'\s+'), '');
+      final name = setM.group(2)!.trim();
+      final load = setM.group(3)?.trim();
+
+      return [
+        EditableMovement(
+          reps: reps,
+          name: name,
+          load: (load?.trim().isEmpty ?? true) ? null : load!.trim(),
+        ),
+      ];
     }
 
-    // 3 rounds (of) ...
-    final roundsRe = RegExp(
-      r'^\s*(\d+)\s*rounds?(?:\s*of)?[:\-]?\s*(.*)$',
+    // 5 Muscle Snatch (opcionalmente com carga)
+    final simpleRe = RegExp(
+      r'^\s*(\d+)\s+(.+?)(?:\s*\(([^)]+)\))?\s*$',
       caseSensitive: false,
     );
-    final roundsM = roundsRe.firstMatch(s);
-    if (roundsM != null) {
-      return (
-        '${roundsM.group(1)!.trim()} rounds',
-        (roundsM.group(2) ?? '').trim(),
-      );
+    final sm = simpleRe.firstMatch(s);
+    if (sm != null) {
+      final reps = sm.group(1)!.trim();
+      final name = sm.group(2)!.trim();
+      final load = sm.group(3)?.trim();
+
+      return [
+        EditableMovement(
+          reps: reps,
+          name: name,
+          load: (load?.trim().isEmpty ?? true) ? null : load!.trim(),
+        ),
+      ];
     }
 
-    // EMOM/AMRAP/For time/For load + tempo opcional (12', 10min, etc)
-    // ⚠️ Usa raw string com ASPAS DUPLAS por causa do apóstrofo
-    final schemeRe = RegExp(
-      r"^\s*(amrap|emom|for\s*time|for\s*load)\s*([0-9]+'?(?:\s*min)?)?[:\-]?\s*(.*)$",
-      caseSensitive: false,
-    );
-    final schemeM = schemeRe.firstMatch(s);
-    if (schemeM != null) {
-      final head = schemeM
-          .group(1)!
-          .toUpperCase()
-          .replaceAll(RegExp(r'\s+'), ' ');
-      final time = (schemeM.group(2) ?? '').trim();
-      final rest = (schemeM.group(3) ?? '').trim();
-      final qty = time.isNotEmpty ? '$head $time' : head;
-      return (qty, rest);
-    }
+    // fallback: trata tudo como nome
+    return [EditableMovement(reps: '', name: s, load: null)];
+  }
 
-    // 10 reps Pull-ups | 400m Run | 10 cal Row | 1km Run
-    final unitRe = RegExp(
-      r'^\s*(\d+\s*(?:reps?|cal|m|km|min|minutes?))\b[\s\:]*([^\n].*)$',
-      caseSensitive: false,
-    );
-    final unitM = unitRe.firstMatch(s);
-    if (unitM != null) {
-      return (unitM.group(1)!.trim(), (unitM.group(2) ?? '').trim());
-    }
-
-    return ('', s);
+  String _inferTypeFromTitle(String title) {
+    final t = title.trim().toLowerCase();
+    if (t.startsWith('warm') || t.contains('warm up')) return 'WarmUp';
+    if (t.startsWith('skill')) return 'Skill';
+    if (t.startsWith('extra')) return 'ExtraTraining';
+    return 'WOD';
   }
 
   EditableTraining _mapBlocksToEditable(List<TrainingBlock> blocks) {
     final sections = <EditableSection>[];
 
-    String _inferTypeFromTitle(String title) {
-      final t = title.trim().toLowerCase();
-      if (t.startsWith('warm') || t.contains('warm up')) return 'WarmUp';
-      if (t.startsWith('skill')) return 'Skill';
-      if (t.startsWith('extra')) return 'ExtraTraining';
-      return 'WOD';
-    }
-
     for (var i = 0; i < blocks.length; i++) {
       final b = blocks[i];
-      final id = 'section_$i';
+      final id = b.id.isNotEmpty ? b.id : 'section_$i';
+
       final inferredType = _inferTypeFromTitle(b.title);
+      final (nameOnly, minutes) = _splitTitleNameAndTime(b.title);
 
       final movements = <EditableMovement>[];
       for (final raw in b.items) {
-        final line = raw.trim();
-        if (line.isEmpty) continue;
-        final (qty, name) = _splitQtyAndName(line);
-        movements.add(EditableMovement(name: name, quantity: qty));
+        final parsed = _parseLineIntoMovements(raw);
+        movements.addAll(parsed);
       }
 
       sections.add(
         EditableSection(
           id: id,
           type: inferredType,
-          name: b.title.trim().isNotEmpty ? b.title : null,
-          timeMinutes: null,
+          name: nameOnly.isNotEmpty ? nameOnly : null,
+          timeMinutes: minutes,
           movements: movements,
         ),
       );
@@ -206,6 +310,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
           id: 'section_0',
           type: 'WOD',
           name: null,
+          timeMinutes: null,
           movements: [],
         ),
       );
@@ -220,6 +325,8 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     required String category,
     String? highlightBlockId,
   }) async {
+    // TODO(DB-LOAD): este fetch deve vir do banco quando a integração estiver pronta.
+    // ✅ Enquanto isso, OK usar o TrainingService atual.
     final blocks = await TrainingService.fetchFullTrainingBlocks(
       boxId: boxId,
       date: date,
@@ -237,46 +344,138 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     return _mapBlocksToEditable(blocks);
   }
 
-  Future<void> _onConfirm(EditableTraining edited) async {
-    // TODO: enviar "edited" para o backend consolidando TODAS as sections em blocks
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
-          'Treino atualizado (mock). TODO: persistir no backend)',
-        ),
-        backgroundColor: AppColors.baseBlue,
-      ),
-    );
-    Navigator.of(context).pop(edited);
+  // ───────────────────────────────────────────────────────────────────────────
+  // Persistência (MOCK agora, REAL depois)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  Future<void> _persistEditedTraining(EditableTraining edited) async {
+    if (_kUseMockPersistence) {
+      // ✅ MOCK (REMOVER quando DB-SAVE estiver pronto)
+      await Future.delayed(const Duration(milliseconds: 350));
+      return;
+    }
+
+    // TODO(DB-SAVE): Implementar persistência real aqui.
+    // Exemplo futuro:
+    // await TrainingService.updateTraining(
+    //   boxId: widget.boxId,
+    //   date: widget.date,
+    //   category: widget.category,
+    //   edited: edited,
+    // );
   }
+
+  Future<void> _onConfirmPressed() async {
+    final edited = _currentEdited;
+    if (edited == null) return;
+
+    try {
+      await _persistEditedTraining(edited);
+      if (!mounted) return;
+
+      if (_kUseMockPersistence) {
+        // ✅ MOCK (REMOVER quando DB-SAVE estiver pronto)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Treino atualizado (mock).'),
+            backgroundColor: AppColors.baseBlue,
+          ),
+        );
+
+        // ✅ MOCK: retorna o objeto editado pra você validar na tela anterior
+        Navigator.of(context).pop(edited);
+
+        // Quando o backend estiver pronto, você pode trocar pra:
+        // Navigator.of(context).pop(true);
+        return;
+      }
+
+      // ✅ REAL (quando backend estiver pronto)
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Falha ao salvar treino: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Você está editando o treino\ndo dia ${_fmtDate(widget.date)} da categoria ${widget.category}',
-          style: const TextStyle(fontSize: 14),
-        ),
-        toolbarHeight: 64,
-      ),
-      body: FutureBuilder<EditableTraining>(
-        future: _futureEditable,
-        builder: (ctx, snap) {
-          if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snap.hasError || !snap.hasData) {
-            return const Center(child: Text('Falha ao carregar treino.'));
-          }
+      // ✅ AppBar exatamente como você pediu
+      appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
 
-          final editable = snap.data!;
-          return _EditBody(editable: editable, onConfirm: _onConfirm);
-        },
+      body: SafeArea(
+        child: FutureBuilder<EditableTraining>(
+          future: _futureEditable,
+          builder: (ctx, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snap.hasError || !snap.hasData) {
+              return const Center(child: Text('Falha ao carregar treino.'));
+            }
+
+            // primeira carga: se ainda não tem estado editado, inicia
+            _currentEdited ??= snap.data!;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // ✅ BACK BUTTON (alinhado no canto esquerdo)
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: 8 * scale,
+                    left: 6 * scale,
+                    right: 6 * scale,
+                  ),
+                  child: const Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppBackButton(),
+                  ),
+                ),
+
+                // ✅ O que estava no AppBar vira conteúdo da página
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    12 * scale,
+                    4 * scale,
+                    12 * scale,
+                    8 * scale,
+                  ),
+                  child: Text(
+                    'Você está editando o treino\ndo dia ${_fmtDate(widget.date)} da categoria ${widget.category}',
+                    style: TextStyle(
+                      fontFamily: AppFonts.roboto,
+                      fontWeight: AppFontWeight.bold,
+                      fontSize: 14 * scale,
+                      color: AppColors.darkText,
+                    ),
+                  ),
+                ),
+
+                Expanded(
+                  child: _EditBody(
+                    editable: _currentEdited!,
+                    onEditedChanged: (edited) {
+                      _currentEdited = edited;
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
+
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(12, 8, 12, 12 + 4 * scale),
@@ -284,10 +483,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
             width: double.infinity,
             height: 46 * scale,
             child: ElevatedButton(
-              onPressed: () async {
-                final editable = await _futureEditable;
-                await _onConfirm(editable);
-              },
+              onPressed: _onConfirmPressed,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.baseBlue,
                 foregroundColor: Colors.white,
@@ -312,10 +508,10 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _EditBody extends StatefulWidget {
-  const _EditBody({required this.editable, required this.onConfirm});
+  const _EditBody({required this.editable, required this.onEditedChanged});
 
   final EditableTraining editable;
-  final Future<void> Function(EditableTraining edited) onConfirm;
+  final ValueChanged<EditableTraining> onEditedChanged;
 
   @override
   State<_EditBody> createState() => _EditBodyState();
@@ -328,6 +524,10 @@ class _EditBodyState extends State<_EditBody> {
   void initState() {
     super.initState();
     _edited = widget.editable;
+  }
+
+  void _notify() {
+    widget.onEditedChanged(_edited);
   }
 
   void _addSection() {
@@ -343,12 +543,14 @@ class _EditBodyState extends State<_EditBody> {
         ),
       );
     });
+    _notify();
   }
 
   void _removeSection(String id) {
     setState(() {
       _edited.sections.removeWhere((s) => s.id == id);
     });
+    _notify();
   }
 
   @override
@@ -358,7 +560,7 @@ class _EditBodyState extends State<_EditBody> {
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(12, 12, 12, 12 * scale),
+          padding: EdgeInsets.fromLTRB(12, 8, 12, 12 * scale),
           sliver: SliverList.separated(
             itemCount: _edited.sections.length + 1,
             separatorBuilder: (_, __) => SizedBox(height: 10 * scale),
@@ -376,7 +578,10 @@ class _EditBodyState extends State<_EditBody> {
                 key: ValueKey(section.id),
                 section: section,
                 onDelete: () => _removeSection(section.id),
-                onChanged: () => setState(() {}),
+                onChanged: () {
+                  setState(() {});
+                  _notify();
+                },
               );
             },
           ),
@@ -413,7 +618,9 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
 
   void _addMovement() {
     setState(() {
-      widget.section.movements.add(EditableMovement(name: '', quantity: ''));
+      widget.section.movements.add(
+        EditableMovement(reps: '', name: '', load: null),
+      );
     });
     widget.onChanged?.call();
   }
@@ -427,6 +634,22 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
     widget.onChanged?.call();
   }
 
+  bool _looksLikeLoad(String? load) {
+    if (load == null) return false;
+    final v = load.trim();
+    if (v.isEmpty) return false;
+
+    // "40/25", "60", "60kg", "Rx"
+    final rx = RegExp(r'^(rx|r[xX])$', caseSensitive: false);
+    if (rx.hasMatch(v)) return true;
+
+    final hasDigit = RegExp(r'\d').hasMatch(v);
+    final hasSlash = v.contains('/');
+    final hasKgLb = RegExp(r'(kg|lb)', caseSensitive: false).hasMatch(v);
+
+    return hasDigit || hasSlash || hasKgLb;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -436,6 +659,10 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
             .map((e) => DropdownMenuItem<String>(value: e, child: Text(e)))
             .toList();
 
+    final hintLoad = TextStyle(
+      color: AppColors.mediumGray.withValues(alpha: 0.7),
+    );
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -443,7 +670,7 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
         borderRadius: BorderRadius.circular(12 * scale),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05), // ✅ sem withOpacity
             blurRadius: 3 * scale,
             offset: Offset(0, 1 * scale),
           ),
@@ -453,7 +680,7 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header: tipo + delete
           Row(
             children: [
               Expanded(
@@ -478,7 +705,7 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
           ),
           SizedBox(height: 8 * scale),
 
-          // Nome (título do bloco)
+          // Nome (limpo, sem tempo)
           TextFormField(
             initialValue: widget.section.name ?? '',
             onChanged: (v) {
@@ -493,7 +720,7 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
           ),
           SizedBox(height: 8 * scale),
 
-          // Tempo (minutos)
+          // Tempo (minutos) — separado
           TextFormField(
             initialValue:
                 widget.section.timeMinutes != null
@@ -512,7 +739,6 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
           ),
           SizedBox(height: 12 * scale),
 
-          // Movimentos
           Text(
             'Movimentos',
             style: TextStyle(
@@ -530,6 +756,8 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
               movement: widget.section.movements[i],
               onChanged: () => setState(() {}),
               onDelete: () => _removeMovement(i),
+              hintLoadStyle: hintLoad,
+              looksLikeLoad: _looksLikeLoad(widget.section.movements[i].load),
             ),
             SizedBox(height: 8 * scale),
           ],
@@ -554,12 +782,16 @@ class _MovementRow extends StatefulWidget {
     required this.movement,
     required this.onChanged,
     required this.onDelete,
+    required this.hintLoadStyle,
+    required this.looksLikeLoad,
   });
 
   final int index;
   final EditableMovement movement;
   final VoidCallback onChanged;
   final VoidCallback onDelete;
+  final TextStyle hintLoadStyle;
+  final bool looksLikeLoad;
 
   @override
   State<_MovementRow> createState() => _MovementRowState();
@@ -570,25 +802,30 @@ class _MovementRowState extends State<_MovementRow> {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
+    final loadEnabled =
+        widget.looksLikeLoad ||
+        (widget.movement.load?.trim().isNotEmpty ?? false);
+
     return Row(
       children: [
-        // Quantidade
+        // Reps (permite texto: números + unidades tipo 400m, 12', 1km, 20sec)
         Expanded(
           flex: 3,
           child: TextFormField(
-            initialValue: widget.movement.quantity,
+            initialValue: widget.movement.reps,
             onChanged: (v) {
-              setState(() => widget.movement.quantity = v);
+              setState(() => widget.movement.reps = v);
               widget.onChanged();
             },
             decoration: const InputDecoration(
-              labelText: "Qtd (ex.: 21-15-9 / 5x5 / 10 reps / 400m / EMOM 12')",
+              labelText: 'Reps',
+              hintText: "ex.: 21 | 400m | 12' | 5x5",
             ),
           ),
         ),
         SizedBox(width: 8 * scale),
 
-        // Movimento
+        // Movimento (apenas o nome)
         Expanded(
           flex: 4,
           child: TextFormField(
@@ -602,18 +839,28 @@ class _MovementRowState extends State<_MovementRow> {
         ),
         SizedBox(width: 8 * scale),
 
-        // Unidade (opcional)
+        // Carga (opcional)
         Expanded(
-          flex: 2,
+          flex: 3,
           child: TextFormField(
-            initialValue: widget.movement.unit ?? '',
+            initialValue: widget.movement.load ?? '',
             onChanged: (v) {
-              setState(
-                () => widget.movement.unit = v.trim().isNotEmpty ? v : null,
-              );
+              final val = v.trim();
+              setState(() => widget.movement.load = val.isEmpty ? null : val);
               widget.onChanged();
             },
-            decoration: const InputDecoration(labelText: 'Unid. (opcional)'),
+            enabled: true,
+            decoration: InputDecoration(
+              labelText: 'Carga',
+              hintText: '',
+              hintStyle: widget.hintLoadStyle,
+              // ✅ Quando não tiver carga, o campo fica "visualmente mais cinza"
+              filled: !loadEnabled,
+              fillColor:
+                  !loadEnabled
+                      ? AppColors.lightGray.withValues(alpha: 0.35)
+                      : null,
+            ),
           ),
         ),
 
