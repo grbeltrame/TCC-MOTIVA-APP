@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 
 /// Section: "Últimos Ciclos"
@@ -55,7 +56,8 @@ class _CoachRecentCyclesSectionState extends State<CoachRecentCyclesSection> {
                 icon: Icons.add,
                 color: AppColors.baseBlue,
                 onPressed:
-                    widget.onSeeAll ?? () {}, // por enquanto pode ser null
+                    () =>
+                        Navigator.pushNamed(context, AppRoutes.coachAllCycles),
               ),
             ],
           ),

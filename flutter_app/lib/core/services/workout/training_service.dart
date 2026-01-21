@@ -554,7 +554,112 @@ extension CycleMonths on TrainingService {
     final monthLabel = m[0].toUpperCase() + m.substring(1); // capitaliza
     return '$monthLabel/${month.year}';
   }
+
+  /// Retorna os meses (1-12) que possuem ciclo cadastrado no [year].
+  /// TODO(back): substituir por consulta real (Firebase) filtrando por boxId + ano.
+  static Future<List<int>> fetchRegisteredCycleMonthsForYear({
+    required String boxId,
+    required int year,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    // MOCK: dataset fixo (exemplo da sua referência)
+    // 2025: Jan, Fev, Mar
+    // 2026: Jan
+    final mock = <int, List<int>>{
+      2025: [1, 2, 3],
+      2026: [1],
+    };
+
+    final months = mock[year] ?? const <int>[];
+
+    // ordena por mês crescente (Jan -> Dez)
+    final sorted = [...months]..sort();
+    return sorted;
+  }
+
+  /// Retorna o ciclo vigente = último ciclo registrado (mais recente).
+  /// TODO(back): substituir por query que retorna o último ciclo (orderBy date desc limit 1).
+  static Future<DateTime?> fetchCurrentCycleMonth({
+    required String boxId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    // MOCK consistente com fetchRegisteredCycleMonthsForYear
+    final all = <DateTime>[
+      DateTime(2025, 1),
+      DateTime(2025, 2),
+      DateTime(2025, 3),
+      DateTime(2026, 1),
+    ];
+
+    if (all.isEmpty) return null;
+    all.sort((a, b) => a.compareTo(b));
+    return all.last;
+  }
+
+  /// Apenas helper: checa se existe ciclo no (year, month).
+  /// TODO(back): substituir por leitura direta.
+  static Future<bool> isCycleRegistered({
+    required String boxId,
+    required int year,
+    required int month,
+  }) async {
+    final months = await fetchRegisteredCycleMonthsForYear(
+      boxId: boxId,
+      year: year,
+    );
+    return months.contains(month);
+  }
 }
+
+extension CycleAll on TrainingService {
+  static Future<List<int>> fetchRegisteredCycleMonthsForYear({
+    required String boxId,
+    required int year,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    final mock = <int, List<int>>{
+      2025: [1, 2, 3],
+      2026: [1],
+    };
+
+    final months = mock[year] ?? const <int>[];
+    final sorted = [...months]..sort();
+    return sorted;
+  }
+
+  static Future<DateTime?> fetchCurrentCycleMonth({
+    required String boxId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    final all = <DateTime>[
+      DateTime(2025, 1),
+      DateTime(2025, 2),
+      DateTime(2025, 3),
+      DateTime(2026, 1),
+    ];
+
+    if (all.isEmpty) return null;
+    all.sort((a, b) => a.compareTo(b));
+    return all.last;
+  }
+
+  static Future<bool> isCycleRegistered({
+    required String boxId,
+    required int year,
+    required int month,
+  }) async {
+    final months = await fetchRegisteredCycleMonthsForYear(
+      boxId: boxId,
+      year: year,
+    );
+    return months.contains(month);
+  }
+}
+
 // ===================== TODAY WORKOUT CARD HELPERS =====================
 
 extension TodayWorkoutHelpers on TrainingService {

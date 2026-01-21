@@ -17,6 +17,9 @@ import 'package:flutter_app/features/user/athlete/athlete_training_screen.dart';
 import 'package:flutter_app/features/user/coach/athlete_alerts_screen.dart';
 import 'package:flutter_app/features/user/coach/athlete_profile_detail_screen.dart';
 import 'package:flutter_app/features/user/coach/athlete_results_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_all_cycles_page.dart';
+import 'package:flutter_app/features/user/coach/coach_cycle_training_type_detail_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_cycles_detail_sceen.dart';
 import 'package:flutter_app/features/user/coach/coach_home_screen.dart';
 import 'package:flutter_app/features/auth/presentation/login_screen.dart';
 import 'package:flutter_app/features/auth/presentation/signup_screen.dart';
@@ -85,6 +88,10 @@ class AppRoutes {
   static const String coachProfile = CoachProfileScreen.routeName;
   static const String coachTrainingEdit = CoachTrainingEditScreen.routeName;
   static const String coachProfileEdit = EditProfileCoachScreen.routeName;
+  static const String coachAllCycles = CoachAllCyclesScreen.routeName;
+  static const String coachCycleDetail = CoachCycleDetailScreen.routeName;
+  static const String coachCycleTrainingTypeDetail =
+      CoachCycleTrainingTypeDetailScreen.routeName;
 }
 
 /// Mapeamento de rotas para usar no MaterialApp(routes:)
@@ -130,4 +137,8 @@ final Map<String, WidgetBuilder> appRouteMap = {
     return CoachTrainingEditScreen.fromArgs(settings);
   },
   AppRoutes.coachProfileEdit: (_) => const EditProfileCoachScreen(),
+  AppRoutes.coachAllCycles: (_) => const CoachAllCyclesScreen(),
+  AppRoutes.coachCycleDetail: (_) => const CoachCycleDetailScreen(),
+  AppRoutes.coachCycleTrainingTypeDetail:
+      (_) => const CoachCycleTrainingTypeDetailScreen(),
 };

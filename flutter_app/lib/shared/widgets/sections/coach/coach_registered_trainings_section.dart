@@ -148,9 +148,8 @@ class _CoachRegisteredTrainingsSectionState
             TextActionButton(
               text: 'Ver todos os ciclos',
               icon: Icons.add,
-              onPressed: () {
-                /* TODO: navegação futura */
-              },
+              onPressed:
+                  () => Navigator.pushNamed(context, AppRoutes.coachAllCycles),
             ),
           ],
         ),

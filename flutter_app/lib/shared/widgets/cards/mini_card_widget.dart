@@ -19,6 +19,7 @@ class MiniCardWidget extends StatelessWidget {
   final bool showButton;
   final Widget? buttonWidget;
   final double? titleFontSize;
+  final double? valueFontSize;
 
   const MiniCardWidget({
     Key? key,
@@ -31,6 +32,7 @@ class MiniCardWidget extends StatelessWidget {
     this.showButton = false,
     this.buttonWidget,
     this.titleFontSize,
+    this.valueFontSize,
   }) : super(key: key);
 
   @override
@@ -53,7 +55,7 @@ class MiniCardWidget extends StatelessWidget {
                 : snapshot.data ?? 'N/A';
 
         return Container(
-          width: 120 * scale, // mantém a largura original do card
+          //width: 120 * scale, // mantém a largura original do card
           padding: EdgeInsets.symmetric(
             horizontal: 6 * scale,
             vertical: 8 * scale,
@@ -107,7 +109,7 @@ class MiniCardWidget extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: AppFonts.roboto,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14 * scale,
+                      fontSize: (valueFontSize ?? 14) * scale,
                       color: AppColors.darkText,
                     ),
                   ),
