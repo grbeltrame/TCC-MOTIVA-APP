@@ -18,6 +18,7 @@ import 'package:flutter_app/features/user/coach/athlete_alerts_screen.dart';
 import 'package:flutter_app/features/user/coach/athlete_profile_detail_screen.dart';
 import 'package:flutter_app/features/user/coach/athlete_results_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_all_cycles_page.dart';
+import 'package:flutter_app/features/user/coach/coach_cycle_insight_topic_detail_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_cycle_training_type_detail_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_cycles_detail_sceen.dart';
 import 'package:flutter_app/features/user/coach/coach_home_screen.dart';
@@ -92,6 +93,8 @@ class AppRoutes {
   static const String coachCycleDetail = CoachCycleDetailScreen.routeName;
   static const String coachCycleTrainingTypeDetail =
       CoachCycleTrainingTypeDetailScreen.routeName;
+  static const coachCycleInsightTopicDetail =
+      CoachCycleInsightTopicDetailScreen.routeName;
 }
 
 /// Mapeamento de rotas para usar no MaterialApp(routes:)
@@ -141,4 +144,6 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.coachCycleDetail: (_) => const CoachCycleDetailScreen(),
   AppRoutes.coachCycleTrainingTypeDetail:
       (_) => const CoachCycleTrainingTypeDetailScreen(),
+  AppRoutes.coachCycleInsightTopicDetail:
+      (_) => const CoachCycleInsightTopicDetailScreen(),
 };

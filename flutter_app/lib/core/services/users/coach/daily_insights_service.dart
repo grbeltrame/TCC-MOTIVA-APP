@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter_app/shared/models/coach_cycle_topic_insights.dart';
+
 /// Modelo simples para os insights do coach.
 /// Mantém `type` (ex.: 'WOD', 'LPO', 'Ginastica', 'Endurance') e `message` (texto do insight).
 class CoachInsightModel {
@@ -218,6 +220,93 @@ class CoachDailyInsightsService {
         ),
       ],
     );
+  }
+
+  /// (B) Detalhe: retorna TODOS os insights de um topic para um ciclo.
+  /// TODO(back): substituir por chamada real.
+  Future<List<CoachCycleInsightItem>> fetchCycleTopicInsights({
+    required String boxId,
+    required DateTime month, // normalizado: DateTime(year, month)
+    required String categoryKey,
+    required String topicKey,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 350));
+
+    // MOCK: gera insights em dias espalhados no mês (bem “elegante” visualmente)
+    final y = month.year;
+    final m = month.month;
+
+    // alguns dias fixos pra ficar estável
+    final days = <int>[2, 5, 8, 12, 16, 20, 24, 27];
+
+    // mensagens por categoria só pra diferenciar “sabor”
+    List<String> baseMessages() {
+      switch (categoryKey) {
+        case 'technical_alerts':
+          return [
+            'Seu volume total subiu rápido — risco de fadiga acumulada.',
+            'A consistência está boa, mas o esforço médio ficou alto demais em sequência.',
+            'A recuperação não acompanhou o ritmo (sono/hidratação).',
+          ];
+        case 'positive_points':
+          return [
+            'Ótimo equilíbrio entre estímulos — excelente consistência.',
+            'Sua técnica evoluiu em movimentos-chave ao longo do ciclo.',
+            'Você manteve presença em dias “difíceis” — isso aumenta performance.',
+          ];
+        case 'smart_recommendations':
+          return [
+            'Separe 1 dia na semana para técnica leve + mobilidade.',
+            'Teste um pacing mais conservador nos primeiros 30% do WOD.',
+            'Priorize sono nas noites pré-treino intenso.',
+          ];
+        case 'cycle_comparison':
+          return [
+            'Comparado ao ciclo anterior, seu volume aumentou com melhor consistência.',
+            'Seu desempenho manteve estabilidade mesmo com treinos mais longos.',
+            'Você variou mais estímulos neste ciclo — bom para evolução geral.',
+          ];
+        default:
+          return [
+            'Insight do ciclo: mantenha a consistência e ajuste detalhes.',
+            'Pequenos ajustes agora evitam grandes travas depois.',
+          ];
+      }
+    }
+
+    final msgs = baseMessages();
+
+    // mistura topicKey só pra variar um pouco
+    String topicFlavor(String s) {
+      if (topicKey.isEmpty) return s;
+      return '(${topicKey.toUpperCase()}) $s';
+    }
+
+    final out = <CoachCycleInsightItem>[];
+    for (var i = 0; i < days.length; i++) {
+      final d = DateTime(y, m, days[i]);
+
+      // 1 a 2 mensagens por dia
+      out.add(
+        CoachCycleInsightItem(
+          date: d,
+          message: topicFlavor(msgs[i % msgs.length]),
+        ),
+      );
+
+      if (i % 3 == 0) {
+        out.add(
+          CoachCycleInsightItem(
+            date: d,
+            message: topicFlavor(msgs[(i + 1) % msgs.length]),
+          ),
+        );
+      }
+    }
+
+    // ordena desc (mais recentes primeiro)
+    out.sort((a, b) => b.date.compareTo(a.date));
+    return out;
   }
 }
 

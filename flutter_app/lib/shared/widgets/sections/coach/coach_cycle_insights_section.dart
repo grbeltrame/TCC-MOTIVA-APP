@@ -3,6 +3,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/users/coach/daily_insights_service.dart';
 import 'package:flutter_app/core/services/users/coach/daily_training_analytics_service.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/coach_cycle_insights.dart';
 import 'package:flutter_app/shared/widgets/utils/month_selector.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
@@ -268,7 +269,22 @@ class _CycleCategorySection extends StatelessWidget {
                   icon: Icons.add,
                   color: AppColors.baseBlue,
                   onPressed: () {
-                    // TODO(nav): abrir tela específica desse tópico
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.coachCycleInsightTopicDetail,
+                      arguments: {
+                        'boxId':
+                            '1', // ✅ se você tiver boxId real aqui, substitui
+                        'month': DateTime(
+                          DateTime.now().year,
+                          DateTime.now().month,
+                        ), // ✅ ideal: passar o _month da section
+                        'categoryKey': category.key,
+                        'categoryTitle': category.title,
+                        'topicKey': topic.key,
+                        'topicTitle': topic.title,
+                      },
+                    );
                   },
                 ),
               ],
