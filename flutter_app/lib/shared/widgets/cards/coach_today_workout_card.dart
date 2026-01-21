@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/training.dart'; // DailyWorkoutSummary
 
 /*
@@ -338,7 +339,7 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
           icon: Icons.add,
           label: 'Ver treino',
           onTap: () {
-            // TODO: navegação para ver o treino (detalhe do dia/categoria)
+            Navigator.pushNamed(context, AppRoutes.coachTrainings);
           },
         ),
         const SizedBox(width: 12),
@@ -346,7 +347,7 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
           icon: Icons.bar_chart,
           label: 'Análise do Ciclo',
           onTap: () {
-            // TODO: navegação futura para análise do ciclo
+            Navigator.pushNamed(context, AppRoutes.coachEvolutions);
           },
         ),
       ],
