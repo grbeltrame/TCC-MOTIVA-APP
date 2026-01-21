@@ -1,3 +1,5 @@
+// lib/shared/charts/cycle_stimulus_pie_chart.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
@@ -14,20 +16,9 @@ class CycleStimulusPieCard extends StatelessWidget {
     required this.biggestLabel,
   });
 
-  // Paleta fixa (mantém cores iguais no gráfico e na legenda)
-  List<Color> _palette() => const [
-    AppColors.baseBlue,
-    AppColors.lightBlue,
-    AppColors.baseMagenta,
-    AppColors.lightMagenta,
-    AppColors.darkBlue,
-    AppColors.darkMagenta,
-  ];
-
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
-    final palette = _palette();
 
     return Container(
       padding: EdgeInsets.all(12 * scale),
@@ -37,9 +28,9 @@ class CycleStimulusPieCard extends StatelessWidget {
         border: Border.all(color: AppColors.lightGray),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Topo: gráfico + textos (igual seu layout)
+          // topo: gráfico + textos
           Row(
             children: [
               SizedBox(
@@ -53,10 +44,7 @@ class CycleStimulusPieCard extends StatelessWidget {
                       xValueMapper: (d, _) => d.stimulus,
                       yValueMapper: (d, _) => d.count,
 
-                      // ✅ cores consistentes
-                      pointColorMapper: (d, i) => palette[i! % palette.length],
-
-                      // ✅ remove labels dentro do gráfico (melhora legibilidade)
+                      // ✅ melhor legibilidade: sem labels dentro do gráfico
                       dataLabelSettings: const DataLabelSettings(
                         isVisible: false,
                       ),
@@ -96,66 +84,76 @@ class CycleStimulusPieCard extends StatelessWidget {
             ],
           ),
 
-          // Legenda embaixo
-          if (data.isNotEmpty) ...[
-            SizedBox(height: 12 * scale),
-            _LegendGrid(data: data, palette: palette, scale: scale),
-          ],
+          SizedBox(height: 12 * scale),
+
+          // ✅ legenda em 2 colunas
+          _LegendGrid2Cols(data: data),
         ],
       ),
     );
   }
 }
 
-class _LegendGrid extends StatelessWidget {
+/// Legenda compacta em 2 colunas.
+/// Observação: por enquanto usamos uma paleta fixa (mock).
+class _LegendGrid2Cols extends StatelessWidget {
   final List<CycleStimulusSlice> data;
-  final List<Color> palette;
-  final double scale;
-
-  const _LegendGrid({
-    required this.data,
-    required this.palette,
-    required this.scale,
-  });
+  const _LegendGrid2Cols({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    // 2 colunas como padrão (melhor pra iPhone)
-    // Se tiver muita coisa, ele quebra automaticamente (Wrap).
-    return Wrap(
-      spacing: 14 * scale,
-      runSpacing: 10 * scale,
-      children: List.generate(data.length, (i) {
+    final scale = MediaQuery.of(context).size.width / 375.0;
+
+    final palette = <Color>[
+      AppColors.baseBlue,
+      AppColors.lightMagenta,
+      AppColors.darkBlue,
+      AppColors.baseMagenta,
+      AppColors.mediumGray,
+      AppColors.lightBlue,
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: data.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 8 * scale,
+        crossAxisSpacing: 10 * scale,
+        childAspectRatio: 5.2, // controla a altura do item (mais compacto)
+      ),
+      itemBuilder: (_, i) {
         final d = data[i];
         final color = palette[i % palette.length];
 
-        return SizedBox(
-          width: 155 * scale, // ajustado pra caber 2 por linha
-          child: Row(
-            children: [
-              Container(
-                width: 10 * scale,
-                height: 10 * scale,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        return Row(
+          children: [
+            Container(
+              width: 10 * scale,
+              height: 10 * scale,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(3 * scale),
               ),
-              SizedBox(width: 8 * scale),
-              Expanded(
-                child: Text(
-                  '${d.stimulus} (${d.count})',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: AppFonts.roboto,
-                    fontSize: 12 * scale,
-                    color: AppColors.darkText,
-                    fontWeight: AppFontWeight.medium,
-                  ),
+            ),
+            SizedBox(width: 8 * scale),
+            Expanded(
+              child: Text(
+                '${d.stimulus} (${d.count})',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppFonts.roboto,
+                  fontSize: 12 * scale,
+                  fontWeight: AppFontWeight.bold,
+                  color: AppColors.darkText,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         );
-      }),
+      },
     );
   }
 }

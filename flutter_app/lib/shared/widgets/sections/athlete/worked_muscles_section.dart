@@ -1,4 +1,3 @@
-// lib/shared/widgets/training/worked_muscles_section.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
@@ -24,6 +23,19 @@ class _WorkedMusclesSectionState extends State<WorkedMusclesSection> {
   void initState() {
     super.initState();
     _fut = MusclesService.fetchWorkedMusclesForLastBlock(widget.lastBlock);
+  }
+
+  @override
+  void didUpdateWidget(covariant WorkedMusclesSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // ✅ Se mudou o bloco (dia/tipo), refaz o fetch e reseta o carrossel
+    if (oldWidget.lastBlock.id != widget.lastBlock.id) {
+      setState(() {
+        _index = 0;
+        _fut = MusclesService.fetchWorkedMusclesForLastBlock(widget.lastBlock);
+      });
+    }
   }
 
   void _prev(int len) => setState(
@@ -59,7 +71,6 @@ class _WorkedMusclesSectionState extends State<WorkedMusclesSection> {
           );
         }
 
-        // protege índice ao trocar de dia/treino
         if (_index >= list.length) _index = 0;
         final item = list[_index];
 
@@ -68,7 +79,6 @@ class _WorkedMusclesSectionState extends State<WorkedMusclesSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Título
               Text(
                 'Músculos Trabalhados:',
                 style: TextStyle(
@@ -80,7 +90,6 @@ class _WorkedMusclesSectionState extends State<WorkedMusclesSection> {
               ),
               SizedBox(height: 8 * scale),
 
-              // Controle com setas e nome do músculo
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -114,13 +123,11 @@ class _WorkedMusclesSectionState extends State<WorkedMusclesSection> {
 
               SizedBox(height: 8 * scale),
 
-              // Galeria (1..N imagens) — largura máx. ~390
               LayoutBuilder(
                 builder: (_, constraints) {
                   final maxW = constraints.maxWidth.clamp(0.0, 390.0);
                   final imgs = item.imageAssetPaths;
 
-                  // 2 colunas quando tiver 2+ imagens; 1 coluna se for apenas 1
                   final isTwoCols = imgs.length >= 2;
                   final spacing = 8 * scale;
 
@@ -148,7 +155,6 @@ class _WorkedMusclesSectionState extends State<WorkedMusclesSection> {
 
               SizedBox(height: 12 * scale),
 
-              // Movimento referência
               Text(
                 'Movimento: ${item.movement}',
                 textAlign: TextAlign.center,
@@ -174,7 +180,7 @@ class _ImageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
     return AspectRatio(
-      aspectRatio: 4 / 3, // retangular e mais largo que alto
+      aspectRatio: 4 / 3,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,

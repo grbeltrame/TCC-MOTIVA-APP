@@ -126,3 +126,121 @@ class _DateSelectorState extends State<DateSelector> {
     );
   }
 }
+
+/// ===============================================================
+/// VARIAÇÃO A — CycleAwareDateSelector
+/// - igual ao original, mas quando muda o mês:
+///   chama onMonthChanged(year, month)
+/// ===============================================================
+class CycleAwareDateSelector extends StatefulWidget {
+  final DateTime initialDate;
+  final ValueChanged<DateTime>? onDateChanged;
+
+  /// Dispara quando a navegação atravessa para outro mês/ano.
+  final void Function(int year, int month)? onMonthChanged;
+
+  const CycleAwareDateSelector({
+    Key? key,
+    required this.initialDate,
+    this.onDateChanged,
+    this.onMonthChanged,
+  }) : super(key: key);
+
+  @override
+  State<CycleAwareDateSelector> createState() => _CycleAwareDateSelectorState();
+}
+
+class _CycleAwareDateSelectorState extends State<CycleAwareDateSelector> {
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = widget.initialDate;
+  }
+
+  void _changeDate(int offsetDays) {
+    final prevMonth = _selectedDate.month;
+    final prevYear = _selectedDate.year;
+
+    final next = _selectedDate.add(Duration(days: offsetDays));
+
+    setState(() => _selectedDate = next);
+
+    // Sempre notifica data
+    widget.onDateChanged?.call(_selectedDate);
+
+    // Se atravessou o mês/ano, notifica o pai
+    if (next.month != prevMonth || next.year != prevYear) {
+      widget.onMonthChanged?.call(next.year, next.month);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 375.0;
+    final dayLabel = DateFormat('dd/MM/yyyy').format(_selectedDate);
+    final rawWeekday = DateFormat.EEEE('pt_BR').format(_selectedDate);
+    final weekday = toBeginningOfSentenceCase(rawWeekday) ?? rawWeekday;
+
+    return Center(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 8 * scale,
+          vertical: 4 * scale,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.lightGray,
+          border: Border.all(color: Colors.black),
+          borderRadius: BorderRadius.circular(50 * scale),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints.tightFor(
+                width: 24 * scale,
+                height: 24 * scale,
+              ),
+              icon: Icon(Icons.navigate_before, size: 24 * scale),
+              onPressed: () => _changeDate(-1),
+            ),
+            SizedBox(width: 8 * scale),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  dayLabel,
+                  style: TextStyle(
+                    fontSize: 10 * scale,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.mediumGray,
+                  ),
+                ),
+                Text(
+                  weekday,
+                  style: TextStyle(
+                    fontSize: 14 * scale,
+                    color: AppColors.darkText,
+                    fontWeight: AppFontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(width: 8 * scale),
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: BoxConstraints.tightFor(
+                width: 24 * scale,
+                height: 24 * scale,
+              ),
+              icon: Icon(Icons.navigate_next, size: 24 * scale),
+              onPressed: () => _changeDate(1),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

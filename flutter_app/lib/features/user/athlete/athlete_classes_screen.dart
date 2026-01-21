@@ -71,7 +71,8 @@ class _ClassesOfDayScreenState extends State<ClassesOfDayScreen> {
     final dateFmt = DateFormat('EEEE, d/MM', 'pt_BR');
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+      appBar: const TopNavbar(),
+
       bottomNavigationBar: const BottomNavBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -174,7 +174,7 @@ class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: () {}),
+      appBar: const TopNavbar(),
       body: SafeArea(
         child: FutureBuilder<CoachProfileEditable>(
           future: _future,

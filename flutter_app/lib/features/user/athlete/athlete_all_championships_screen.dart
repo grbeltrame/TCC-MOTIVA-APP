@@ -76,7 +76,8 @@ class _AllChampionshipsScreenState extends State<AllChampionshipsScreen> {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+      appBar: const TopNavbar(),
+
       bottomNavigationBar: const BottomNavBar(),
       body: DefaultTabController(
         length: 2,

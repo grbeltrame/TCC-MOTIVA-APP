@@ -1,3 +1,5 @@
+// lib/features/user/coach/coach_cycle_detail_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/mini_card_service.dart';
 import 'package:flutter_app/core/services/workout/cycle_service.dart';
@@ -87,7 +89,6 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
   }
 
   String _formatUpdatedAt(DateTime d) {
-    // Ex: 09/05/2025 às 8h42
     final date = DateFormat('dd/MM/yyyy', 'pt_BR').format(d);
     final hour = DateFormat('H', 'pt_BR').format(d);
     final minute = DateFormat('mm', 'pt_BR').format(d);
@@ -95,16 +96,10 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
   }
 
   void _goToInsights() {
-    // Insights screen espera DateTime? em args['month'].
-    // Passamos year+month via DateTime.
     Navigator.pushNamed(
       context,
       AppRoutes.coachTrainingInsights,
-      arguments: {
-        'month': DateTime(_year, _month, 1),
-        // boxId é opcional na tela atual. Mantive compat, mas pode remover se quiser.
-        'boxId': _boxId,
-      },
+      arguments: {'month': DateTime(_year, _month, 1), 'boxId': _boxId},
     );
   }
 
@@ -126,241 +121,219 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: _openRegisterBoxSheet),
+      appBar: const TopNavbar(),
       bottomNavigationBar: const BottomNavBar(),
-      body: Padding(
+
+      // ✅ Agora o back button NÃO é sticky: ele rola junto e some quando desce.
+      body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
           horizontal: 12 * scale,
           vertical: 8 * scale,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const AppBackButton(),
+        child: FutureBuilder<CycleDetailBundle>(
+          future: _bundleFut,
+          builder: (ctx, snap) {
+            if (!snap.hasData) {
+              return SizedBox(
+                height: 240 * scale,
+                child: const Center(child: CircularProgressIndicator()),
+              );
+            }
 
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 12 * scale,
-                  vertical: 8 * scale,
+            final bundle = snap.data!;
+            final overview = bundle.overview;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // back (rola junto)
+                const AppBackButton(),
+                SizedBox(height: 10 * scale),
+
+                Text(
+                  'Esse é o seu ciclo:',
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontSize: 14 * scale,
+                    color: AppColors.darkText,
+                    fontWeight: AppFontWeight.regular,
+                  ),
                 ),
-                child: FutureBuilder<CycleDetailBundle>(
-                  future: _bundleFut,
-                  builder: (ctx, snap) {
-                    if (!snap.hasData) {
-                      return SizedBox(
-                        height: 240 * scale,
-                        child: const Center(child: CircularProgressIndicator()),
-                      );
-                    }
+                Text(
+                  _titleMonth(),
+                  style: TextStyle(
+                    fontFamily: AppFonts.montserrat,
+                    fontSize: 22 * scale,
+                    fontWeight: AppFontWeight.bold,
+                    color: AppColors.darkText,
+                  ),
+                ),
 
-                    final bundle = snap.data!;
-                    final overview = bundle.overview;
+                SizedBox(height: 10 * scale),
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Esse é o seu ciclo:',
-                          style: TextStyle(
-                            fontFamily: AppFonts.roboto,
-                            fontSize: 14 * scale,
-                            color: AppColors.darkText,
-                            fontWeight: AppFontWeight.regular,
-                          ),
+                // Última atualização
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 16 * scale,
+                      color: AppColors.baseBlue,
+                    ),
+                    SizedBox(width: 6 * scale),
+                    Expanded(
+                      child: Text(
+                        'Última atualização: ${_formatUpdatedAt(overview.updatedAt)}',
+                        style: TextStyle(
+                          fontFamily: AppFonts.roboto,
+                          fontSize: 12 * scale,
+                          fontWeight: AppFontWeight.bold,
+                          color: AppColors.darkText,
                         ),
-                        Text(
-                          _titleMonth(),
-                          style: TextStyle(
-                            fontFamily: AppFonts.montserrat,
-                            fontSize: 22 * scale,
-                            fontWeight: AppFontWeight.bold,
-                            color: AppColors.darkText,
-                          ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4 * scale),
+                Text(
+                  'Análise gerada com base nos seus últimos 30 dias de treino.',
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontSize: 11 * scale,
+                    color: AppColors.mediumGray,
+                    fontWeight: AppFontWeight.regular,
+                  ),
+                ),
+
+                SizedBox(height: 10 * scale),
+
+                // Mini cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: MiniCardWidget(
+                        iconWidget: SvgPicture.asset(
+                          'assets/icons/exercise.svg',
+                          width: 16,
+                          height: 16,
+                          color: AppColors.darkText,
                         ),
+                        title: 'Treinos',
+                        valueFontSize: 12,
+                        tipo: CardInfoType.cycleTrainings,
+                        backgroundColor: AppColors.baseBlue,
+                        borderColor: AppColors.baseBlue,
+                        iconColor: AppColors.darkText,
+                        titleFontSize: 13,
+                      ),
+                    ),
+                    SizedBox(width: 8 * scale),
+                    Expanded(
+                      child: MiniCardWidget(
+                        iconWidget: const Icon(Icons.edit_outlined),
+                        title: 'Registros',
+                        valueFontSize: 12,
+                        tipo: CardInfoType.cycleRegistros,
+                        backgroundColor: AppColors.baseBlue,
+                        borderColor: AppColors.baseBlue,
+                        iconColor: AppColors.darkText,
+                        titleFontSize: 13,
+                      ),
+                    ),
+                    SizedBox(width: 8 * scale),
+                    Expanded(
+                      child: MiniCardWidget(
+                        iconWidget: const Icon(Icons.people_outline),
+                        title: 'Alunos Ativos',
+                        valueFontSize: 12,
+                        tipo: CardInfoType.cycleActiveStudents,
+                        backgroundColor: AppColors.baseBlue,
+                        borderColor: AppColors.baseBlue,
+                        iconColor: AppColors.darkText,
+                        titleFontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
 
-                        SizedBox(height: 10 * scale),
+                SizedBox(height: 18 * scale),
 
-                        // Última atualização
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 16 * scale,
+                Text(
+                  'Treinos',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                SizedBox(height: 10 * scale),
+
+                ...bundle.trainingTypes.map((t) {
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 10 * scale),
+                    child: CycleTrainingTypeCard(
+                      label: t.typeLabel,
+                      count: t.count,
+                      onTap:
+                          () => _openTrainingTypeDetail(t.typeKey, t.typeLabel),
+                    ),
+                  );
+                }),
+
+                SizedBox(height: 14 * scale),
+
+                // Alertas do Ciclo
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Alertas do Ciclo',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: _goToInsights,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.add,
+                            size: 18 * scale,
+                            color: AppColors.baseBlue,
+                          ),
+                          SizedBox(width: 4 * scale),
+                          Text(
+                            'Ver todos Insights',
+                            style: TextStyle(
+                              fontFamily: AppFonts.roboto,
+                              fontSize: 12 * scale,
+                              fontWeight: AppFontWeight.bold,
                               color: AppColors.baseBlue,
                             ),
-                            SizedBox(width: 6 * scale),
-                            Text(
-                              'Última atualização: ${_formatUpdatedAt(overview.updatedAt)}',
-                              style: TextStyle(
-                                fontFamily: AppFonts.roboto,
-                                fontSize: 12 * scale,
-                                fontWeight: AppFontWeight.bold,
-                                color: AppColors.darkText,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 4 * scale),
-                        Text(
-                          'Análise gerada com base nos seus últimos 30 dias de treino.',
-                          style: TextStyle(
-                            fontFamily: AppFonts.roboto,
-                            fontSize: 11 * scale,
-                            color: AppColors.mediumGray,
-                            fontWeight: AppFontWeight.regular,
                           ),
-                        ),
-
-                        SizedBox(height: 10 * scale),
-
-                        // Mini cards (reutilizando estilo do MiniCardWidget)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: MiniCardWidget(
-                                iconWidget: SvgPicture.asset(
-                                  'assets/icons/exercise.svg',
-                                  width: 16,
-                                  height: 16,
-                                  color:
-                                      AppColors
-                                          .darkText, // se você quiser aplicar color
-                                ),
-                                title: 'Treinos',
-                                valueFontSize: 12,
-                                tipo: CardInfoType.cycleTrainings,
-                                backgroundColor: AppColors.baseBlue,
-                                borderColor: AppColors.baseBlue,
-                                iconColor: AppColors.darkText,
-                                titleFontSize: 13, // ajuda a caber
-                              ),
-                            ),
-                            SizedBox(width: 8 * scale),
-                            Expanded(
-                              child: MiniCardWidget(
-                                iconWidget: Icon(Icons.edit_outlined),
-                                title: 'Registros',
-                                valueFontSize: 12,
-                                tipo: CardInfoType.cycleRegistros,
-                                backgroundColor: AppColors.baseBlue,
-                                borderColor: AppColors.baseBlue,
-                                iconColor: AppColors.darkText,
-                                titleFontSize: 13,
-                              ),
-                            ),
-                            SizedBox(width: 8 * scale),
-                            Expanded(
-                              child: MiniCardWidget(
-                                iconWidget: Icon(Icons.people_outline),
-                                title: 'Alunos Ativos',
-                                valueFontSize: 12,
-                                tipo: CardInfoType.cycleActiveStudents,
-                                backgroundColor: AppColors.baseBlue,
-                                borderColor: AppColors.baseBlue,
-                                iconColor: AppColors.darkText,
-                                titleFontSize:
-                                    12, // título maior, reduz um pouco
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // NOTA:
-                        // O MiniCardWidget puxa valor via service interno (MiniCardService).
-                        // Para bater com a referência, o backend vai só devolver:
-                        // - "42 cadastros", "221 registros", "81% dos alunos".
-                        // Enquanto isso, a UI fica pronta e o TODO(back) fica no service.
-                        SizedBox(height: 18 * scale),
-
-                        Text(
-                          'Treinos',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        SizedBox(height: 10 * scale),
-
-                        ...bundle.trainingTypes
-                        // Se você quiser esconder o Fitness Run quando count=0:
-                        // .where((t) => t.count > 0)
-                        .map((t) {
-                          return Padding(
-                            padding: EdgeInsets.only(bottom: 10 * scale),
-                            child: CycleTrainingTypeCard(
-                              label: t.typeLabel,
-                              count: t.count,
-                              onTap:
-                                  () => _openTrainingTypeDetail(
-                                    t.typeKey,
-                                    t.typeLabel,
-                                  ),
-                            ),
-                          );
-                        }),
-
-                        SizedBox(height: 14 * scale),
-
-                        // Alertas do Ciclo (título + ação)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Alertas do Ciclo',
-                                style:
-                                    Theme.of(context).textTheme.headlineSmall,
-                              ),
-                            ),
-                            InkWell(
-                              onTap: _goToInsights,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.add,
-                                    size: 18 * scale,
-                                    color: AppColors.baseBlue,
-                                  ),
-                                  SizedBox(width: 4 * scale),
-                                  Text(
-                                    'Ver todos Insights',
-                                    style: TextStyle(
-                                      fontFamily: AppFonts.roboto,
-                                      fontSize: 12 * scale,
-                                      fontWeight: AppFontWeight.bold,
-                                      color: AppColors.baseBlue,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 10 * scale),
-
-                        AlertsCarousel(
-                          allAlerts: bundle.alerts,
-                          enabledTypes: const {'cycle'},
-                        ),
-
-                        SizedBox(height: 16 * scale),
-
-                        Text(
-                          'Distribuição de Estímulos',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        SizedBox(height: 10 * scale),
-
-                        CycleStimulusPieCard(
-                          data: bundle.stimulus,
-                          biggestLabel: bundle.biggestStimulusLabel,
-                        ),
-
-                        SizedBox(height: 30 * scale),
-                      ],
-                    );
-                  },
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-          ],
+                SizedBox(height: 10 * scale),
+
+                AlertsCarousel(
+                  allAlerts: bundle.alerts,
+                  enabledTypes: const {'cycle'},
+                ),
+
+                SizedBox(height: 16 * scale),
+
+                Text(
+                  'Distribuição de Estímulos',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                SizedBox(height: 10 * scale),
+
+                CycleStimulusPieCard(
+                  data: bundle.stimulus,
+                  biggestLabel: bundle.biggestStimulusLabel,
+                ),
+
+                SizedBox(height: 30 * scale),
+              ],
+            );
+          },
         ),
       ),
     );

@@ -89,6 +89,9 @@ class TrainingService {
   /// Busca TODOS os blocos do treino do dia/box/categoria.
   /// Ex.: Warm Up, Extra Training, Skill, RX Work, WOD …
   /// TODO(back): substituir por chamada real ao backend.
+  /// Busca TODOS os blocos do treino do dia/box/categoria.
+  /// Ex.: Warm Up, Extra Training, Skill, RX Work, WOD …
+  /// TODO(back): substituir por chamada real ao backend.
   static Future<List<TrainingBlock>> fetchFullTrainingBlocks({
     required String boxId,
     required DateTime date,
@@ -96,9 +99,16 @@ class TrainingService {
   }) async {
     await Future.delayed(const Duration(milliseconds: 300)); // simula latência
     final dayKey = '${date.year}-${date.month}-${date.day}';
-    final catKey = category.toLowerCase();
+    final formattedDate = DateFormat('dd/MM/yyyy').format(date);
 
-    if (catKey == 'wod') {
+    String norm(String s) => s.toLowerCase().trim();
+
+    final cat = norm(category);
+
+    // =========================
+    // WOD (já estava certo)
+    // =========================
+    if (cat == 'wod') {
       return [
         TrainingBlock(
           id: 'tb-$dayKey-wod-warmup',
@@ -137,7 +147,7 @@ class TrainingService {
           subtitle: '',
           items: const ['Load to Wod'],
         ),
-        // << PRINCIPAL: mesmo ID e mesmo treino do card
+        // PRINCIPAL: mesmo ID do card
         TrainingBlock(
           id: 'tb-$dayKey-wod-fran',
           title: 'WOD - Fran',
@@ -147,19 +157,70 @@ class TrainingService {
       ];
     }
 
-    // Outros tipos — mocks simples com IDs estáveis
+    // =========================
+    // LPO / Ginastica / Endurance
+    // ✅ Agora também têm "bloco principal" com o MESMO ID do card resumo
+    // =========================
+    String mainId;
+    String mainTitle;
+    String mainSubtitle;
+    List<String> mainItems;
+
+    if (cat == 'lpo') {
+      // mesmo ID do resumo em fetchTrainingBlocksByCategoryForDate
+      mainId = 'tb-$dayKey-lpo-snatch-tech';
+      mainTitle = 'Olympic Lifts';
+      mainSubtitle = '$formattedDate – Técnica e força';
+      mainItems = const [
+        '5×2 Snatch @ técnica',
+        '5×3 Clean & Jerk @ 70%',
+        '3×1 Snatch Balance',
+      ];
+    } else if (cat == 'ginastica' || cat == 'ginástica') {
+      mainId = 'tb-$dayKey-gym-pullups';
+      mainTitle = 'Ginástica';
+      mainSubtitle = '$formattedDate – Habilidades corporais';
+      mainItems = const [
+        '5×5 Pull-ups estritos',
+        '4×4 Handstand Push-ups',
+        '3×10 Toes-to-Bar',
+      ];
+    } else if (cat == 'endurance') {
+      mainId = 'tb-$dayKey-endu-cardio';
+      mainTitle = 'Endurance';
+      mainSubtitle = '$formattedDate – Cardio intenso';
+      mainItems = const [
+        '10 min AMRAP de Double-Unders',
+        '5 min Remo',
+        '800m Corrida leve',
+      ];
+    } else {
+      // fallback seguro
+      mainId = 'tb-$dayKey-$cat-main';
+      mainTitle = category;
+      mainSubtitle = '$formattedDate – Treino do dia';
+      mainItems = const ['Bloco principal'];
+    }
+
+    // Lista completa: warmup + acessório + principal (com ID estável)
     return [
       TrainingBlock(
-        id: 'tb-$dayKey-$catKey-tech',
-        title: '$category – Técnica',
-        subtitle: '10 min',
-        items: const ['Bloco técnico 1', 'Bloco técnico 2'],
+        id: 'tb-$dayKey-$cat-warmup',
+        title: '$category – Aquecimento',
+        subtitle: '8 min',
+        items: const ['Mobilidade', 'Ativação', 'Técnica leve'],
       ),
       TrainingBlock(
-        id: 'tb-$dayKey-$catKey-strength',
-        title: '$category – Força',
+        id: 'tb-$dayKey-$cat-accessory',
+        title: '$category – Acessório',
         subtitle: '10 min',
-        items: const ['Série principal', 'Série complementar'],
+        items: const ['Bloco complementar 1', 'Bloco complementar 2'],
+      ),
+      TrainingBlock(
+        id: mainId, // ✅ agora bate com o card-resumo
+        title: mainTitle,
+        subtitle: mainSubtitle,
+        items: mainItems,
       ),
     ];
   }
