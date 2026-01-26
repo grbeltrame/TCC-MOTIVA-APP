@@ -2,14 +2,19 @@
 class Training {
   final String id;
   final String title;
-  final String description;
+  final String? description; // Alterado para aceitar nulo (opcional)
   final DateTime date;
+
+  // NOVO CAMPO: Guarda a estrutura do JSON (WOD, Skill, LPO, etc)
+  final Map<String, dynamic> partes;
 
   Training({
     required this.id,
     required this.title,
-    required this.description,
+    this.description, // Agora é opcional
     required this.date,
+    this.partes =
+        const {}, // Valor padrão vazio para não quebrar códigos antigos
   });
 }
 

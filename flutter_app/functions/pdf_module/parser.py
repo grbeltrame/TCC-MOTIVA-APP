@@ -10,17 +10,32 @@ from datetime import datetime
 from firebase_admin import firestore
 from google.cloud import storage
 
-# Constantes globais (vindas do seu notebook)
+# Constantes globais
 HEADERS = ["WARM UP", "EXTRA TRAINING", "SKILL", "WOD"]
 
+# --- NOVO: Mapa de meses para conversão ---
+MAPA_MESES = {
+    "JANEIRO": 1, "JAN": 1,
+    "FEVEREIRO": 2, "FEV": 2,
+    "MARCO": 3, "MARÇO": 3, "MAR": 3,
+    "ABRIL": 4, "ABR": 4,
+    "MAIO": 5, "MAI": 5,
+    "JUNHO": 6, "JUN": 6,
+    "JULHO": 7, "JUL": 7,
+    "AGOSTO": 8, "AGO": 8,
+    "SETEMBRO": 9, "SET": 9,
+    "OUTUBRO": 10, "OUT": 10,
+    "NOVEMBRO": 11, "NOV": 11,
+    "DEZEMBRO": 12, "DEZ": 12
+}
+
 # ==============================================================================
-# SEÇÃO 1: FUNÇÕES AUXILIARES (Lógica pura do seu Notebook)
+# SEÇÃO 1: FUNÇÕES AUXILIARES
 # ==============================================================================
 
 def extract_text_from_pdf(pdf_bytes, use_blocks=False):
     """Lê o PDF direto da memória (bytes) e extrai texto."""
     text = ""
-    # Abre o PDF usando o stream de bytes, sem salvar arquivo físico
     with fitz.open(stream=pdf_bytes, filetype="pdf") as doc:
         if use_blocks:
             pages_text = []
@@ -56,7 +71,7 @@ def parse_data_e_dia(text):
     txt = unicodedata.normalize("NFKD", text).upper()
     txt_ascii = re.sub(r'[^\x00-\x7F]', '', txt)
     
-    # Tenta achar dia mês e feira
+    # Tenta achar dia mês e feira (Ex: 02 DEZEMBRO | SEGUNDA FEIRA)
     m = re.search(r'(\b\d{1,2}\s+[A-ZÇÀ-Ý]+)\s*\|\s*([A-ZÇÀ-Ý\s-]*FEIRA)\b', txt_ascii, re.IGNORECASE)
     if m:
         return m.group(1).strip(), m.group(2).strip()
@@ -66,6 +81,46 @@ def parse_data_e_dia(text):
     if m2:
         return None, m2.group(0).strip().upper()
     return None, None
+
+# --- NOVA FUNÇÃO: Converte "02 DEZEMBRO" para "2026-12-02" ---
+def converter_data_para_iso(data_texto):
+    """
+    Recebe algo como '02 DEZEMBRO' ou '2 DEZEMBRO' e retorna 'YYYY-MM-DD'.
+    Usa o ano atual do servidor.
+    """
+    if not data_texto:
+        return None
+    
+    try:
+        # Normaliza para garantir que não tenha caracteres estranhos e coloca em Maiúsculo
+        texto_limpo = unicodedata.normalize("NFKD", data_texto).encode('ASCII', 'ignore').decode('utf-8').upper()
+        
+        # Regex para separar dia e mês
+        # Pega 1 ou 2 digitos (dia) e o resto como texto (mês)
+        match = re.search(r'(\d{1,2})\s+([A-Z]+)', texto_limpo)
+        if not match:
+            return None
+
+        dia = int(match.group(1))
+        nome_mes = match.group(2) # ex: DEZEMBRO
+
+        # Busca o número do mês no mapa
+        numero_mes = MAPA_MESES.get(nome_mes)
+        
+        if not numero_mes:
+            logging.warning(f"Mês não reconhecido na conversão: {nome_mes}")
+            return None
+
+        # Pega o ano atual
+        ano_atual = datetime.now().year
+
+        # Cria o objeto date e formata para string ISO
+        data_obj = datetime(ano_atual, numero_mes, dia)
+        return data_obj.strftime("%Y-%m-%d") # Retorna ex: "2026-12-02"
+
+    except Exception as e:
+        logging.error(f"Erro ao converter data ISO: {e}")
+        return None
 
 def parse_materiais(text):
     if not text:
@@ -96,13 +151,11 @@ def extract_observacoes_from_block(block_text):
     lines = [ln.rstrip() for ln in tail.splitlines()]
     collected = []
     max_lines = 40; i = 0
-    # Pula linhas vazias ou pontilhadas iniciais
     while i < len(lines) and i < max_lines and (not lines[i].strip() or re.fullmatch(r'[-\s·•\*]+', lines[i].strip())): i += 1
     
     while i < len(lines) and len(collected) < max_lines:
         ln = lines[i].strip()
-        if not ln: break # Linha vazia encerra obs
-        # Se encontrar um header ou 'Material:', para
+        if not ln: break 
         if re.match(r'^\s*(?:MATERIAL(?:S)?\s*:|\b(?:' + "|".join([re.escape(h) for h in HEADERS]) + r')\b)', ln, re.IGNORECASE): break
         if re.fullmatch(r'[-\s·•\*]+', ln): 
             i += 1; continue
@@ -112,13 +165,11 @@ def extract_observacoes_from_block(block_text):
 
 def detect_tipo_duracao_from_line(line):
     dur = None; t = None
-    # Detecta duração (ex: 12')
     dur_match = re.search(r"\(\d{1,3}\s*['’]?\)|\b\d{1,3}\s*(?:min|m)\b", line, re.IGNORECASE)
     if dur_match: 
         nums = re.findall(r'\d+', dur_match.group(0))
         if nums: dur = int(nums[0])
         
-    # Detecta tipo (AMRAP, EMOM, etc)
     tipo_match = re.search(r"(\d+\s+ROUNDS?\s+FOR\s+TIME|\d+\s+ROUNDS?|\bAMRAP\b|\bFOR TIME\b|\bEMOM\b|\bROUNDS\b)", line, re.IGNORECASE)
     if tipo_match: t = tipo_match.group(0).strip().upper()
     return t, dur
@@ -126,14 +177,12 @@ def detect_tipo_duracao_from_line(line):
 def parse_partes_do_treino(text, full_text_for_fallback=None):
     partes = {}
     if not text:
-        # Retorna estrutura vazia
         for h in HEADERS: partes[h] = {"nomeWod": None, "tipo": h, "duracaoMinutos": None, "exercicios": [], "observacoes": None}
         return partes
 
     headers_pattern = "|".join([re.escape(h) for h in HEADERS])
     
     for header in HEADERS:
-        # Regex para pegar o bloco entre headers
         pattern = rf"(?i){re.escape(header)}(.*?)(?=(?:{headers_pattern})|$)"
         m = re.search(pattern, text, re.DOTALL)
         
@@ -144,7 +193,6 @@ def parse_partes_do_treino(text, full_text_for_fallback=None):
         bloco = m.group(1).strip()
         lines = [ln.strip() for ln in bloco.splitlines() if ln.strip()]
         
-        # --- Lógica de Nome, Tipo e Duração (Simplificada do seu notebook) ---
         nome = None; tipo = None; duracao = None
         if lines:
             header_line = lines[0]
@@ -152,23 +200,17 @@ def parse_partes_do_treino(text, full_text_for_fallback=None):
             
             if '-' in header_line:
                 left, right = [p.strip() for p in header_line.split('-', 1)]
-                # Se o lado direito tem palavras chave, o nome provavelmente é o esquerdo
                 if any(k in right.upper() for k in ("AMRAP", "FOR TIME", "EMOM", "ROUNDS")): nome = left or None
                 else: nome = right or (left or None)
             elif not tipo:
                 nome = header_line
 
-        # --- Extração de Exercícios ---
         exercicios = []
-        # Começa a procurar exercícios depois do cabeçalho
         start_idx = 1 if len(lines) > 0 else 0
-        
         for ln in lines[start_idx:]:
-            # Ignora linhas de Obs, Material ou Cabeçalhos repetidos
             if re.match(r'\bOBSERVA(?:C|Ç)AO\b\s*:', ln, re.IGNORECASE) or re.match(r'\bMATERIAL(?:S)?\b\s*:', ln, re.IGNORECASE): continue
             if re.match(r'^\s*(?:\d+\s+ROUNDS?\b|AMRAP\b|FOR TIME\b|EMOM\b|ROUNDS\b)', ln, re.IGNORECASE): continue
             
-            # Heurísticas para aceitar como exercício
             if (re.match(r'^\d{1,3}\b.*', ln) or 
                 re.search(r'[A-Za-z]+\s*\(.*\d', ln) or 
                 re.search(r'\b(KG|Kg|kg|REPS|reps|REP|m\b|metros)\b', ln, re.IGNORECASE)):
@@ -194,59 +236,54 @@ def run_pdf_parser_logic(event):
     """
     Função chamada pelo main.py quando um arquivo sobe no Storage.
     """
-    # 1. Validação inicial
     if event.data.content_type != "application/pdf":
         logging.info(f"Arquivo ignorado (não é PDF): {event.data.name}")
         return
     
-    # --- MUDANÇA: Inicialize os clientes AQUI DENTRO ---
     firestore_client = firestore.client()
     storage_client = storage.Client()
-    # ---------------------------------------------------
     
     bucket_name = event.data.bucket
     file_path = event.data.name
     logging.info(f"Processando PDF: {file_path}")
 
     try:
-        # 2. Download do PDF para memória
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(file_path)
         pdf_bytes = blob.download_as_bytes()
 
-        # 3. Pega metadados enviados pelo App Flutter
-        # Se não vier nada, usa dicionário vazio
         metadata = event.data.metadata or {}
         box_id = metadata.get('boxId', 'BOX_PRINCIPAL')
         user_id = metadata.get('userId', 'ADMIN')
 
-        # 4. Executa o Parsing (Funções acima)
         raw_text = extract_text_from_pdf(pdf_bytes)
         normalized_text = normalize_text_for_regex(raw_text)
         
+        # 1. Extrai a data string (ex: "02 DEZEMBRO")
         data_str, dia_semana = parse_data_e_dia(normalized_text)
+        
+        # 2. NOVA LINHA: Converte para ISO (ex: "2026-12-02")
+        data_iso = converter_data_para_iso(data_str)
+
         partes_treino = parse_partes_do_treino(normalized_text, full_text_for_fallback=normalized_text)
         materiais = parse_materiais(normalized_text)
 
-        # 5. Monta o JSON Final
         treino_json = {
             "arquivoFonte": file_path,
             "uploadedBy": user_id,
             "boxId": box_id,
-            "criadoEm": firestore.SERVER_TIMESTAMP, # Data do servidor
-            "dataDoTreinoTexto": data_str,          # Data extraída do texto (pode ser null)
+            "criadoEm": firestore.SERVER_TIMESTAMP,
+            "dataDoTreinoTexto": data_str,          
+            "dataTreinoIso": data_iso, # <--- NOVO CAMPO IMPORTANTE
             "diaDaSemana": dia_semana,
             "materiais": materiais,
             "partes": partes_treino,
             "status": "processado"
         }
 
-        # 6. Salva no Firestore
-        # Coleção 'exercises' -> cria documento automático
         doc_ref = firestore_client.collection("exercises").add(treino_json)
         
-        logging.info(f"Treino salvo com sucesso no Firestore. ID: {doc_ref[1].id}")
+        logging.info(f"Treino salvo com sucesso no Firestore. ID: {doc_ref[1].id} | Data ISO: {data_iso}")
 
     except Exception as e:
         logging.error(f"Erro fatal ao processar {file_path}: {e}")
-        # Opcional: Gravar erro no banco para o usuário saber

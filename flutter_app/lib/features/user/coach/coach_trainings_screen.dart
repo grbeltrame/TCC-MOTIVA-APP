@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_overview_section.dart';
-import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_summary_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_trainings_section.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_trainings_actions_section.dart';
+import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/shared/widgets/utils/date_selector.dart'; // Importante para o seletor funcionar
 
 class CoachTrainingScreen extends StatefulWidget {
   static const routeName = '/coach_training';
@@ -16,9 +16,18 @@ class CoachTrainingScreen extends StatefulWidget {
 }
 
 class _CoachTrainingScreenState extends State<CoachTrainingScreen> {
+  // Estado local para a data selecionada
+  DateTime _selectedDate = DateTime.now();
+
   void _openRegisterBoxSheet(BuildContext context) {
     showAppBottomSheet(context, const Placeholder());
-    // TODO: trocar Placeholder pelo bottom sheet real quando existir
+  }
+
+  // Função chamada quando trocamos a data no DateSelector
+  void _onDateChanged(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+    });
   }
 
   @override
@@ -36,22 +45,27 @@ class _CoachTrainingScreenState extends State<CoachTrainingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Botoes inicais
+            // Botões de Ação
             const CoachTrainingActionsSection(),
 
-            // Resumo dos treinos do dia
             const SizedBox(height: 16),
-            const CoachDailyTrainingsSection(boxId: '1'),
 
-            // TODO: passe o boxId real do coach
-            // const SizedBox(height: 16),
-            // CoachDailySummarySection(date: DateTime.now()),
-            const SizedBox(height: 16),
-            CoachDailyOverviewSection(
-              date:
-                  DateTime.now(), // ou a data selecionada pelo seu DateSelector
-              boxId: '1', // TODO: passar o boxId real selecionado
+            // Seletor de Data (Controla o que aparece embaixo)
+            DateSelector(
+              initialDate: _selectedDate,
+              onDateChanged: _onDateChanged,
             ),
+
+            const SizedBox(height: 16),
+
+            // SEÇÃO DE TREINOS DO DIA
+            // Passamos a data selecionada para que ele busque WOD, LPO, etc daquele dia
+            CoachDailyTrainingsSection(boxId: '1', date: _selectedDate),
+
+            const SizedBox(height: 16),
+
+            // Visão Geral do Coach
+            CoachDailyOverviewSection(date: _selectedDate, boxId: '1'),
           ],
         ),
       ),
