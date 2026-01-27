@@ -33,7 +33,8 @@ class _CoachTrainingInsightsScreenState
     final String boxId = (args?['boxId'] as String?) ?? '1';
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+      appBar: const TopNavbar(),
+
       bottomNavigationBar: const BottomNavBar(),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(

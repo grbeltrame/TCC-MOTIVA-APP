@@ -55,7 +55,8 @@ class _AthletePrListScreenState extends State<AthletePrListScreen>
     return DefaultTabController(
       length: 4,
       child: Scaffold(
-        appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+        appBar: const TopNavbar(),
+
         bottomNavigationBar: const BottomNavBar(),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

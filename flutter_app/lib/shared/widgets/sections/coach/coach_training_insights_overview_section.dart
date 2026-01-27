@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/users/coach/daily_insights_service.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/carousels/adaptative_insights_carousel.dart';
 import 'package:flutter_app/shared/widgets/utils/date_selector.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
@@ -82,7 +83,20 @@ class _CoachTrainingInsightsOverviewSectionState
                 fontSize: 10 * scale,
                 color: AppColors.baseBlue,
                 onPressed: () {
-                  // TODO: navegação futura para insights do ciclo
+                  // 🔹 Navega para a tela de insights de ciclo
+                  //     já com o MÊS ATUAL selecionado.
+                  final now = DateTime.now();
+                  final currentMonth = DateTime(now.year, now.month);
+
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.coachTrainingInsights,
+                    arguments: {
+                      'month': currentMonth,
+                      // se quiser depois passar boxId aqui, é só incluir:
+                      // 'boxId': '1',
+                    },
+                  );
                 },
               ),
             ],
@@ -186,7 +200,10 @@ class _CoachTrainingInsightsOverviewSectionState
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            // TODO: implementar ação "Todos os WODs"
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.coachTrainings,
+                            );
                           },
                           icon: Icon(Icons.list_alt_outlined, size: 16 * scale),
                           label: const Text('Todos os WODs'),
@@ -208,7 +225,10 @@ class _CoachTrainingInsightsOverviewSectionState
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            // TODO: implementar ação "Análise por treino"
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.coachEvolutions,
+                            );
                           },
                           icon: Icon(
                             Icons.analytics_outlined,

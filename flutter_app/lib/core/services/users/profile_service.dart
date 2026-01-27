@@ -9,7 +9,7 @@ import 'package:flutter_app/shared/models/coach_profile.dart';
 class ProfileService {
   // MOCK: dados estáticos até termos API
   final List<String> _roles = ['student', 'coach'];
-  String get currentRoleLabel => 'Aluno'; // ou 'Coach'
+  String get currentRoleLabel => 'Coach'; // ou 'Coach'
   List<String> get coachBoxNames => []; // boxes cadastrados
   String? get currentBoxName => null;
   int get unreadCount => 5;

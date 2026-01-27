@@ -123,7 +123,8 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: _openRegisterBoxSheet),
+      appBar: const TopNavbar(),
+
       bottomNavigationBar: const BottomNavBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

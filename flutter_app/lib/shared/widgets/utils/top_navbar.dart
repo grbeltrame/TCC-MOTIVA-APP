@@ -2,15 +2,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/services/users/profile_service.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 
+// ✅ bottom sheet de cadastrar treino
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart';
+
 /// TopNavbar genérico: ele mesmo consulta o ProfileService e se atualiza.
-/// Use em qualquer Scaffold: appBar: TopNavbar(onRegisterBox: ..., [showSystemBack:false])
+/// Use em qualquer Scaffold:
+/// appBar: TopNavbar(onRegisterBox: ..., [showSystemBack:false])
+///
+/// OBS: onRegisterBox foi mantido apenas por compatibilidade (não é mais usado).
 class TopNavbar extends StatefulWidget implements PreferredSizeWidget {
-  /// Chamado quando o usuário clica em “Cadastrar box”
-  final VoidCallback onRegisterBox;
+  /// ⚠️ Mantido por compatibilidade com telas antigas (não é mais usado).
+  final VoidCallback? onRegisterBox;
 
   /// Se true, mostra a seta **nativa** do AppBar (rara necessidade).
   /// Por padrão deixamos **false** porque você já usa o AppBackButton no corpo.
@@ -18,7 +22,7 @@ class TopNavbar extends StatefulWidget implements PreferredSizeWidget {
 
   const TopNavbar({
     Key? key,
-    required this.onRegisterBox,
+    this.onRegisterBox, // compat
     this.showSystemBack = false,
   }) : super(key: key);
 
@@ -35,8 +39,6 @@ class _TopNavbarState extends State<TopNavbar> {
   // estado local
   late bool _hasStudent, _hasCoach;
   late String _currentRole;
-  late List<String> _coachBoxes;
-  String? _currentBox;
   late int _unread;
 
   @override
@@ -46,15 +48,16 @@ class _TopNavbarState extends State<TopNavbar> {
   }
 
   void _loadProfileData() {
-    // MOCK por enquanto; quando tiver API, troque por chamadas async/await
     setState(() {
       _hasStudent = _service.hasRole('student');
       _hasCoach = _service.hasRole('coach');
       _currentRole = _service.currentRoleLabel;
-      _coachBoxes = _service.coachBoxNames;
-      _currentBox = _service.currentBoxName;
       _unread = _service.unreadCount;
     });
+  }
+
+  void _openRegisterTraining(BuildContext context) {
+    showRegisterTrainingBottomSheet(context);
   }
 
   @override
@@ -62,11 +65,8 @@ class _TopNavbarState extends State<TopNavbar> {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return AppBar(
-      // 🔧 Impede o Flutter de injetar a seta automaticamente
       automaticallyImplyLeading: false,
-      // Se você QUISER a seta nativa em alguma tela específica, habilite:
       leading: widget.showSystemBack ? const BackButton() : null,
-
       backgroundColor: Theme.of(context).colorScheme.surface,
       elevation: 0,
       centerTitle: false,
@@ -100,26 +100,15 @@ class _TopNavbarState extends State<TopNavbar> {
               ),
             ),
 
-          SizedBox(width: 24 * scale),
-
-          // 2) Boxes (coach only)
-          if (_currentRole == 'Coach')
-            _coachBoxes.isNotEmpty
-                ? _buildMenu<String>(
-                  label: _currentBox ?? 'Selecione box',
-                  items: _coachBoxes,
-                  onSelected: (v) {
-                    // TODO BACKEND: setActiveBox(v)
-                    setState(() => _currentBox = v);
-                  },
-                  scale: scale,
-                )
-                : TextActionButton(
-                  icon: Icons.add,
-                  text: 'Cadastrar box',
-                  onPressed:
-                      () => showAppBottomSheet(context, const BoxSignupCoach()),
-                ),
+          // ✅ Se for Coach: mostra SOMENTE o botão "Cadastrar Treino"
+          if (_currentRole == 'Coach') ...[
+            SizedBox(width: 16 * scale),
+            TextActionButton(
+              icon: Icons.add,
+              text: 'Cadastrar Treino',
+              onPressed: () => _openRegisterTraining(context),
+            ),
+          ],
 
           const Spacer(),
 

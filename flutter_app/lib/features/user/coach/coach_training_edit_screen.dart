@@ -411,7 +411,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
 
     return Scaffold(
       // ✅ AppBar exatamente como você pediu
-      appBar: TopNavbar(onRegisterBox: () => _openRegisterBoxSheet(context)),
+      appBar: const TopNavbar(),
 
       body: SafeArea(
         child: FutureBuilder<EditableTraining>(

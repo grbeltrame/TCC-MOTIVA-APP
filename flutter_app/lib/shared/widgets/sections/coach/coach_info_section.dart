@@ -345,9 +345,11 @@ class _CoachInfoSectionState extends State<CoachInfoSection> {
                     SizedBox(width: 6 * scale),
                   ],
                   OutlinedButton.icon(
-                    onPressed: () {
-                      // TODO: configurações do coach
-                    },
+                    onPressed:
+                        () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.coachSettings,
+                        ),
                     icon: Icon(
                       Icons.settings,
                       size: 14 * scale,

@@ -59,7 +59,8 @@ class _InterestedAthletesScreenState extends State<InterestedAthletesScreen> {
         (args != null && args['count'] is int) ? args!['count'] as int : 0;
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: _openRegisterBoxSheet),
+      appBar: const TopNavbar(),
+
       bottomNavigationBar: const BottomNavBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
