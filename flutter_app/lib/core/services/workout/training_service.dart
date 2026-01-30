@@ -53,6 +53,10 @@ class TrainingService {
           description: null,
           // IMPORTANTE: Certifique-se de ter adicionado 'partes' no construtor do model Training
           partes: partesMap,
+          analysis:
+              data['analise'] != null
+                  ? TrainingAnalysis.fromJson(data['analise'])
+                  : null,
         );
       }).toList();
     } catch (e) {
@@ -69,22 +73,43 @@ class TrainingService {
     required String boxId,
     required DateTime date,
     required String category,
+    String? trainingId, // <--- NOVO PARÂMETRO OPCIONAL
   }) async {
     try {
-      final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
+      Map<String, dynamic>? data;
 
-      // AQUI MANTEMOS O LIMIT(1) POIS É A LÓGICA ANTIGA DE VISUALIZAÇÃO DETALHADA
-      final snapshot =
-          await FirebaseFirestore.instance
-              .collection('exercises')
-              .where('dataTreinoIso', isEqualTo: dataFormatada)
-              .limit(1)
-              .get();
+      // CENÁRIO A: Temos o ID (o usuário clicou num card específico)
+      if (trainingId != null && trainingId.isNotEmpty) {
+        final docSnapshot =
+            await FirebaseFirestore.instance
+                .collection('exercises')
+                .doc(trainingId) // Busca direto pelo nome do documento (ID)
+                .get();
 
-      if (snapshot.docs.isEmpty) return [];
+        if (docSnapshot.exists) {
+          data = docSnapshot.data();
+        }
+      }
 
-      final doc = snapshot.docs.first;
-      final Map<String, dynamic> data = doc.data();
+      // CENÁRIO B: Não temos ID (fallback legado), busca pela data
+      if (data == null) {
+        final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
+        final snapshot =
+            await FirebaseFirestore.instance
+                .collection('exercises')
+                .where('dataTreinoIso', isEqualTo: dataFormatada)
+                .limit(1)
+                .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          data = snapshot.docs.first.data();
+        }
+      }
+
+      // Se não achou nada em nenhum dos dois casos
+      if (data == null) return [];
+
+      // --- DAQUI PRA BAIXO É A SUA LÓGICA DE PARSE (MANTIDA IGUAL) ---
       final workoutData = DailyWorkoutModel.fromJson(data);
 
       List<TrainingBlock> blocks = [];

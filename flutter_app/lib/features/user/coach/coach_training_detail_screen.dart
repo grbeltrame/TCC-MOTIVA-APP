@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app/routes/app_routes.dart';
+import 'package:flutter_app/shared/models/training.dart'; // <--- IMPORTANTE
 import 'package:flutter_app/shared/widgets/sections/athlete/worked_muscles_section.dart';
-import 'package:flutter_app/shared/widgets/sections/coach/coach_interested_per_class_section.dart';
+// import 'package:flutter_app/shared/widgets/sections/coach/coach_interested_per_class_section.dart'; // (Se não estiver usando, pode manter comentado)
 import 'package:intl/intl.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
@@ -14,6 +15,7 @@ import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
+import 'package:flutter_app/core/constants/app_colors.dart'; // Para cores do botão
 
 class CoachTrainingDetailScreen extends StatefulWidget {
   static const routeName = '/coach_training_detail';
@@ -25,11 +27,14 @@ class CoachTrainingDetailScreen extends StatefulWidget {
 }
 
 class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
-  late String _boxId; // manter compat até trocar service
+  late String _boxId;
   late DateTime _date;
-  late String _category; // 'WOD', 'LPO', ...
+  late String _category;
   String? _blockId;
   String? _expectedTitle;
+
+  // 1. Armazena o objeto Treino para passar para a tela de Insights depois
+  Training? _trainingObject;
 
   TrainingBlock? _lastBlock;
   bool _bootstrapped = false;
@@ -44,30 +49,35 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
     _boxId = (args['boxId'] ?? '1') as String;
     _category = (args['category'] ?? 'WOD') as String;
     _expectedTitle = args['expectedTitle'] as String?;
-    _blockId = args['blockId'] as String?; // << NEW
+    _blockId = args['blockId'] as String?;
 
     final rawDate = args['date'];
     _date = (rawDate is DateTime) ? rawDate : DateTime.now();
 
+    // 2. RECUPERA O TREINO E O ID
+    if (args['training'] is Training) {
+      _trainingObject = args['training'];
+    }
+    final String? trainingId = _trainingObject?.id;
+
+    // 3. PASSA O trainingId PARA O SERVIÇO (Resolve o Bug do Treino Duplicado)
     _blocksFut = TrainingService.fetchFullTrainingBlocks(
       boxId: _boxId,
       date: _date,
       category: _category,
+      trainingId: trainingId, // <--- AQUI ESTÁ A CORREÇÃO
     );
 
     _bootstrapped = true;
   }
 
+  // ... (Métodos auxiliares mantidos iguais: _chooseTargetBlock, _parseDateLeniente, etc) ...
   TrainingBlock? _chooseTargetBlock(List<TrainingBlock> blocks) {
     if (blocks.isEmpty) return null;
-
-    // 1) Prioriza ID
     if (_blockId != null && _blockId!.isNotEmpty) {
       final i = blocks.indexWhere((b) => b.id == _blockId);
       if (i != -1) return blocks[i];
     }
-
-    // 2) Fallback por expectedTitle (compat com passado)
     if (_expectedTitle != null && _expectedTitle!.trim().isNotEmpty) {
       final i = blocks.indexWhere(
         (b) =>
@@ -76,46 +86,41 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
       );
       if (i != -1) return blocks[i];
     }
-
-    // 3) Heurísticas antigas (WOD / for time / amrap)
     final wodIdx = blocks.indexWhere(
       (b) => b.title.toLowerCase().contains('wod'),
     );
     if (wodIdx != -1) return blocks[wodIdx];
-
     final mainIdx = blocks.indexWhere((b) {
       final t = '${b.title} ${b.subtitle}'.toLowerCase();
       return t.contains('for time') || t.contains('amrap');
     });
     if (mainIdx != -1) return blocks[mainIdx];
-
-    // 4) Último como último recurso
     return blocks.last;
-  }
-
-  DateTime? _parseDateLeniente(String s) {
-    try {
-      return DateTime.parse(s);
-    } catch (_) {}
-    try {
-      return DateFormat('dd/MM/yyyy').parseStrict(s);
-    } catch (_) {}
-    return null;
   }
 
   void _openRegisterBoxSheet() {
     showAppBottomSheet(context, const BoxSignupCoach());
   }
 
-  // callbacks (TODOs vazios, como combinado)
-  void _onTapVerResultados() {
-    /* TODO: implementar */
-  }
-  void _onTapComentariosDoCriador() {
-    /* TODO: implementar */
-  }
-  void _onTapRegistrarResultado() {
-    /* TODO: implementar */
+  void _onTapVerResultados() {}
+  void _onTapComentariosDoCriador() {}
+  void _onTapRegistrarResultado() {}
+
+  // 4. Novo método para navegar para os Insights da IA
+  void _onTapVerInsightsAI() {
+    if (_trainingObject != null) {
+      Navigator.pushNamed(
+        context,
+        '/coach_insights', // Ou CoachInsightsScreen.routeName
+        arguments: {'training': _trainingObject},
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Dados do treino não disponíveis para análise."),
+        ),
+      );
+    }
   }
 
   @override
@@ -124,19 +129,40 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
 
     return Scaffold(
       appBar: const TopNavbar(),
-
       bottomNavigationBar: const BottomNavBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // back
+          // Header com Botão Voltar e Título ou Ações
           Padding(
             padding: EdgeInsets.only(
               top: 8 * scale,
               left: 6 * scale,
               right: 6 * scale,
             ),
-            child: const AppBackButton(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const AppBackButton(),
+                // Botão de Atalho para Insights (Opcional, mas útil)
+                TextButton.icon(
+                  onPressed: _onTapVerInsightsAI,
+                  icon: Icon(
+                    Icons.auto_awesome,
+                    size: 16 * scale,
+                    color: AppColors.baseBlue,
+                  ),
+                  label: Text(
+                    "Insights IA",
+                    style: TextStyle(
+                      fontSize: 12 * scale,
+                      color: AppColors.baseBlue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           Expanded(
@@ -157,26 +183,13 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // CoachInterestedPerClassSection(
-                      //   date: _date,
-                      //   boxId: 'DEFAULT_BOX',
-                      //   category:
-                      //       _category, // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
-                      //   // opcionalmente, trate a navegação:
-                      //   onViewStudents: (hour, count) {
-                      //     // TODO(nav): trocar rota quando a tela de interessados existir
-                      //     Navigator.pushNamed(
-                      //       context,
-                      //       AppRoutes.interestedAtlhetes,
-                      //     );
-                      //   },
-                      // ),
                       TrainingBlocksCard(
                         blocks: blocks,
                         onTapRegisterResult: _onTapRegistrarResultado,
                         footer: CoachTrainingFooter(
                           onTapVerResultados: _onTapVerResultados,
-                          onTapComentariosDoCriador: _onTapComentariosDoCriador,
+                          // Aqui conectamos o botão do rodapé aos Insights também
+                          onTapComentariosDoCriador: _onTapVerInsightsAI,
                           onTapRegistrarResultado: _onTapRegistrarResultado,
                         ),
                       ),

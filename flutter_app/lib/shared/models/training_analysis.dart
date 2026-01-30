@@ -1,10 +1,8 @@
 class TrainingAnalysis {
-  final Map<String, String>
-  alerts; // ex: {'risco_ombro': 'Cuidado com volume...'}
-  final Map<String, String>
-  insights; // ex: {'dica_mobilidade': 'Faça alongamento...'}
-  final String overview; // Resumo geral do treino
-  final List<String> keyMetrics; // ex: ['Força', 'Cardio']
+  final Map<String, String> alerts; // Chave -> Mensagem
+  final Map<String, String> insights; // Chave -> Detalhe
+  final String overview;
+  final List<String> keyMetrics;
 
   TrainingAnalysis({
     required this.alerts,
@@ -13,7 +11,6 @@ class TrainingAnalysis {
     required this.keyMetrics,
   });
 
-  /// Factory seguro para converter o JSON, mesmo que venham campos nulos
   factory TrainingAnalysis.fromJson(Map<String, dynamic> json) {
     // 1. Processar Alertas
     final alertsMap = <String, String>{};
@@ -35,7 +32,7 @@ class TrainingAnalysis {
       });
     }
 
-    // 3. Processar Summary e Métricas
+    // 3. Processar Summary
     String overviewText = "";
     List<String> metricsList = [];
 
@@ -54,42 +51,4 @@ class TrainingAnalysis {
       keyMetrics: metricsList,
     );
   }
-}
-
-/// Representa um treino individual.
-class Training {
-  final String id;
-  final String title;
-  final String? description;
-  final DateTime date;
-
-  // Guarda a estrutura crua das partes (WOD, Skill, LPO, etc)
-  final Map<String, dynamic> partes;
-
-  // NOVO CAMPO: Guarda a análise da IA (opcional, pois nem todo treino tem)
-  final TrainingAnalysis? analysis;
-
-  Training({
-    required this.id,
-    required this.title,
-    this.description,
-    required this.date,
-    this.partes = const {},
-    this.analysis, // Adicionado como opcional
-  });
-}
-
-/// Resumo de um treino para o card “resumo do dia”.
-class DailyWorkoutSummary {
-  final String category;
-  final List<String> stimuli;
-  final String objectiveShort;
-  final String quote;
-
-  DailyWorkoutSummary({
-    required this.category,
-    required this.stimuli,
-    required this.objectiveShort,
-    required this.quote,
-  });
 }
