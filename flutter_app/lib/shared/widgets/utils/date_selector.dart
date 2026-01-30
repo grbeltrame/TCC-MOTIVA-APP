@@ -3,19 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_app/core/services/workout/training_service.dart'; // você cria esse service
+import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 
 /// Um botão que permite navegar dia a dia.
 /// Exibe dd/MM/yyyy e nome do dia da semana;
 /// arrows para mudar um dia.
-/// Chama onDateChanged quando a data muda.
-/// Internamente faz fetch dos treinos via TrainingService (mock).
+/// Clicar no centro abre um calendário (DatePicker).
 class DateSelector extends StatefulWidget {
-  /// Data inicial ao criar o widget.
   final DateTime initialDate;
-
-  /// Opcional: callback para notificar o pai de que a data mudou.
   final ValueChanged<DateTime>? onDateChanged;
 
   DateSelector({Key? key, DateTime? initialDate, this.onDateChanged})
@@ -36,10 +32,21 @@ class _DateSelectorState extends State<DateSelector> {
     _fetchWorkouts();
   }
 
+  // Se a data mudar externamente (pelo pai), atualizamos o estado interno
+  @override
+  void didUpdateWidget(covariant DateSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialDate != oldWidget.initialDate) {
+      setState(() {
+        _selectedDate = widget.initialDate;
+      });
+    }
+  }
+
   void _fetchWorkouts() {
     // TODO: implementar no backend: buscar treinos do dia _selectedDate
     TrainingService.fetchWorkoutsForDate(_selectedDate).then((workouts) {
-      // você pode armazenar em algum estado ou notificar via outro callback
+      // logica de bolinhas (se houver)
     });
   }
 
@@ -47,6 +54,41 @@ class _DateSelectorState extends State<DateSelector> {
     setState(
       () => _selectedDate = _selectedDate.add(Duration(days: offsetDays)),
     );
+    _notifyChange();
+  }
+
+  // NOVO: Abre o calendário para seleção rápida
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020), // Limite inferior (ajuste se quiser)
+      lastDate: DateTime(now.year + 2), // Limite superior
+      builder: (context, child) {
+        // Personaliza a cor do calendário para azul (se quiser)
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF0D47A1), // Azul escuro do app
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+      _notifyChange();
+    }
+  }
+
+  void _notifyChange() {
     widget.onDateChanged?.call(_selectedDate);
     _fetchWorkouts();
   }
@@ -72,7 +114,7 @@ class _DateSelectorState extends State<DateSelector> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // seta para trás
+            // Seta Esquerda
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -85,32 +127,36 @@ class _DateSelectorState extends State<DateSelector> {
 
             SizedBox(width: 8 * scale),
 
-            // data e dia da semana
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  dayLabel,
-                  style: TextStyle(
-                    fontSize: 10 * scale,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.mediumGray,
+            // CENTRO CLICÁVEL (Abre Calendário)
+            GestureDetector(
+              onTap: _pickDate, // <--- AQUI ESTÁ A MÁGICA
+              behavior: HitTestBehavior.opaque, // Melhora a área de toque
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    dayLabel,
+                    style: TextStyle(
+                      fontSize: 10 * scale,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.mediumGray,
+                    ),
                   ),
-                ),
-                Text(
-                  weekday,
-                  style: TextStyle(
-                    fontSize: 14 * scale,
-                    color: AppColors.darkText,
-                    fontWeight: AppFontWeight.bold,
+                  Text(
+                    weekday,
+                    style: TextStyle(
+                      fontSize: 14 * scale,
+                      color: AppColors.darkText,
+                      fontWeight: AppFontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
             SizedBox(width: 8 * scale),
 
-            // seta para frente
+            // Seta Direita
             IconButton(
               padding: EdgeInsets.zero,
               constraints: BoxConstraints.tightFor(
@@ -129,14 +175,11 @@ class _DateSelectorState extends State<DateSelector> {
 
 /// ===============================================================
 /// VARIAÇÃO A — CycleAwareDateSelector
-/// - igual ao original, mas quando muda o mês:
-///   chama onMonthChanged(year, month)
+/// (Também atualizado com calendário)
 /// ===============================================================
 class CycleAwareDateSelector extends StatefulWidget {
   final DateTime initialDate;
   final ValueChanged<DateTime>? onDateChanged;
-
-  /// Dispara quando a navegação atravessa para outro mês/ano.
   final void Function(int year, int month)? onMonthChanged;
 
   const CycleAwareDateSelector({
@@ -159,18 +202,55 @@ class _CycleAwareDateSelectorState extends State<CycleAwareDateSelector> {
     _selectedDate = widget.initialDate;
   }
 
+  // Garante sincronia se o pai mudar a data
+  @override
+  void didUpdateWidget(covariant CycleAwareDateSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialDate != oldWidget.initialDate) {
+      setState(() {
+        _selectedDate = widget.initialDate;
+      });
+    }
+  }
+
   void _changeDate(int offsetDays) {
+    final next = _selectedDate.add(Duration(days: offsetDays));
+    _updateDate(next);
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(now.year + 2),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF0D47A1),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      _updateDate(picked);
+    }
+  }
+
+  void _updateDate(DateTime next) {
     final prevMonth = _selectedDate.month;
     final prevYear = _selectedDate.year;
 
-    final next = _selectedDate.add(Duration(days: offsetDays));
-
     setState(() => _selectedDate = next);
-
-    // Sempre notifica data
     widget.onDateChanged?.call(_selectedDate);
 
-    // Se atravessou o mês/ano, notifica o pai
     if (next.month != prevMonth || next.year != prevYear) {
       widget.onMonthChanged?.call(next.year, next.month);
     }
@@ -207,27 +287,34 @@ class _CycleAwareDateSelectorState extends State<CycleAwareDateSelector> {
               onPressed: () => _changeDate(-1),
             ),
             SizedBox(width: 8 * scale),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  dayLabel,
-                  style: TextStyle(
-                    fontSize: 10 * scale,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.mediumGray,
+
+            // CENTRO CLICÁVEL
+            GestureDetector(
+              onTap: _pickDate,
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    dayLabel,
+                    style: TextStyle(
+                      fontSize: 10 * scale,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.mediumGray,
+                    ),
                   ),
-                ),
-                Text(
-                  weekday,
-                  style: TextStyle(
-                    fontSize: 14 * scale,
-                    color: AppColors.darkText,
-                    fontWeight: AppFontWeight.bold,
+                  Text(
+                    weekday,
+                    style: TextStyle(
+                      fontSize: 14 * scale,
+                      color: AppColors.darkText,
+                      fontWeight: AppFontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+
             SizedBox(width: 8 * scale),
             IconButton(
               padding: EdgeInsets.zero,

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/shared/models/training.dart';
-import 'package:flutter_app/core/services/workout/training_service.dart'; // Importe seu service
+import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_training_insights_overview_section.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
+// Importe seu DateSelector existente (verifique o caminho correto no seu projeto)
+import 'package:flutter_app/shared/widgets/utils/date_selector.dart';
 
 class CoachInsightsScreen extends StatefulWidget {
   static const routeName = '/coach_insights';
@@ -14,58 +18,93 @@ class CoachInsightsScreen extends StatefulWidget {
 }
 
 class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
-  Training? _training;
+  // Estado da tela
+  DateTime _selectedDate = DateTime.now();
+  List<Training> _dayTrainings = [];
+  Training? _selectedTraining;
+
   bool _isLoading = true;
   String? _errorMessage;
+  bool _initialized = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadData();
+    if (!_initialized) {
+      _initialSetup();
+      _initialized = true;
+    }
   }
 
-  Future<void> _loadData() async {
-    // 1. Tenta recuperar o treino passado pelos argumentos (Se vier de outra tela)
+  Future<void> _initialSetup() async {
+    // 1. Verifica se veio um treino específico de outra tela (ex: clique no botão "Insights IA")
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
     if (args != null && args.containsKey('training')) {
+      final t = args['training'] as Training;
+      // Se veio um treino, setamos a data dele e o selecionamos diretamente
       setState(() {
-        _training = args['training'] as Training;
-        _isLoading = false;
+        _selectedDate = t.date;
+        _selectedTraining = t;
+        // Mesmo vindo um treino específico, buscamos a lista do dia para permitir troca
+        _fetchTrainingsForDate(_selectedDate, preserveSelected: true);
       });
-      return;
+    } else {
+      // Se veio do menu (sem argumentos), carrega o dia de hoje
+      _fetchTrainingsForDate(DateTime.now());
     }
+  }
 
-    // 2. Se não veio argumento (clique no BottomNavBar), busca o treino de HOJE
-    // Evita buscar novamente se já tiver carregado
-    if (_training != null) return;
+  // Função chamada quando muda a data no calendário
+  void _onDateSelected(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+    });
+    _fetchTrainingsForDate(date);
+  }
+
+  Future<void> _fetchTrainingsForDate(
+    DateTime date, {
+    bool preserveSelected = false,
+  }) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      if (!preserveSelected) _selectedTraining = null;
+    });
 
     try {
-      // Busca os treinos da data de hoje
-      // Ajuste o 'boxId' conforme sua lógica de usuário logado
-      final todayList = await TrainingService.fetchTrainingsListForDate(
+      // Busca a lista de treinos daquele dia (Lógica que arrumamos no passo anterior)
+      // Ajuste o boxId conforme sua lógica de usuário
+      final list = await TrainingService.fetchTrainingsListForDate(
         boxId: '1',
-        date: DateTime.now(),
+        date: date,
       );
 
-      if (todayList.isNotEmpty) {
+      if (mounted) {
         setState(() {
-          // Pega o primeiro treino do dia para mostrar os insights
-          _training = todayList.first;
+          _dayTrainings = list;
           _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _errorMessage = "Não há treinos cadastrados para hoje.";
-          _isLoading = false;
+
+          if (list.isNotEmpty) {
+            // Se não estamos preservando um treino específico, pega o primeiro
+            if (_selectedTraining == null || !preserveSelected) {
+              _selectedTraining = list.first;
+            }
+          } else {
+            _selectedTraining = null;
+            _errorMessage = "Nenhum treino encontrado nesta data.";
+          }
         });
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = "Erro ao carregar insights: $e";
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Erro ao carregar: $e";
+        });
+      }
     }
   }
 
@@ -75,8 +114,23 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
 
     return Scaffold(
       appBar: const TopNavbar(),
-      bottomNavigationBar: const BottomNavBar(), // Sua barra inferior
-      body: _buildBody(scale),
+      bottomNavigationBar: const BottomNavBar(),
+      body: Column(
+        children: [
+          // 1. SELETOR DE DATA (Igual ao da tela de treinos)
+          Container(
+            color: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: 10 * scale),
+            child: DateSelector(
+              initialDate: _selectedDate,
+              onDateChanged: _onDateSelected,
+            ),
+          ),
+
+          // 2. CONTEÚDO
+          Expanded(child: _buildBody(scale)),
+        ],
+      ),
     );
   }
 
@@ -89,14 +143,30 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
       return Center(
         child: Padding(
           padding: EdgeInsets.all(20.0 * scale),
-          child: Text(
-            _errorMessage!,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14 * scale, color: Colors.grey),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.calendar_today,
+                size: 40 * scale,
+                color: AppColors.mediumGray,
+              ),
+              SizedBox(height: 10 * scale),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14 * scale,
+                  color: AppColors.mediumGray,
+                ),
+              ),
+            ],
           ),
         ),
       );
     }
+
+    if (_selectedTraining == null) return const SizedBox.shrink();
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
@@ -106,10 +176,102 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Passamos o treino carregado (seja por argumento ou busca automática)
-          CoachTrainingInsightsOverviewSection(training: _training),
+          // 3. SELETOR DE TREINO (Só aparece se tiver + de 1 treino no dia)
+          if (_dayTrainings.length > 1) ...[
+            _buildWorkoutSwitcher(scale),
+            SizedBox(height: 16 * scale),
+          ],
+
+          // 4. A VISÃO GERAL (O componente que já criamos)
+          CoachTrainingInsightsOverviewSection(training: _selectedTraining),
         ],
       ),
     );
+  }
+
+  // Widget Dropdown para trocar entre WOD e LPO, etc.
+  Widget _buildWorkoutSwitcher(double scale) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 12 * scale,
+        vertical: 4 * scale,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8 * scale),
+        border: Border.all(color: AppColors.lightGray),
+      ),
+      child: Row(
+        children: [
+          Text(
+            "Analisando: ",
+            style: TextStyle(
+              fontFamily: AppFonts.roboto,
+              fontSize: 12 * scale,
+              color: AppColors.mediumGray,
+            ),
+          ),
+          SizedBox(width: 8 * scale),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<Training>(
+                value: _selectedTraining,
+                isExpanded: true,
+                icon: Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 20 * scale,
+                  color: AppColors.baseBlue,
+                ),
+                items:
+                    _dayTrainings.map((training) {
+                      return DropdownMenuItem<Training>(
+                        value: training,
+                        child: Text(
+                          _getTrainingTitle(
+                            training,
+                          ), // Função auxiliar para nomear
+                          style: TextStyle(
+                            fontFamily: AppFonts.montserrat,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13 * scale,
+                            color: AppColors.darkText,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                onChanged: (Training? newTraining) {
+                  if (newTraining != null) {
+                    setState(() {
+                      _selectedTraining = newTraining;
+                    });
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Mesma lógica de nomes que usamos na lista, mas simplificada para o Dropdown
+  String _getTrainingTitle(Training training) {
+    // Tenta pegar o nome do WOD
+    if (training.partes.containsKey('WOD')) {
+      final dynamic wod = training.partes['WOD'];
+      String? nomeWod;
+      if (wod is Map) nomeWod = wod['nomeWod'];
+      // Adicione tratamento de objeto se necessário
+
+      if (nomeWod != null && nomeWod.isNotEmpty) {
+        return "WOD - $nomeWod";
+      }
+      return "WOD do Dia";
+    }
+    if (training.partes.containsKey('LPO')) return "Aula de LPO";
+    if (training.partes.containsKey('GINASTICA')) return "Ginástica / Skill";
+
+    return "Treino Geral";
   }
 }
