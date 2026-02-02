@@ -3,7 +3,7 @@
 import os
 import json
 import logging
-from firebase_admin import firestore
+from firebase_ad min import firestore
 from google.cloud import secretmanager
 from langchain_google_genai import ChatGoogleGenerativeAI
 
