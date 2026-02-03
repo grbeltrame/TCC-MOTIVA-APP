@@ -1,7 +1,6 @@
 import json
 from typing import Any, Dict, List
 from datetime import datetime
-# Importa a FUNÇÃO em vez do objeto
 from .models import get_parser
 
 # Função auxiliar para converter datas antes de serializar
@@ -29,31 +28,42 @@ def create_evaluation_prompt(
         f"**2. Histórico (Últimos 15 Dias):**\n```json\n{pw_json}\n```\n\n"
         f"**3. Inventário do Box (Movimentos Disponíveis):**\n```json\n{ed_json}\n```\n\n"
 
+        "**Contexto Importante:**\n"
         "Utilize sempre os dados do histórico e da base de exercícios como contexto para sua análise do treino atual, e utilize suas estruturas e suas proprias explicações para cada vez mais melhorar seu feedback dos treinos.\n"
+        "Não analise o treino no vácuo: o que aconteceu há 2 dias importa tanto quanto o que vai acontecer hoje.\n\n"
         
         "---"
         "**INSTRUÇÕES DE ANÁLISE (SIGA RIGOROSAMENTE):**\n"
         "Analise os dados e gere o feedback estruturado. Siga estas 4 etapas e **NÃO** repita informações entre os campos.\n\n"
+        "- **Tom de Voz:** Profissional, colaborativo e técnico. Nunca seja arrogante.\n"
+        "- **Regra de Ouro (Inventário):** Ao sugerir exercícios, consulte o **Inventário**. Se não estiver na lista, não sugira.\n"
+        "- **Visão Holística:** Não olhe o exercício isolado. Olhe o padrão de movimento (Empurrar, Puxar, Agachar) e a via metabólica.\n\n"
 
         "**Etapa 1: Análise de Histórico (Preenche o campo `history_analysis`)**\n"
-        "> Seja um analista de dados. Compare o **Treino Atual** com o **Histórico (Últimos 15 Dias)**.\n"
+        "> Seja um analista de dados. Compare o **Treino Atual** com o **Histórico (Últimos 15 Dias)** procurando padrões de treinamento, grupos musculares, frequência de exercícios, intervalor e lacunas, tudo que for relavante para a analise.\n"
         "> Verifique a lista de treinos e os grupos musculares e extraia oque você achar melhor na sua analise.\n"
         "> Liste **APENAS FATOS objetivos**. Não dê opiniões, alertas ou sugestões aqui.\n"
         "> **Exemplos de Fatos:** 'WOD [Nome WOD] foi realizado há 2 dias', 'Foco em ombros pelo 3º dia consecutivo', 'Alto volume de treinos de perna nos últimos 15 dias', 'Nenhum treino de bíceps registrado nos últimos 15 dias e este treino também não inclui'.\n"
-        "> Preencha os campos `weekly` e `muscle_focus` com estas observações fatuais, combinando seu conhecimento com a lsita de exercicios fornecida.\n\n"
+        "> Em `weekly`: Cite fatos sobre as frequências. Ex: 'Primeiro treino de perna em 6 dias (músculo descansado)' OU '3º dia seguido de ombro (alto risco de fadiga)' como você analisou no passo de cima.\n"
+        "> Em `muscle_focus`: Liste os grupos musculares dominantes cruzando com essa análise de intervalo.\n"
 
         "**Etapa 2: Alertas de Risco (Preenche o campo `alerts`)**\n"
-        "> Seja um gerente de risco. Identifique riscos **NO TREINO ATUAL**.\n"
+        "> Seja um gerente de risco. Identifique riscos ou sobrecarga **NO TREINO ATUAL**.\n"
         "> Procure por: Alta carga com alta repetição, excesso de volume para um grupo muscular *neste treino*, movimentos tecnicamente complexos.\n"
+        "> **Fadiga Acumulada (Olhar Clínico):** Verifique o histórico (especialmente dos ultimos 3 dias). Procure por fadiga de 'SNC' (Sistema Nervoso), 'Grip' (Pegada) e 'Lombar'.\n"
+        "> Exemplo: Se houve muito Deadlift ou Toes-to-Bar ontem/anteontem, alerte sobre a fadiga de pegada para o treino de hoje.\n"
         "> **Use a Etapa 1 como CONTEXTO:** Se o treino atual tem muito exercício de perna (alerta) E o histórico mostra muitas pernas (fato), seu alerta deve ser: 'Risco de sobrecarga nas pernas. O treino de hoje tem alto volume, o que é agravado pelo foco excessivo em pernas nos últimos 15 dias.'\n"
-        "> **Formato:** A chave (key) do mapa deve ser o tipo de alerta (ex: 'sobrecarga', 'risco_tecnico') e o valor (message) a descrição detalhada.\n\n"
+        "> **Formato:** A chave (key) do mapa deve ser o tipo de alerta (ex: 'sobrecarga', 'risco_tecnico', 'fadiga_pegada', 'risco_lombar') e o valor (message) a descrição detalhada.\n\n"
 
         "**Etapa 3: Insights e Otimizações (Preenche o campo `insights`)**\n"
         "> Seja um coach assistente. Forneça dicas práticas para *melhorar a sessão* de treino. **NÃO** sugira mudanças nos exercícios e **NÃO** repita os alertas.\n"
         "> Foque em:"
-        "> * **Mobilidade/Aquecimento:** Sugira alongamentos ou exercícios de mobilidade específicos para os movimentos do dia (ex: 'Mobilidade de tornozelo e punho para o Power Clean')."
+        "> * **Mobilidade/Aquecimento:** Sugira alongamentos ou exercícios de mobilidade específicos para os movimentos do dia (ex: 'Mobilidade de tornozelo e punho para o Power Clean').Lembre-se de detalhar oque está sendo sugerido e por quê.\n"
+        "> * **Logística e Fluxo:** Vá além do óbvio. Se a turma for cheia e o equipamento limitado (ver Inventário), sugira **Baterias (Heats)**, layout da sala ou revezamento inteligente.\n"
         "> * **Variações Compatíveis:** Sugira exercícios da **Base de Dados de Exercícios** que sejam variações ou acessórios (ex: 'Para Pull-ups, variações como Ring Row ou Chest-to-Bar podem ser usadas para diferentes níveis')."
         "> * **Dicas de Progressão/Execução:** Dê dicas sobre progressão de carga ou foco técnico (ex: 'Para progressão de carga no Power Clean, foque em aumentar o peso apenas se a técnica de tripla extensão estiver perfeita').\n"
+        "> **Substituições (Equivalência):** Se sugerir trocar um movimento (ex: por chuva ou logística), sugira algo do Inventário (`exercise_db`) que tenha o **mesmo estímulo** (ex: Cardio por Cardio, Empurrar por Empurrar).\n"
+        "> * **Scaling Inteligente (Iniciantes):** Sugira regressões do **Inventário** que preservam o estímulo (ex: 'Box Jump -> Step Up pois mantém trabalho unilateral sem impacto').\n"
         "> **Formato:** A chave (key) do mapa deve ser o título do insight (ex: 'Mobilidade Recomendada', 'Variações de Exercício') e o valor (detail) a dica.\n\n"
         "> Importante: Se sugerir substituições de exercícios, verifique na 'Lista de Exercícios do Box' se temos o equipamento necessário.\n"
 

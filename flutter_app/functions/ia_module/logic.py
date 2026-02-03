@@ -94,7 +94,7 @@ def run_ai_analysis_logic(event):
         history_docs = (
             firestore_client.collection("exercises")
             #.where("boxId", "==", box_id)
-            .order_by("criadoEm", direction=firestore.Query.DESCENDING)
+            .order_by("dataTreinoIso", direction=firestore.Query.DESCENDING)
             .limit(15)
             .stream()
         )
