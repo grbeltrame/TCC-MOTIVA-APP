@@ -3,7 +3,7 @@
 import os
 import json
 import logging
-from firebase_ad min import firestore
+from firebase_admin import firestore
 from google.cloud import secretmanager
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -100,8 +100,37 @@ def run_ai_analysis_logic(event):
         )
         past_workouts = [d.to_dict() for d in history_docs if d.id != workout_id]
 
-        # Base de exercícios (Mock por enquanto)
-        exercise_db = [] 
+        # ---------------------------------------------------------
+        # 3. Base de exercícios (Busca Real - Coleção "movimentos")
+        # ---------------------------------------------------------
+        
+        # Referência à coleção correta
+        exercises_ref = firestore_client.collection("movimentos")
+        
+        # Buscamos todos os exercícios
+        all_exercises_docs = exercises_ref.stream()
+        
+        exercise_db = []
+        
+        for doc in all_exercises_docs:
+            d = doc.to_dict()
+            
+            nome_exercicio = d.get("displayName", d.get("name", "Sem Nome"))
+            
+            # Pegando listas (arrays)
+            equipamentos = d.get("equipment", []) 
+            musculos = d.get("primaryMuscles", [])
+            categorias = d.get("categories", [])  
+            
+            # Montamos o objeto enxuto
+            exercise_db.append({
+                "nome": nome_exercicio,
+                "equipamento": equipamentos,
+                "musculos": musculos,
+                "categoria": categorias
+            })
+            
+        logging.info(f"Carregados {len(exercise_db)} exercícios da coleção 'movimentos'.")
 
         # Monta Prompt
         prompt_text = create_evaluation_prompt(current_data, past_workouts, exercise_db)

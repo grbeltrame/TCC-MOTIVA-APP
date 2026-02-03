@@ -27,7 +27,7 @@ def create_evaluation_prompt(
         "**Dados Fornecidos:**\n"
         f"**1. Treino Atual:**\n```json\n{cw_json}\n```\n\n"
         f"**2. Histórico (Últimos 15 Dias):**\n```json\n{pw_json}\n```\n\n"
-        f"**3. Base de Dados de Exercícios:**\n```json\n{ed_json}\n```\n\n"
+        f"**3. Inventário do Box (Movimentos Disponíveis):**\n```json\n{ed_json}\n```\n\n"
 
         "Utilize sempre os dados do histórico e da base de exercícios como contexto para sua análise do treino atual, e utilize suas estruturas e suas proprias explicações para cada vez mais melhorar seu feedback dos treinos.\n"
         
@@ -37,9 +37,10 @@ def create_evaluation_prompt(
 
         "**Etapa 1: Análise de Histórico (Preenche o campo `history_analysis`)**\n"
         "> Seja um analista de dados. Compare o **Treino Atual** com o **Histórico (Últimos 15 Dias)**.\n"
+        "> Verifique a lista de treinos e os grupos musculares e extraia oque você achar melhor na sua analise.\n"
         "> Liste **APENAS FATOS objetivos**. Não dê opiniões, alertas ou sugestões aqui.\n"
         "> **Exemplos de Fatos:** 'WOD [Nome WOD] foi realizado há 2 dias', 'Foco em ombros pelo 3º dia consecutivo', 'Alto volume de treinos de perna nos últimos 15 dias', 'Nenhum treino de bíceps registrado nos últimos 15 dias e este treino também não inclui'.\n"
-        "> Preencha os campos `weekly` e `muscle_focus` com estas observações fatuais.\n\n"
+        "> Preencha os campos `weekly` e `muscle_focus` com estas observações fatuais, combinando seu conhecimento com a lsita de exercicios fornecida.\n\n"
 
         "**Etapa 2: Alertas de Risco (Preenche o campo `alerts`)**\n"
         "> Seja um gerente de risco. Identifique riscos **NO TREINO ATUAL**.\n"
@@ -54,11 +55,12 @@ def create_evaluation_prompt(
         "> * **Variações Compatíveis:** Sugira exercícios da **Base de Dados de Exercícios** que sejam variações ou acessórios (ex: 'Para Pull-ups, variações como Ring Row ou Chest-to-Bar podem ser usadas para diferentes níveis')."
         "> * **Dicas de Progressão/Execução:** Dê dicas sobre progressão de carga ou foco técnico (ex: 'Para progressão de carga no Power Clean, foque em aumentar o peso apenas se a técnica de tripla extensão estiver perfeita').\n"
         "> **Formato:** A chave (key) do mapa deve ser o título do insight (ex: 'Mobilidade Recomendada', 'Variações de Exercício') e o valor (detail) a dica.\n\n"
+        "> Importante: Se sugerir substituições de exercícios, verifique na 'Lista de Exercícios do Box' se temos o equipamento necessário.\n"
 
         "**Etapa 4: Resumo (Preenche o campo `summary`)**\n"
         "> Seja um editor. Crie um resumo conciso de tudo.\n"
         "> * No campo `overview`: Faça um resumo do treino do dia (foco, tipo de WOD), os principais músculos usados, e uma breve menção às análises (ex: 'Treino focado em LPO e um AMRAP intenso para o core. A análise principal indica um [risco de alerta X], mas oferece [insights sobre Y]')."
-        "> * No campo `key_metrics`: Liste as capacidades físicas (ex: 'Força', 'Potência', 'Resistência Cardiovascular').\n"
+        "> * No campo `key_metrics`: Liste as capacidades físicas (ex: 'Força', 'Potência', 'Resistência Cardiovascular') lembre-se de utilizar bem a lista de exercicios que você recebeu.\n"
         "---"
     )
     
