@@ -1,7 +1,8 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 from .models import get_parser
+from .models import get_cycle_parser
 
 # Função auxiliar para converter datas antes de serializar
 def json_converter(o):
@@ -89,3 +90,70 @@ def create_evaluation_prompt(
     )
 
     return f"{base_prompt}\n{footer}"
+
+
+
+def create_cycle_prompt(
+    month_workouts: List[Dict[str, Any]],
+    previous_cycle_data: Optional[Dict[str, Any]] = None,
+    month_name: str = "Atual"
+) -> str:
+    """
+    Cria o prompt para a Análise de Ciclo Mensal (Macroanálise).
+    Recebe todos os treinos do mês e, opcionalmente, o resumo do ciclo anterior.
+    """
+    
+    # 1. Serializa os dados
+    mw_json = json.dumps(month_workouts, indent=2, ensure_ascii=False, default=json_converter)
+    prev_json = "Sem dados do ciclo anterior."
+    if previous_cycle_data:
+        prev_json = json.dumps(previous_cycle_data, indent=2, ensure_ascii=False, default=json_converter)
+
+    # 2. Obtém o parser específico de Ciclo (que criamos no models.py)
+    # Importante: Precisamos importar get_cycle_parser no topo ou aqui dentro
+
+    parser = get_cycle_parser()
+    json_instructions = parser.get_format_instructions()
+
+    cycle_prompt = (
+        "Você é um **Especialista em Periodização e Head Coach de CrossFit**.\n"
+        f"Sua tarefa é realizar a **MACROANÁLISE DO CICLO MENSAL: {month_name}**.\n"
+        "Seu objetivo é identificar tendências, desequilíbrios de volume e progressão ao longo do mês.\n\n"
+
+        "**DADOS FORNECIDOS:**\n"
+        f"**1. Treinos Realizados neste Mês ({len(month_workouts)} treinos):**\n```json\n{mw_json}\n```\n\n"
+        f"**2. Resumo do Ciclo Anterior (Para Comparação):**\n```json\n{prev_json}\n```\n\n"
+
+        "---"
+        "**ROTEIRO DE ANÁLISE MACRO (Siga rigorosamente):**\n"
+        "Analise o conjunto da obra e gere o JSON de saída.\n\n"
+
+        "**1. Comparação e Progressão (Campo `comparison`)**\n"
+        "> Compare este mês com o anterior (se houver dados) ou analise a evolução dentro das semanas.\n"
+        "> **Progressão:** O volume total subiu ou desceu? A intensidade aumentou?\n"
+        "> **Distribuição:** A variabilidade de movimentos foi boa? Houve predominância excessiva de Empurrar vs Puxar?\n"
+        "> **Variação:** Houve equilíbrio entre LPO, Ginástica e Monoestrutural?\n"
+        "> **Esforço:** O esforço percebido (se disponível) condiz com o volume?\n\n"
+
+        "**2. Recomendações Inteligentes (Campo `recommendations`)**\n"
+        "> Atue como Consultor Estratégico.\n"
+        "> **Negligenciados:** Quais padrões de movimento ou grupos musculares foram esquecidos neste mês?\n"
+        "> **Ajustes:** O que deve mudar para o resto do mês ou para o próximo ciclo? (Ex: 'Reduzir volume de ombro nas próximas semanas').\n"
+        "> **Notas:** Observações sobre PRs ou feedbacks gerais.\n\n"
+
+        "**3. Pontos Positivos (Campo `positives`)**\n"
+        "> Liste acertos do planejamento (ex: 'Boa progressão de carga no Back Squat', 'Distribuição equilibrada de cardio').\n\n"
+
+        "**4. Alertas Técnicos de Macro (Campo `technical_alerts`)**\n"
+        "> Identifique riscos de longo prazo.\n"
+        "> Exemplo: 'Alta repetição de agachamento por 4 semanas seguidas aumenta risco articular'.\n"
+        "> Exemplo: 'Distribuição desigual: 70% dos treinos focaram em membros inferiores'.\n\n"
+        
+        "**5. Resumo Executivo (Campo `overview`)**\n"
+        "> Um parágrafo resumindo a 'identidade' deste ciclo até agora.\n\n"
+        
+        "**FORMATO DE RESPOSTA:**\n"
+        f"{json_instructions}\n"
+    )
+
+    return cycle_prompt

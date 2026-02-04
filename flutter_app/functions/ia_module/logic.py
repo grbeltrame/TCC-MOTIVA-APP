@@ -3,30 +3,26 @@
 import os
 import json
 import logging
+from datetime import datetime, timedelta
 from firebase_admin import firestore
 from google.cloud import secretmanager
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-# AJUSTE 1: Nome do arquivo corrigido para prompt_builder
-from .prompt_builder import create_evaluation_prompt
-from .models import get_parser
-
+# Imports dos módulos locais
+from .prompt_builder import create_evaluation_prompt, create_cycle_prompt
+from .models import get_parser, get_cycle_parser
 
 SECRET_ID = 'GEMINI_API_KEY'
-# Tenta pegar o ID do projeto automaticamente
 PROJECT_ID = os.environ.get("GCLOUD_PROJECT")
 
 def get_gemini_api_key() -> str:
     """Busca a API Key no Secret Manager."""
     try:
         if not PROJECT_ID:
-            # Fallback para tentar ler de config se a var de ambiente falhar
             config = os.environ.get("FIREBASE_CONFIG")
             if config:
                 proj_id = json.loads(config).get("projectId")
                 if proj_id:
-                    # Precisamos definir a variável para o uso no client abaixo
-                    # Mas aqui vamos passar direto na string
                     name = f"projects/{proj_id}/secrets/{SECRET_ID}/versions/latest"
             else:
                 raise ValueError("PROJECT_ID não encontrado.")
@@ -34,21 +30,108 @@ def get_gemini_api_key() -> str:
             name = f"projects/{PROJECT_ID}/secrets/{SECRET_ID}/versions/latest"
             
         client = secretmanager.SecretManagerServiceClient()
-        # Sintaxe correta para as libs mais novas do Google Cloud
         response = client.access_secret_version(request={"name": name})
         return response.payload.data.decode("UTF-8")
     except Exception as e:
         logging.error(f"Erro ao buscar API Key: {e}")
         raise e
 
+
+def run_cycle_analysis(db, current_workout, api_key):
+    """
+    Executa a análise Macro (Ciclo Mensal) e salva no Firestore.
+    """
+    try:
+        # 1. Configurar datas
+        date_iso = current_workout.get('dataTreinoIso')
+        
+        if not date_iso:
+            date_iso = datetime.now().isoformat()
+        
+        # Converte string ISO para objeto datetime
+        try:
+            # Remove o Z se existir para facilitar o parse
+            date_obj = datetime.fromisoformat(date_iso.replace("Z", "+00:00"))
+        except ValueError:
+            # Fallback para YYYY-MM-DD
+            date_obj = datetime.strptime(date_iso[:10], "%Y-%m-%d")
+
+        # Identificadores (Keys)
+        current_month_key = f"{date_obj.month:02d}-{date_obj.year}" # Ex: 02-2026
+        
+        # Calcular Mês Anterior
+        first_day_current = date_obj.replace(day=1)
+        last_day_prev = first_day_current - timedelta(days=1)
+        prev_month_key = f"{last_day_prev.month:02d}-{last_day_prev.year}" # Ex: 01-2026
+
+        # Calcular Limites para Query (Inicio do mes atual até inicio do proximo)
+        start_date_str = first_day_current.strftime("%Y-%m-%d")
+        next_month_date = (first_day_current + timedelta(days=32)).replace(day=1)
+        end_date_str = next_month_date.strftime("%Y-%m-%d")
+
+        # 2. Buscar Treinos do Mês Atual
+        exercises_ref = db.collection("exercises") 
+        
+        # Filtro: >= 01/Mês E < 01/Próximo Mês
+        docs = exercises_ref.where("dataTreinoIso", ">=", start_date_str)\
+                            .where("dataTreinoIso", "<", end_date_str)\
+                            .stream()
+        
+        month_workouts = []
+        current_id = current_workout.get('id') 
+
+        for doc in docs:
+            # Proteção contra duplicidade
+            if current_id and doc.id == current_id:
+                continue
+            month_workouts.append(doc.to_dict())
+
+        # Adiciona o treino atual (garantido na memória)
+        month_workouts.append(current_workout)
+
+        # 3. Buscar Análise do Ciclo Anterior
+        prev_cycle_ref = db.collection("cycles").document(prev_month_key)
+        prev_cycle_doc = prev_cycle_ref.get()
+        prev_cycle_data = prev_cycle_doc.to_dict() if prev_cycle_doc.exists else None
+
+        # 4. Gerar Prompt e Chamar IA
+        logging.info(f"Gerando análise de ciclo ({current_month_key}) com {len(month_workouts)} treinos.")
+        
+        prompt_text = create_cycle_prompt(
+            month_workouts=month_workouts,
+            previous_cycle_data=prev_cycle_data,
+            month_name=current_month_key
+        )
+        
+        # Usando a API Key passada como argumento
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash", 
+            google_api_key=api_key,
+            temperature=0.2
+        )
+        
+        cycle_parser = get_cycle_parser()
+        chain = llm | cycle_parser
+        
+        result = chain.invoke(prompt_text)
+        
+        # 5. Salvar no Firestore
+        cycle_ref = db.collection("cycles").document(current_month_key)
+        cycle_ref.set(result.dict())
+        
+        return result.dict()
+
+    except Exception as e:
+        logging.error(f"Erro CRÍTICO na análise de ciclo: {e}")
+        # Retorna erro mas não para a execução principal
+        return {"error": str(e)}
+
+
 def run_ai_analysis_logic(event):
     """
-    Função principal.
-    Recebe o evento do Firestore (Gen 2).
+    Função principal orquestradora.
     """
-    # --- MUDANÇA: Inicialize o cliente AQUI DENTRO ---
     firestore_client = firestore.client()
-    # -------------------------------------------------
     
     # 1. Obter o documento atual
     document_snapshot = event.data.after
@@ -56,11 +139,7 @@ def run_ai_analysis_logic(event):
         logging.info("Documento foi deletado. Nada a fazer.")
         return
 
-    # AJUSTE 2: Pegar o ID usando event.params (Mais seguro na Gen 2)
-    # Isso funciona porque no main.py definimos "exercises/{workoutId}"
     workout_id = event.params.get('workoutId')
-    
-    # Fallback caso params falhe por algum motivo
     if not workout_id:
         workout_id = event.document.split("/")[-1]
 
@@ -68,106 +147,100 @@ def run_ai_analysis_logic(event):
 
     current_data = document_snapshot.to_dict() or {}
 
-    # 2. Evita Loop Infinito (Verifica status)
+    # 2. Validações iniciais
     status = current_data.get('statusAnalise')
     if status in ['concluida', 'processando', 'erro']:
         logging.info(f"Treino {workout_id} ignorado (Status: {status})")
         return
 
-    # 3. Verifica se o PDF já terminou de ser processado
-    # Se não tiver 'partes' ou 'materiais', o PDF parser ainda não acabou.
     if not current_data.get('partes'):
-        logging.info("Aguardando o processamento do PDF terminar (campo 'partes' vazio).")
+        logging.info("Aguardando o processamento do PDF terminar.")
         return
 
-    # Referência para atualizar
+    # Referência para atualizar o status
     workout_ref = firestore_client.collection("exercises").document(workout_id)
 
     try:
-        # Marca como processando imediatamente
+        # Marca como processando
         workout_ref.update({"statusAnalise": "processando"})
         
-        box_id = current_data.get('boxId')
-        
-        # Busca histórico (apenas campos necessários para economizar leitura se o doc for gigante)
-        # Nota: O Firestore sempre lê o doc todo, mas ajuda na memória do python
+        # Busca histórico (últimos 15) para a análise diária
         history_docs = (
             firestore_client.collection("exercises")
-            #.where("boxId", "==", box_id)
             .order_by("dataTreinoIso", direction=firestore.Query.DESCENDING)
             .limit(15)
             .stream()
         )
         past_workouts = [d.to_dict() for d in history_docs if d.id != workout_id]
 
-        # ---------------------------------------------------------
-        # 3. Base de exercícios (Busca Real - Coleção "movimentos")
-        # ---------------------------------------------------------
-        
-        # Referência à coleção correta
+        # 3. Base de exercícios (Movimentos)
         exercises_ref = firestore_client.collection("movimentos")
-        
-        # Buscamos todos os exercícios
         all_exercises_docs = exercises_ref.stream()
         
         exercise_db = []
-        
         for doc in all_exercises_docs:
             d = doc.to_dict()
-            
-            nome_exercicio = d.get("displayName", d.get("name", "Sem Nome"))
-            
-            # Pegando listas (arrays)
-            equipamentos = d.get("equipment", []) 
-            musculos = d.get("primaryMuscles", [])
-            categorias = d.get("categories", [])  
-            
-            # Montamos o objeto enxuto
             exercise_db.append({
-                "nome": nome_exercicio,
-                "equipamento": equipamentos,
-                "musculos": musculos,
-                "categoria": categorias
+                "nome": d.get("displayName", d.get("name", "Sem Nome")),
+                "equipamento": d.get("equipment", []),
+                "musculos": d.get("primaryMuscles", []),
+                "categoria": d.get("categories", [])
             })
             
-        logging.info(f"Carregados {len(exercise_db)} exercícios da coleção 'movimentos'.")
+        logging.info(f"Base de conhecimento: {len(exercise_db)} exercícios carregados.")
 
-        # Monta Prompt
+        # 4. Análise DIÁRIA (Micro)
         prompt_text = create_evaluation_prompt(current_data, past_workouts, exercise_db)
-
-        # Chama Gemini
+        
+        # Pega a API Key uma única vez
         api_key = get_gemini_api_key()
+        
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash", 
             google_api_key=api_key,
             temperature=0.2
         )
 
-        logging.info("Enviando prompt para o Gemini...")
+        logging.info("Enviando prompt diário para o Gemini...")
         ai_message = llm.invoke(prompt_text)
         raw_output = ai_message.content
 
-        # Limpeza do JSON (Markdown strip)
+        # Limpeza do JSON
         clean_output = raw_output
         if "```json" in raw_output:
             clean_output = raw_output.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw_output: # Caso venha sem 'json' escrito
+        elif "```" in raw_output:
             clean_output = raw_output.split("```")[1].strip()
         
         parser = get_parser()
         structured_analysis = parser.parse(clean_output).dict()
 
-        # Salva
+        # Salva Análise Diária
         workout_ref.update({
             "analise": structured_analysis,
             "statusAnalise": "concluida",
             "analisadoEm": firestore.SERVER_TIMESTAMP
         })
-        logging.info(f"Sucesso! Treino {workout_id} analisado.")
+        logging.info(f"Sucesso! Treino {workout_id} analisado (Micro).")
+
+        # -------------------------------------------------------------
+        # 5. Análise de CICLO (Macro) - CHAMADA DA NOVA FUNÇÃO
+        # -------------------------------------------------------------
+        logging.info("Iniciando atualização do Ciclo Mensal...")
+        
+        # Injetamos o ID no objeto para garantir que a proteção de duplicidade funcione
+        # (caso o doc do firestore ainda não tenha o ID salvo dentro dos campos)
+        current_data_for_cycle = current_data.copy()
+        current_data_for_cycle['id'] = workout_id
+        
+        # Passamos a API Key que já pegamos lá em cima
+        run_cycle_analysis(firestore_client, current_data_for_cycle, api_key)
+        
+        logging.info("Ciclo Mensal atualizado com sucesso.")
+        # -------------------------------------------------------------
 
     except Exception as e:
         logging.error(f"Erro na análise do treino {workout_id}: {e}")
-        # Importante: Salvar erro como string para não quebrar o banco
         workout_ref.update({
             "statusAnalise": "erro", 
             "erroMsg": str(e)
