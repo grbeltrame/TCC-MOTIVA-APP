@@ -4,7 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/users/coach/daily_insights_service.dart';
-import 'package:flutter_app/shared/models/coach_cycle_topic_insights.dart';
+
+// ✅ CORREÇÃO: Importar o arquivo onde colocamos a classe CoachCycleInsightItem
+import 'package:flutter_app/shared/models/coach_cycle_insights.dart';
+
 import 'package:flutter_app/shared/widgets/utils/month_selector.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
@@ -31,6 +34,8 @@ class _CoachCycleInsightTopicDetailScreenState
   late String _topicTitle;
 
   late DateTime _month;
+
+  // A classe CoachCycleInsightItem agora vem do import correto acima
   Future<List<CoachCycleInsightItem>>? _future;
 
   @override
@@ -49,6 +54,7 @@ class _CoachCycleInsightTopicDetailScreenState
     final initialMonth = initialMonthArg ?? DateTime(now.year, now.month);
     _month = DateTime(initialMonth.year, initialMonth.month);
 
+    // Se o service foi atualizado corretamente, este método retorna Future<List<CoachCycleInsightItem>>
     _future ??= _service.fetchCycleTopicInsights(
       boxId: _boxId,
       month: _month,
@@ -92,13 +98,10 @@ class _CoachCycleInsightTopicDetailScreenState
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Scaffold(
-      appBar: TopNavbar(
-        onRegisterBox: () {}, // (você já trocou isso globalmente depois)
-      ),
+      appBar: TopNavbar(onRegisterBox: () {}),
       bottomNavigationBar: const BottomNavBar(),
       body: Stack(
         children: [
-          // Conteúdo da página (com espaço no topo pra não ficar por baixo do botão)
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: 12 * scale,
@@ -107,8 +110,8 @@ class _CoachCycleInsightTopicDetailScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(height: 52 * scale), // espaço do botão voltar no canto
-                // Header principal
+                SizedBox(height: 52 * scale),
+
                 Text(
                   _topicTitle,
                   style: Theme.of(context).textTheme.headlineSmall,
@@ -124,7 +127,6 @@ class _CoachCycleInsightTopicDetailScreenState
                 ),
                 SizedBox(height: 10 * scale),
 
-                // Chip categoria
                 Align(
                   alignment: Alignment.centerLeft,
                   child: _CategoryChip(
@@ -136,7 +138,6 @@ class _CoachCycleInsightTopicDetailScreenState
 
                 SizedBox(height: 12 * scale),
 
-                // Month selector
                 MonthSelector(
                   initialMonth: _month,
                   onMonthChanged: _onMonthChanged,
@@ -144,7 +145,6 @@ class _CoachCycleInsightTopicDetailScreenState
 
                 SizedBox(height: 12 * scale),
 
-                // Conteúdo
                 Expanded(
                   child: FutureBuilder<List<CoachCycleInsightItem>>(
                     future: _future,
@@ -153,22 +153,28 @@ class _CoachCycleInsightTopicDetailScreenState
                         return const Center(child: CircularProgressIndicator());
                       }
 
+                      // Se der erro ou for null, usa lista vazia
                       final list =
                           snapshot.data ?? const <CoachCycleInsightItem>[];
+
                       if (list.isEmpty) {
                         return Center(
-                          child: Text(
-                            'Nenhum insight disponível para este tópico no ciclo selecionado.',
-                            style: TextStyle(
-                              fontSize: 12 * scale,
-                              color: AppColors.mediumGray,
-                              fontFamily: AppFonts.roboto,
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0 * scale),
+                            child: Text(
+                              'Nenhum insight disponível para este tópico neste mês.',
+                              style: TextStyle(
+                                fontSize: 14 * scale,
+                                color: AppColors.mediumGray,
+                                fontFamily: AppFonts.roboto,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         );
                       }
 
+                      // Agrupando por data (String)
                       final grouped = <String, List<CoachCycleInsightItem>>{};
                       for (final item in list) {
                         final k = DateFormat('dd/MM/yyyy').format(item.date);
@@ -176,6 +182,7 @@ class _CoachCycleInsightTopicDetailScreenState
                         grouped[k]!.add(item);
                       }
 
+                      // Ordenando as chaves (datas) decrescente
                       final keys =
                           grouped.keys.toList()..sort((a, b) {
                             final da = DateFormat('dd/MM/yyyy').parse(a);
@@ -217,7 +224,6 @@ class _CoachCycleInsightTopicDetailScreenState
             ),
           ),
 
-          // Botão voltar fixo no canto superior esquerdo
           Positioned(
             left: 12 * scale,
             top: 8 * scale,
@@ -228,6 +234,8 @@ class _CoachCycleInsightTopicDetailScreenState
     );
   }
 }
+
+// --- WIDGETS AUXILIARES ---
 
 class _DayHeader extends StatelessWidget {
   final String dayKey;

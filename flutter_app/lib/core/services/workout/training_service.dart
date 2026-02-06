@@ -1,22 +1,40 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+
+// Imports do projeto
 import 'package:flutter_app/shared/models/box.dart';
 import 'package:flutter_app/shared/models/class.dart';
 import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/models/daily_workout_model.dart';
+
+// Import da tela de edição
+import 'package:flutter_app/features/user/coach/coach_training_edit_screen.dart';
+
+// Outros services
 import 'package:flutter_app/core/services/workout/workout_result_service.dart';
 import 'package:flutter_app/core/services/users/coach/coach_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
 
 class TrainingService {
   // ===========================================================================
-  // 1. [NOVO] LÓGICA CORRIGIDA PARA A TELA DO COACH (CoachDailyTrainingsSection)
+  // 1. LEITURA DE DADOS (FETCH)
   // ===========================================================================
 
-  /// Busca TODOS os documentos de treino do dia, sem limitar a 1.
-  /// Retorna uma lista de objetos Training, onde cada objeto representa 1 Documento do Firebase.
-  /// Não divide o treino em partes (WOD, Skill, etc); entrega o pacote completo (partes) para a UI decidir.
+  /// Helper crucial para pegar o ID do documento da data
+  static Future<String?> fetchDocumentIdForDate(DateTime date) async {
+    final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
+    final snap =
+        await FirebaseFirestore.instance
+            .collection('exercises')
+            .where('dataTreinoIso', isEqualTo: dataFormatada)
+            .limit(1)
+            .get();
+    if (snap.docs.isNotEmpty) return snap.docs.first.id;
+    return null;
+  }
+
+  /// Busca TODOS os documentos de treino do dia.
   static Future<List<Training>> fetchTrainingsListForDate({
     required String boxId,
     required DateTime date,
@@ -24,22 +42,16 @@ class TrainingService {
     try {
       final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
 
-      // 1. Query: Busca todos os documentos com a data especificada.
-      // Removemos o .limit(1) para permitir múltiplos treinos (ex: WOD normal + Aula extra de LPO)
       final snapshot =
           await FirebaseFirestore.instance
               .collection('exercises')
               .where('dataTreinoIso', isEqualTo: dataFormatada)
-              // .where('boxId', isEqualTo: boxId) // Descomente quando tiver multi-tenant real
               .get();
 
       if (snapshot.docs.isEmpty) return [];
 
-      // 2. Mapeamento: 1 Documento Firebase = 1 Objeto Training
       return snapshot.docs.map((doc) {
         final data = doc.data();
-
-        // Extrai o mapa de partes (WOD, SKILL, EXTRA) cru do JSON
         Map<String, dynamic> partesMap = {};
         if (data['partes'] != null && data['partes'] is Map) {
           partesMap = Map<String, dynamic>.from(data['partes']);
@@ -47,11 +59,9 @@ class TrainingService {
 
         return Training(
           id: doc.id,
-          // O título exato será gerado na UI (_generateButtonTitle), aqui colocamos um genérico
           title: "Treino do Dia",
           date: date,
           description: null,
-          // IMPORTANTE: Certifique-se de ter adicionado 'partes' no construtor do model Training
           partes: partesMap,
           analysis:
               data['analise'] != null
@@ -65,25 +75,22 @@ class TrainingService {
     }
   }
 
-  // ===========================================================================
-  // 2. LÓGICA LEGADA: FIREBASE (Usada para dividir o treino em blocos visuais)
-  // ===========================================================================
-
+  /// Busca e converte o treino em Blocos (TrainingBlock) para a UI.
   static Future<List<TrainingBlock>> fetchFullTrainingBlocks({
     required String boxId,
     required DateTime date,
     required String category,
-    String? trainingId, // <--- NOVO PARÂMETRO OPCIONAL
+    String? trainingId,
   }) async {
     try {
       Map<String, dynamic>? data;
 
-      // CENÁRIO A: Temos o ID (o usuário clicou num card específico)
+      // CENÁRIO A: Busca direta pelo ID
       if (trainingId != null && trainingId.isNotEmpty) {
         final docSnapshot =
             await FirebaseFirestore.instance
                 .collection('exercises')
-                .doc(trainingId) // Busca direto pelo nome do documento (ID)
+                .doc(trainingId)
                 .get();
 
         if (docSnapshot.exists) {
@@ -91,7 +98,7 @@ class TrainingService {
         }
       }
 
-      // CENÁRIO B: Não temos ID (fallback legado), busca pela data
+      // CENÁRIO B: Busca pela data (fallback)
       if (data == null) {
         final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
         final snapshot =
@@ -106,12 +113,9 @@ class TrainingService {
         }
       }
 
-      // Se não achou nada em nenhum dos dois casos
       if (data == null) return [];
 
-      // --- DAQUI PRA BAIXO É A SUA LÓGICA DE PARSE (MANTIDA IGUAL) ---
       final workoutData = DailyWorkoutModel.fromJson(data);
-
       List<TrainingBlock> blocks = [];
       final order = ['WARM UP', 'SKILL', 'WOD', 'EXTRA TRAINING'];
 
@@ -122,7 +126,7 @@ class TrainingService {
         }
 
         String subtitle = part.type;
-        if (part.durationMinutes != null) {
+        if (part.durationMinutes != null && part.durationMinutes! > 0) {
           subtitle += " (${part.durationMinutes} min)";
         }
 
@@ -144,14 +148,23 @@ class TrainingService {
         );
       });
 
+      // Ordenação visual robusta (trata WOD_2 como WOD para fins de ordem de categoria)
       blocks.sort((a, b) {
-        String keyA = a.id;
-        String keyB = b.id;
-        int idxA = order.indexWhere((o) => keyA.startsWith(o));
-        int idxB = order.indexWhere((o) => keyB.startsWith(o));
+        // Pega o prefixo antes do _ (Ex: WOD_2 -> WOD)
+        String typeA = a.id.split('_')[0];
+        String typeB = b.id.split('_')[0];
+
+        int idxA = order.indexWhere((o) => typeA.startsWith(o));
+        int idxB = order.indexWhere((o) => typeB.startsWith(o));
+
         if (idxA == -1) idxA = 99;
         if (idxB == -1) idxB = 99;
-        return idxA.compareTo(idxB);
+
+        int comp = idxA.compareTo(idxB);
+        if (comp != 0) return comp;
+
+        // Desempate alfabético (WOD vem antes de WOD_2)
+        return a.id.compareTo(b.id);
       });
 
       return blocks;
@@ -162,7 +175,149 @@ class TrainingService {
   }
 
   // ===========================================================================
-  // 3. AUXILIAR: TRADUTOR DE CARDS (SUMMARY)
+  // 2. AÇÕES DE BANCO DE DADOS (DELETE / UPDATE)
+  // ===========================================================================
+
+  static Future<void> deleteTraining({
+    required String boxId,
+    required DateTime date,
+    required String category,
+    required String blockId,
+  }) async {
+    try {
+      final collection = FirebaseFirestore.instance.collection('exercises');
+
+      // Se for ID hash (longo), deleta direto o documento
+      if (blockId.length > 10 && !blockId.contains(' ')) {
+        await collection.doc(blockId).delete();
+        print("Treino deletado por ID direto: $blockId");
+        return;
+      }
+
+      // Fallback: Busca documento pela data e deleta
+      final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
+      final snapshot =
+          await collection
+              .where('dataTreinoIso', isEqualTo: dataFormatada)
+              .limit(1)
+              .get();
+
+      for (var doc in snapshot.docs) {
+        await doc.reference.delete();
+        print("Treino deletado via Data: ${doc.id}");
+      }
+    } catch (e) {
+      print("ERRO AO DELETAR TREINO: $e");
+      rethrow;
+    }
+  }
+
+  /// CORREÇÃO CRÍTICA AQUI:
+  /// Usamos docRef.update() quando existe, para SUBSTITUIR o mapa 'partes'
+  /// e evitar a duplicação de WODs antigos.
+  static Future<void> updateTrainingFromEditable({
+    required String boxId,
+    required DateTime date,
+    required String category,
+    required EditableTraining edited,
+    String?
+    docId, // Opcional: ID do documento para garantir update no lugar certo
+  }) async {
+    try {
+      final collection = FirebaseFirestore.instance.collection('exercises');
+      DocumentReference docRef;
+      bool exists = false;
+
+      // 1. Identifica o Documento
+      if (docId != null && docId.isNotEmpty) {
+        docRef = collection.doc(docId);
+        final docSnap = await docRef.get();
+        exists = docSnap.exists;
+      } else {
+        final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
+        final snapshot =
+            await collection
+                .where('dataTreinoIso', isEqualTo: dataFormatada)
+                .limit(1)
+                .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          docRef = snapshot.docs.first.reference;
+          exists = true;
+        } else {
+          docRef = collection.doc();
+          exists = false;
+        }
+      }
+
+      // 2. Converte EditableTraining (UI) -> Map (Firebase)
+      Map<String, dynamic> partesMap = {};
+
+      for (var section in edited.sections) {
+        String baseKey = section.type.toUpperCase(); // WOD, SKILL
+        String key = baseKey;
+
+        // Garante chaves únicas: WOD, WOD_2, WOD_3
+        int count = 2;
+        while (partesMap.containsKey(key)) {
+          key = "${baseKey}_$count";
+          count++;
+        }
+
+        List<String> exercisesList = [];
+        for (var mov in section.movements) {
+          String line = mov.name;
+          if (mov.reps.isNotEmpty) {
+            line = "${mov.reps} $line";
+          }
+          if (mov.load != null && mov.load!.trim().isNotEmpty) {
+            line = "$line (${mov.load})";
+          }
+          exercisesList.add(line);
+        }
+
+        partesMap[key] = {
+          'type': section.type,
+          'wodName': section.name ?? '',
+          'durationMinutes': section.timeMinutes ?? 0,
+          'exercises': exercisesList,
+          'observations': '',
+        };
+      }
+
+      // 3. Payload Final
+      final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
+      final Map<String, dynamic> payload = {
+        'boxId': boxId,
+        'dataTreinoIso': dataFormatada,
+        'dataCriacao': FieldValue.serverTimestamp(),
+
+        // Aqui está o segredo: Substituímos 'partes' inteiramente pelo novo mapa
+        'partes': partesMap,
+
+        'statusAnalise': 'pendente', // Gatilho Python
+        'analise': FieldValue.delete(),
+      };
+
+      // 4. Salva CORRETAMENTE
+      if (exists) {
+        // UPDATE: Substitui os campos informados.
+        // Como passamos um novo Map para 'partes', as chaves antigas somem.
+        await docRef.update(payload);
+        print("Treino atualizado (UPDATE) - Chaves antigas removidas.");
+      } else {
+        // SET: Cria novo documento
+        await docRef.set(payload);
+        print("Treino criado (SET).");
+      }
+    } catch (e) {
+      print("ERRO AO SALVAR TREINO EDITADO: $e");
+      rethrow;
+    }
+  }
+
+  // ===========================================================================
+  // 3. HELPER: SUMMARY DE CARDS
   // ===========================================================================
 
   static DailyWorkoutSummary createSummaryFromBlocks(
@@ -209,10 +364,9 @@ class TrainingService {
   }
 
   // ===========================================================================
-  // 4. MÉTODOS DE COMPATIBILIDADE (LEGADO)
+  // 4. MÉTODOS LEGADOS (COMPATIBILIDADE)
   // ===========================================================================
 
-  /// Usado pelo DateSelector (Bolinhas do calendário)
   static Future<List<dynamic>> fetchWorkoutsForDate(DateTime date) async {
     final blocks = await fetchFullTrainingBlocks(
       boxId: '1',
@@ -222,7 +376,6 @@ class TrainingService {
     return blocks.isNotEmpty ? ['treino_existe'] : [];
   }
 
-  /// Usado por telas antigas que esperam TrainingBlock
   static Future<Map<String, TrainingBlock?>>
   fetchTrainingBlocksByCategoryForDate({
     required String boxId,
@@ -236,6 +389,8 @@ class TrainingService {
     final Map<String, TrainingBlock?> resultMap = {};
 
     for (var block in blocks) {
+      // Se houver múltiplos WODs, isso vai pegar o último ou sobrescrever,
+      // mas é um método legado que retorna Map, então é o comportamento esperado.
       if (block.id.contains('WOD'))
         resultMap['WOD'] = block;
       else if (block.id.contains('LPO'))
@@ -243,14 +398,13 @@ class TrainingService {
       else
         resultMap[block.title] = block;
     }
-    // Garante que algo apareça se tiver dados
+
+    // Se achou blocos mas nenhum caiu nas categorias acima, força o primeiro como WOD
     if (blocks.isNotEmpty && resultMap.isEmpty) resultMap['WOD'] = blocks.first;
 
     return resultMap;
   }
 
-  /// [LEGADO] - Mantido apenas para não quebrar outras telas que ainda o chamam.
-  /// A nova tela CoachDailyTrainingsSection NÃO usa mais este método.
   static Future<Map<String, Training?>> fetchTrainingsByCategoryForDate({
     required String boxId,
     required DateTime date,
@@ -274,27 +428,14 @@ class TrainingService {
         title: block.title,
         description: block.items.join('\n'),
         date: date,
-        // Em telas antigas, talvez 'partes' não seja necessário, então mandamos vazio
         partes: {},
       );
     }
-
-    if (blocks.isNotEmpty && resultMap.isEmpty) {
-      final b = blocks.first;
-      resultMap['WOD'] = Training(
-        id: b.id,
-        title: b.title,
-        description: b.items.join('\n'),
-        date: date,
-        partes: {},
-      );
-    }
-
     return resultMap;
   }
 
   // ===========================================================================
-  // 5. MOCKS E OUTROS MÉTODOS
+  // 5. MOCKS E AUXILIARES
   // ===========================================================================
 
   static Future<List<Box>> fetchUserBoxes() async {
@@ -315,24 +456,10 @@ class TrainingService {
   }) async {
     return [];
   }
-
-  static Future<void> deleteTraining({
-    required String boxId,
-    required DateTime date,
-    required String category,
-    required String blockId,
-  }) async {}
-
-  static Future<void> saveFullTrainingBlocks({
-    required String boxId,
-    required DateTime date,
-    required String category,
-    required List<TrainingBlock> blocks,
-  }) async {}
 }
 
 // =============================================================================
-// EXTENSIONS
+// EXTENSIONS (Mantidas inalteradas)
 // =============================================================================
 
 extension DailySummaries on TrainingService {
@@ -458,53 +585,36 @@ extension CycleMonths on TrainingService {
   }
 }
 
-// ===========================================================================
-// [ADICIONADO DO CÓDIGO DO COLEGA] Extension CycleAll
-// ===========================================================================
 extension CycleAll on TrainingService {
-  /// Retorna os meses (1-12) que possuem ciclo cadastrado no [year].
-  /// TODO(back): substituir por consulta real (Firebase) filtrando por boxId + ano.
   static Future<List<int>> fetchRegisteredCycleMonthsForYear({
     required String boxId,
     required int year,
   }) async {
     await Future.delayed(const Duration(milliseconds: 200));
-
-    // MOCK: dataset fixo (exemplo da sua referência)
-    // 2025: Jan, Fev, Mar
-    // 2026: Jan
     final mock = <int, List<int>>{
       2025: [1, 2, 3],
       2026: [1],
     };
-
     final months = mock[year] ?? const <int>[];
     final sorted = [...months]..sort();
     return sorted;
   }
 
-  /// Retorna o ciclo vigente = último ciclo registrado (mais recente).
-  /// TODO(back): substituir por query que retorna o último ciclo (orderBy date desc limit 1).
   static Future<DateTime?> fetchCurrentCycleMonth({
     required String boxId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 200));
-
-    // MOCK consistente com fetchRegisteredCycleMonthsForYear
     final all = <DateTime>[
       DateTime(2025, 1),
       DateTime(2025, 2),
       DateTime(2025, 3),
       DateTime(2026, 1),
     ];
-
     if (all.isEmpty) return null;
     all.sort((a, b) => a.compareTo(b));
     return all.last;
   }
 
-  /// Apenas helper: checa se existe ciclo no (year, month).
-  /// TODO(back): substituir por leitura direta.
   static Future<bool> isCycleRegistered({
     required String boxId,
     required int year,

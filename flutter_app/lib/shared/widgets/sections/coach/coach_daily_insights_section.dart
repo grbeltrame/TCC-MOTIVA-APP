@@ -6,31 +6,14 @@ import 'package:flutter_app/shared/widgets/carousels/recomendations_carousel.dar
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 
 /// Section que exibe um carrossel de insights do COACH.
-/// Modo 1 (legado): sem filtros -> insights do DIA.
-/// Modo 2 (novo): se [selectedCategory] **e** [trainingId] vierem, mostra
-/// apenas insights do treino específico (categoria + data + treino).
 class CoachDailyInsightsSection extends StatelessWidget {
   final DateTime date;
   final String boxId;
-
-  /// (Opcional) treino específico
-  final String? selectedCategory; // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
+  final String? selectedCategory;
   final String? trainingId;
-
-  /// Título opcional. Se não vier:
-  /// - com treino específico → "Insights do Treino"
-  /// - legado → "Insights do dia"
   final String? title;
-
-  /// Exibir botão “ver todos os insights” ao lado do título (padrão: false).
   final bool showSeeAllButton;
-
-  /// Callback do botão “ver todos os insights”.
-  /// Se não vier, faz fallback para a tela de projeção de ciclo
-  /// (`CoachTrainingInsightsScreen`) já com o mês atual.
   final VoidCallback? onSeeAll;
-
-  /// NOVO: botões do footer opcionais (true = mantém comportamento atual).
   final bool showWeeklyAnalysisButton;
   final bool showCycleProjectionButton;
 
@@ -54,8 +37,6 @@ class CoachDailyInsightsSection extends StatelessWidget {
   String _defaultTitle() =>
       title ?? (_isTrainingScoped ? 'Insights do Treino' : 'Insights do dia');
 
-  /// Sempre retorna um VoidCallback válido (evita "use_of_void_result").
-  /// Se não receber [onSeeAll], navega para CoachTrainingInsights com o mês atual.
   VoidCallback _resolveSeeAll(BuildContext context) {
     if (onSeeAll != null) return onSeeAll!;
 
@@ -66,11 +47,7 @@ class CoachDailyInsightsSection extends StatelessWidget {
       Navigator.pushNamed(
         context,
         AppRoutes.coachTrainingInsights,
-        arguments: {
-          'month': currentMonth,
-          // se quiser depois, pode passar boxId aqui também:
-          // 'boxId': boxId,
-        },
+        arguments: {'month': currentMonth},
       );
     };
   }
@@ -122,11 +99,14 @@ class CoachDailyInsightsSection extends StatelessWidget {
               final list = snapScoped.data ?? [];
 
               if (list.isEmpty) {
+                // CORREÇÃO AQUI: Passando os booleans para mostrar os botões
                 return _TitleAndEmpty(
                   title: _defaultTitle(),
                   showSeeAllButton: showSeeAllButton,
                   onSeeAll: _resolveSeeAll(context),
                   emptyText: 'Sem insights para $cat em ${_fmtDateLong(date)}.',
+                  showWeeklyAnalysisButton: showWeeklyAnalysisButton,
+                  showCycleProjectionButton: showCycleProjectionButton,
                 );
               }
 
@@ -185,6 +165,10 @@ class CoachDailyInsightsSection extends StatelessWidget {
                 child: Center(child: CircularProgressIndicator()),
               );
             }
+            // Se não tem categoria existente no dia, mas queremos mostrar os botões mesmo assim?
+            // O comportamento original retornava SizedBox.shrink().
+            // Se você quiser que apareça "Sem insights" + Botão mesmo sem categorias,
+            // remova este if. Por enquanto, mantive a lógica original.
             final existing = snapExisting.data ?? {};
             if (existing.isEmpty) return const SizedBox.shrink();
 
@@ -209,12 +193,15 @@ class CoachDailyInsightsSection extends StatelessWidget {
                         .toList();
 
                 if (filtered.isEmpty) {
+                  // CORREÇÃO AQUI: Passando os booleans para mostrar os botões
                   return _TitleAndEmpty(
                     title: _defaultTitle(),
                     showSeeAllButton: showSeeAllButton,
                     onSeeAll: _resolveSeeAll(context),
                     emptyText:
                         'Sem insights gerados para ${_fmtDateLong(date)}.',
+                    showWeeklyAnalysisButton: showWeeklyAnalysisButton,
+                    showCycleProjectionButton: showCycleProjectionButton,
                   );
                 }
 
@@ -305,22 +292,37 @@ class _TitleRow extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CORREÇÃO NO WIDGET DE ESTADO VAZIO
+// Antes ele só mostrava texto. Agora mostra texto E botões se configurado.
+// ─────────────────────────────────────────────────────────────────────────────
 class _TitleAndEmpty extends StatelessWidget {
   final String title;
   final bool showSeeAllButton;
   final VoidCallback onSeeAll;
   final String emptyText;
 
+  // Novos campos recebidos
+  final bool showWeeklyAnalysisButton;
+  final bool showCycleProjectionButton;
+
   const _TitleAndEmpty({
     required this.title,
     required this.showSeeAllButton,
     required this.onSeeAll,
     required this.emptyText,
+    required this.showWeeklyAnalysisButton,
+    required this.showCycleProjectionButton,
   });
 
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
+
+    // Verifica se deve mostrar a linha de ações
+    final bool showActions =
+        showWeeklyAnalysisButton || showCycleProjectionButton;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -337,6 +339,20 @@ class _TitleAndEmpty extends StatelessWidget {
             child: Text(emptyText, textAlign: TextAlign.center),
           ),
         ),
+
+        // AQUI: Renderiza os botões mesmo no estado vazio
+        if (showActions) ...[
+          SizedBox(height: 8 * scale),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+            child: _CoachInsightsActions(
+              scale: scale,
+              showWeekly: showWeeklyAnalysisButton,
+              showCycleProjection: showCycleProjectionButton,
+            ),
+          ),
+          SizedBox(height: 8 * scale),
+        ],
       ],
     );
   }
@@ -400,19 +416,13 @@ class _CoachInsightsActions extends StatelessWidget {
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
-              // 🔹 Navega para a tela de insights de ciclo
-              //     já com o MÊS ATUAL selecionado.
               final now = DateTime.now();
               final currentMonth = DateTime(now.year, now.month);
 
               Navigator.pushNamed(
                 context,
                 AppRoutes.coachTrainingInsights,
-                arguments: {
-                  'month': currentMonth,
-                  // se quiser depois passar boxId aqui, é só incluir:
-                  // 'boxId': '1',
-                },
+                arguments: {'month': currentMonth},
               );
             },
             icon: Icon(

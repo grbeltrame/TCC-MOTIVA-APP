@@ -99,17 +99,9 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
   /// Mantém sempre o último estado editado vindo do _EditBody.
   EditableTraining? _currentEdited;
 
-  // TODO(DB-SAVE): quando o backend estiver pronto, mude para false
-  // e implemente _persistEditedTraining(...) de verdade.
-  static const bool _kUseMockPersistence = true;
-
   @override
   void initState() {
     super.initState();
-
-    // TODO(DB-LOAD): quando conectar no banco de dados "de verdade",
-    // este Future já deve ser alimentado por um serviço/repositório real
-    // (ex.: TrainingRepository / TrainingService).
     _futureEditable = _loadEditableFromService(
       boxId: widget.boxId,
       date: widget.date,
@@ -169,9 +161,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
   ///
   /// "5 Muscle Snatch" → (5, Muscle Snatch, null)
   /// "400m Run" → (400m, Run, null)
-  ///
-  /// OBS: aqui a gente só parseia linha a linha (movimento),
-  /// o tempo da seção fica no header (name/timeMinutes).
   List<EditableMovement> _parseLineIntoMovements(String raw) {
     final s = raw.trim();
     if (s.isEmpty) return const [];
@@ -202,10 +191,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     }
 
     // 400m Run | 1km Row | 12' Burpees
-    //
-    // Aceita unidades:
-    // - m, km, min, sec
-    // - ' e " (usando \x27 e \x22 para evitar problema de escape)
     final distRe = RegExp(
       r"^\s*(\d+\s*(?:m|km|min|sec|[\x27\x22]))\s+(.+?)(?:\s*\(([^)]+)\))?\s*$",
       caseSensitive: false,
@@ -325,8 +310,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     required String category,
     String? highlightBlockId,
   }) async {
-    // TODO(DB-LOAD): este fetch deve vir do banco quando a integração estiver pronta.
-    // ✅ Enquanto isso, OK usar o TrainingService atual.
     final blocks = await TrainingService.fetchFullTrainingBlocks(
       boxId: boxId,
       date: date,
@@ -345,55 +328,51 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Persistência (MOCK agora, REAL depois)
+  // Persistência REAL
   // ───────────────────────────────────────────────────────────────────────────
 
   Future<void> _persistEditedTraining(EditableTraining edited) async {
-    if (_kUseMockPersistence) {
-      // ✅ MOCK (REMOVER quando DB-SAVE estiver pronto)
-      await Future.delayed(const Duration(milliseconds: 350));
-      return;
-    }
-
-    // TODO(DB-SAVE): Implementar persistência real aqui.
-    // Exemplo futuro:
-    // await TrainingService.updateTraining(
-    //   boxId: widget.boxId,
-    //   date: widget.date,
-    //   category: widget.category,
-    //   edited: edited,
-    // );
+    // 🔥 Chama a função que salva e reseta o status para 'pendente'
+    await TrainingService.updateTrainingFromEditable(
+      boxId: widget.boxId,
+      date: widget.date,
+      category: widget.category,
+      edited: edited,
+    );
   }
 
   Future<void> _onConfirmPressed() async {
     final edited = _currentEdited;
     if (edited == null) return;
 
+    // Loading...
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => const Center(child: CircularProgressIndicator()),
+    );
+
     try {
       await _persistEditedTraining(edited);
+
       if (!mounted) return;
+      // Fecha o loading
+      Navigator.of(context).pop();
 
-      if (_kUseMockPersistence) {
-        // ✅ MOCK (REMOVER quando DB-SAVE estiver pronto)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Treino atualizado (mock).'),
-            backgroundColor: AppColors.baseBlue,
-          ),
-        );
+      // Mostra sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Treino atualizado com sucesso!'),
+          backgroundColor: AppColors.baseBlue,
+        ),
+      );
 
-        // ✅ MOCK: retorna o objeto editado pra você validar na tela anterior
-        Navigator.of(context).pop(edited);
-
-        // Quando o backend estiver pronto, você pode trocar pra:
-        // Navigator.of(context).pop(true);
-        return;
-      }
-
-      // ✅ REAL (quando backend estiver pronto)
+      // Fecha a tela e retorna true para dar refresh na lista anterior
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
+      Navigator.of(context).pop(); // Fecha loading
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Falha ao salvar treino: $e'),
@@ -410,9 +389,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Scaffold(
-      // ✅ AppBar exatamente como você pediu
       appBar: const TopNavbar(),
-
       body: SafeArea(
         child: FutureBuilder<EditableTraining>(
           future: _futureEditable,
@@ -430,7 +407,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ✅ BACK BUTTON (alinhado no canto esquerdo)
+                // BACK BUTTON
                 Padding(
                   padding: EdgeInsets.only(
                     top: 8 * scale,
@@ -443,7 +420,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
                   ),
                 ),
 
-                // ✅ O que estava no AppBar vira conteúdo da página
+                // TÍTULO
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     12 * scale,
@@ -670,7 +647,7 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
         borderRadius: BorderRadius.circular(12 * scale),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05), // ✅ sem withOpacity
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 3 * scale,
             offset: Offset(0, 1 * scale),
           ),
@@ -808,7 +785,7 @@ class _MovementRowState extends State<_MovementRow> {
 
     return Row(
       children: [
-        // Reps (permite texto: números + unidades tipo 400m, 12', 1km, 20sec)
+        // Reps
         Expanded(
           flex: 3,
           child: TextFormField(
@@ -819,7 +796,7 @@ class _MovementRowState extends State<_MovementRow> {
             },
             decoration: const InputDecoration(
               labelText: 'Reps',
-              hintText: "ex.: 21 | 400m | 12' | 5x5",
+              hintText: "ex.: 21 | 400m | 12'",
             ),
           ),
         ),
@@ -854,7 +831,6 @@ class _MovementRowState extends State<_MovementRow> {
               labelText: 'Carga',
               hintText: '',
               hintStyle: widget.hintLoadStyle,
-              // ✅ Quando não tiver carga, o campo fica "visualmente mais cinza"
               filled: !loadEnabled,
               fillColor:
                   !loadEnabled
