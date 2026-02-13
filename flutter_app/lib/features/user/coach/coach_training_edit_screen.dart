@@ -314,6 +314,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
       boxId: boxId,
       date: date,
       category: category,
+      trainingId: highlightBlockId,
     );
 
     if (highlightBlockId != null && highlightBlockId.isNotEmpty) {
@@ -332,12 +333,25 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
   // ───────────────────────────────────────────────────────────────────────────
 
   Future<void> _persistEditedTraining(EditableTraining edited) async {
-    // 🔥 Chama a função que salva e reseta o status para 'pendente'
+    String? realDocId;
+
+    // 1. Extrai o ID do Documento da string composta (ex: "XyZ123__WOD" vira "XyZ123")
+    if (widget.highlightBlockId != null &&
+        widget.highlightBlockId!.contains('__')) {
+      realDocId = widget.highlightBlockId!.split('__')[0];
+    }
+    // Fallback: Caso venha um ID antigo simples
+    else {
+      realDocId = widget.highlightBlockId;
+    }
+
+    // 2. Chama o serviço passando o DocID explícito
     await TrainingService.updateTrainingFromEditable(
       boxId: widget.boxId,
       date: widget.date,
       category: widget.category,
       edited: edited,
+      docId: realDocId, // <--- O PULO DO GATO ESTÁ AQUI
     );
   }
 
