@@ -9,6 +9,8 @@ import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
+import 'package:provider/provider.dart'; // <--- O pacote que instalamos
+import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart'; // <--- O arquivo que criamos
 // TODO(google): Importar o seu GoogleSignInService quando for implementar
 import 'google_auth.dart'; // Mantido como você importou
 
@@ -37,15 +39,12 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// Chama a API de login e navega conforme perfil.
   Future<void> _performLogin() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
     try {
-      // --- Início da Lógica de Login Firebase ---
-
-      // 1. Tentar fazer login no Firebase Auth
+      // 1. Login no Auth (Igual antes)
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(
             email: _emailController.text.trim(),
@@ -55,42 +54,23 @@ class _LoginScreenState extends State<LoginScreen> {
       final User? user = userCredential.user;
 
       if (user != null) {
-        // 2. Login bem-sucedido, buscar perfil no Firestore
-        final DocumentSnapshot userDoc =
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .get();
+        // 2. A MÁGICA: Carrega os dados no Provider (Memória Global)
+        // Usamos listen: false porque estamos numa função, não desenhando tela
+        await Provider.of<UserProvider>(
+          context,
+          listen: false,
+        ).loadUserData(user);
 
-        if (userDoc.exists) {
-          final Map<String, dynamic> data =
-              userDoc.data() as Map<String, dynamic>;
-          final String? profile = data['profile']; // 'athlete', 'coach', etc.
+        // 3. Verifica o estado que o Provider definiu
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-          if (profile != null) {
-            // 3. Navegação condicional (mesma lógica do signup_screen)
-            final isCoach =
-                profile == 'coach' ||
-                profile == 'athleteCoach' ||
-                profile == 'athleteIntern' ||
-                profile == 'intern';
-
-            if (isCoach) {
-              Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
-            } else {
-              Navigator.pushReplacementNamed(context, AppRoutes.athleteHome);
-            }
-          } else {
-            // Usuário logado, mas sem perfil no Firestore.
-            throw Exception('Erro ao carregar o perfil do usuário.');
-          }
+        // 4. Navega baseando-se no que o Provider decidiu
+        if (userProvider.isCoachView) {
+          Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
         } else {
-          // Usuário logado no Auth, mas sem documento no Firestore.
-          // Isso pode acontecer se o cadastro falhou na metade.
-          throw Exception('Usuário não encontrado no banco de dados.');
+          Navigator.pushReplacementNamed(context, AppRoutes.athleteHome);
         }
       }
-      // --- Fim da Lógica de Login Firebase ---
     } catch (e) {
       String errorMessage = 'Ocorreu um erro ao fazer login.';
       if (e is FirebaseAuthException) {
@@ -101,9 +81,10 @@ class _LoginScreenState extends State<LoginScreen> {
         } else if (e.code == 'invalid-email') {
           errorMessage = 'O formato do e-mail é inválido.';
         }
-      } else if (e is Exception) {
-        // Captura os erros que nós mesmos lançamos (ex: 'Perfil não encontrado')
-        errorMessage = e.toString().replaceFirst("Exception: ", "");
+      }
+      // Captura erros vindos do Provider (ex: usuário sem perfil)
+      else if (e.toString().contains('sem perfil')) {
+        errorMessage = 'Perfil de usuário não encontrado.';
       }
 
       ScaffoldMessenger.of(
@@ -116,13 +97,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // --- INÍCIO DA ADIÇÃO DE CÓDIGO ---
 
-  /// Chama a API de login do Google e navega conforme perfil.
   Future<void> _performGoogleLogin() async {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Chamar o seu serviço de login do Google
-      // (Assumindo que sua classe se chama GoogleSignInService)
+      // 1. Login Google (Igual antes)
       final UserCredential? userCredential =
           await GoogleSignInService.signInWithGoogle();
 
@@ -131,52 +110,28 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       final User user = userCredential.user!;
 
-      // 2. Buscar o documento do usuário no Firestore
-      // (O GoogleSignInService já criou um documento básico se for novo)
-      final DocumentSnapshot userDoc =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get();
+      // 2. Tenta carregar perfil no Provider
+      try {
+        await Provider.of<UserProvider>(
+          context,
+          listen: false,
+        ).loadUserData(user);
 
-      // 3. Lógica de Navegação
-      if (userDoc.exists) {
-        final Map<String, dynamic> data =
-            userDoc.data() as Map<String, dynamic>;
+        // Se chegou aqui, tem perfil. Navega conforme o Provider manda.
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-        // Verifica se o campo 'profile' existe no documento
-        final String? profile =
-            data.containsKey('profile') ? data['profile'] as String? : null;
-
-        if (profile != null && profile.isNotEmpty) {
-          // CASO 1: Perfil existe. É um usuário antigo.
-          // Navega para a home correta.
-          final isCoach =
-              profile == 'coach' ||
-              profile == 'athleteCoach' ||
-              profile == 'athleteIntern' ||
-              profile == 'intern';
-
-          if (isCoach) {
-            Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
-          } else {
-            Navigator.pushReplacementNamed(context, AppRoutes.athleteHome);
-          }
+        if (userProvider.isCoachView) {
+          Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
         } else {
-          // CASO 2: Perfil NÃO existe (null ou ""). É um usuário novo do Google.
-          // Redireciona para a tela de seleção de perfil que criamos.
-          // TODO: Verifique se a rota '/select-profile' está em AppRoutes.dart
-          Navigator.pushReplacementNamed(context, AppRoutes.selectProfile);
+          Navigator.pushReplacementNamed(context, AppRoutes.athleteHome);
         }
-      } else {
-        // Fallback: O GoogleSignInService deveria ter criado o doc, mas se falhou.
-        throw Exception('Erro ao obter os dados do usuário.');
+      } catch (e) {
+        // Se der erro no loadUserData, provavelmente é usuário novo (sem doc no Firestore)
+        // Então mandamos para a tela de Seleção de Perfil
+        Navigator.pushReplacementNamed(context, AppRoutes.selectProfile);
       }
     } catch (e) {
-      String errorMessage = 'Ocorreu um erro ao logar com o Google.';
-      if (e is Exception) {
-        errorMessage = e.toString().replaceFirst("Exception: ", "");
-      }
+      String errorMessage = 'Erro no login com Google: ${e.toString()}';
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(errorMessage)));

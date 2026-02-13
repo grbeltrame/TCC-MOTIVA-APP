@@ -1,60 +1,24 @@
 // lib/shared/widgets/top_navbar.dart
-import 'package:flutter/material.dart';
-import 'package:flutter_app/core/constants/app_colors.dart';
-import 'package:flutter_app/core/services/users/profile_service.dart';
-import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 
-// ✅ bottom sheet de cadastrar treino
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart';
+import 'package:flutter_app/routes/app_routes.dart';
+import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart';
 
-/// TopNavbar genérico: ele mesmo consulta o ProfileService e se atualiza.
-/// Use em qualquer Scaffold:
-/// appBar: TopNavbar(onRegisterBox: ..., [showSystemBack:false])
-///
-/// OBS: onRegisterBox foi mantido apenas por compatibilidade (não é mais usado).
-class TopNavbar extends StatefulWidget implements PreferredSizeWidget {
-  /// ⚠️ Mantido por compatibilidade com telas antigas (não é mais usado).
-  final VoidCallback? onRegisterBox;
-
-  /// Se true, mostra a seta **nativa** do AppBar (rara necessidade).
-  /// Por padrão deixamos **false** porque você já usa o AppBackButton no corpo.
+class TopNavbar extends StatelessWidget implements PreferredSizeWidget {
   final bool showSystemBack;
 
-  const TopNavbar({
-    Key? key,
-    this.onRegisterBox, // compat
-    this.showSystemBack = false,
-  }) : super(key: key);
+  // Mantido por compatibilidade
+  final VoidCallback? onRegisterBox;
+
+  const TopNavbar({Key? key, this.showSystemBack = false, this.onRegisterBox})
+    : super(key: key);
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-
-  @override
-  _TopNavbarState createState() => _TopNavbarState();
-}
-
-class _TopNavbarState extends State<TopNavbar> {
-  final ProfileService _service = ProfileService();
-
-  // estado local
-  late bool _hasStudent, _hasCoach;
-  late String _currentRole;
-  late int _unread;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfileData();
-  }
-
-  void _loadProfileData() {
-    setState(() {
-      _hasStudent = _service.hasRole('student');
-      _hasCoach = _service.hasRole('coach');
-      _currentRole = _service.currentRoleLabel;
-      _unread = _service.unreadCount;
-    });
-  }
 
   void _openRegisterTraining(BuildContext context) {
     showRegisterTrainingBottomSheet(context);
@@ -62,17 +26,27 @@ class _TopNavbarState extends State<TopNavbar> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Conecta ao cérebro (Provider)
+    final userProvider = Provider.of<UserProvider>(context);
+
+    // Dados do estado atual
+    final isCoachView = userProvider.isCoachView;
+    final canSwitch = userProvider.canToggleView;
+
+    // Define o texto atual (Voltei para o inglês como você pediu)
+    final String currentLabel = isCoachView ? 'Coach' : 'Athlete';
+
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return AppBar(
       automaticallyImplyLeading: false,
-      leading: widget.showSystemBack ? const BackButton() : null,
+      leading: showSystemBack ? const BackButton() : null,
       backgroundColor: Theme.of(context).colorScheme.surface,
       elevation: 0,
       centerTitle: false,
       titleSpacing: 16.0 * scale,
 
-      // “borda” inferior
+      // Borda inferior cinza (igual ao original)
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(0.5 * scale),
         child: Container(height: 0.5 * scale, color: AppColors.mediumGray),
@@ -80,119 +54,161 @@ class _TopNavbarState extends State<TopNavbar> {
 
       title: Row(
         children: [
-          // 1) Perfil: dropdown só se tiver ambos
-          if (_hasStudent && _hasCoach)
-            _buildMenu<String>(
-              label: _currentRole,
-              items: const ['Aluno', 'Coach'],
-              onSelected: (v) {
-                // TODO BACKEND: setActiveRole(v)
-                setState(() => _currentRole = v);
-              },
+          // 1) TÍTULO / DROPDOWN
+          // Se puder trocar (Híbrido), mostra o menu com setinha.
+          // Se não, mostra só o texto.
+          if (canSwitch)
+            _buildMenu(
+              context: context,
+              currentLabel: currentLabel,
               scale: scale,
+              userProvider: userProvider,
             )
           else
             Text(
-              _currentRole,
+              currentLabel,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: 18 * scale,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
 
-          // ✅ Se for Coach: mostra SOMENTE o botão "Cadastrar Treino"
-          if (_currentRole == 'Coach') ...[
+          // 2) BOTÃO CADASTRAR TREINO (Posição Original)
+          // Só aparece se estiver no modo Coach
+          if (isCoachView) ...[
             SizedBox(width: 16 * scale),
             TextActionButton(
               icon: Icons.add,
-              text: 'Cadastrar Treino',
+              text: 'Cadastrar Treino', // Texto original restaurado
               onPressed: () => _openRegisterTraining(context),
             ),
           ],
 
           const Spacer(),
 
-          // 3) Notificações
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.notifications_none,
-                  size: 24 * scale,
+          // 3) NOTIFICAÇÕES (Visual mantido)
+          _buildNotificationIcon(
+            context,
+            scale,
+            0,
+          ), // Passei 0 fixo pois o serviço antigo saiu
+        ],
+      ),
+    );
+  }
+
+  /// Recria o visual exato do Dropdown antigo
+  Widget _buildMenu({
+    required BuildContext context,
+    required String currentLabel,
+    required double scale,
+    required UserProvider userProvider,
+  }) {
+    return PopupMenuButton<String>(
+      initialValue: currentLabel,
+      // Ao selecionar, verificamos se precisa trocar
+      onSelected: (value) {
+        if (value != currentLabel) {
+          // Troca o estado
+          userProvider.toggleViewMode();
+
+          // Navega
+          if (userProvider.isCoachView) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.coachHome,
+              (r) => false,
+            );
+          } else {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.athleteHome,
+              (r) => false,
+            );
+          }
+        }
+      },
+      itemBuilder:
+          (BuildContext context) => <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              value: 'Athlete',
+              child: Text(
+                'Athlete',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onBackground,
                 ),
-                onPressed: () {
-                  // TODO: navegar para notificações
-                },
               ),
-              if (_unread > 0)
-                Positioned(
-                  right: 4,
-                  top: 4,
-                  child: Container(
-                    padding: EdgeInsets.all(4 * scale),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: BoxConstraints(
-                      minWidth: 16 * scale,
-                      minHeight: 16 * scale,
-                    ),
-                    child: Text(
-                      '$_unread',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10 * scale,
-                      ),
-                    ),
-                  ),
+            ),
+            PopupMenuItem<String>(
+              value: 'Coach',
+              child: Text(
+                'Coach',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onBackground,
                 ),
-            ],
+              ),
+            ),
+          ],
+      // O Child é o que aparece na Barra (Texto + Setinha para baixo)
+      child: Row(
+        children: [
+          Text(
+            currentLabel,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: 18 * scale,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          Icon(
+            Icons.keyboard_arrow_down, // Ícone original restaurado
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMenu<T>({
-    required String label,
-    required List<T> items,
-    required ValueChanged<String> onSelected,
-    required double scale,
-  }) {
-    return PopupMenuButton<T>(
-      initialValue:
-          items.whereType<String>().contains(label) ? (label as T?) : null,
-      onSelected: (value) => onSelected(value.toString()),
-      itemBuilder:
-          (_) =>
-              items
-                  .map(
-                    (e) => PopupMenuItem<T>(
-                      value: e,
-                      child: Text(
-                        e.toString(),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onBackground,
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onBackground,
+  /// Visual do ícone de notificação (Mantido)
+  Widget _buildNotificationIcon(
+    BuildContext context,
+    double scale,
+    int unreadCount,
+  ) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: Icon(
+            Icons.notifications_none,
+            size: 24 * scale,
+            color: Theme.of(context).colorScheme.onBackground,
+          ),
+          onPressed: () {
+            // TODO: Navegar para notificações
+          },
+        ),
+        if (unreadCount > 0)
+          Positioned(
+            right: 4,
+            top: 4,
+            child: Container(
+              padding: EdgeInsets.all(4 * scale),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              constraints: BoxConstraints(
+                minWidth: 16 * scale,
+                minHeight: 16 * scale,
+              ),
+              child: Text(
+                '$unreadCount',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 10 * scale),
+              ),
             ),
           ),
-          const Icon(Icons.keyboard_arrow_down),
-        ],
-      ),
+      ],
     );
   }
 }

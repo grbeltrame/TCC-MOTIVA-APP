@@ -1,38 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // <--- 1. Importante
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/core/services/users/profile_service.dart';
+// Removido o ProfileService antigo
+import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart'; // <--- 2. Importante
 
-/// Bottom navigation bar fixa no rodapé, com 5 botões.
-/// Descobre internamente se é coach ou atleta a partir do ProfileService,
-/// igual ao TopNavbar.
-class BottomNavBar extends StatefulWidget {
+class BottomNavBar extends StatelessWidget {
+  // <--- 3. Virou StatelessWidget (mais leve)
   const BottomNavBar({Key? key}) : super(key: key);
 
   @override
-  _BottomNavBarState createState() => _BottomNavBarState();
-}
-
-class _BottomNavBarState extends State<BottomNavBar> {
-  final ProfileService _profileService = ProfileService();
-
-  /// true se o usuário atual tiver a role 'coach'
-  late final bool _isCoach;
-
-  /// índice do item selecionado (home=0, insights=1, ...). -1 = nenhum.
-  int _selectedIndex = -1;
-
-  @override
-  void initState() {
-    super.initState();
-    // Sincrono por enquanto; quando tiver API, troque por chamada async:
-    _isCoach = _profileService.hasRole('coach');
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // 4. Conectando ao cérebro do App (UserProvider)
+    final userProvider = Provider.of<UserProvider>(context);
+    final isCoachView =
+        userProvider.isCoachView; // A verdade absoluta vem daqui
+
     final scale = MediaQuery.of(context).size.width / 375.0;
 
+    // Lista de rotas configurada
     final items = <_NavItem>[
       _NavItem(
         icon: Icons.home_outlined,
@@ -50,7 +36,9 @@ class _BottomNavBarState extends State<BottomNavBar> {
         icon: Icons.fitness_center,
         label: 'Treinos',
         routeAthlete: AppRoutes.athleteTraining,
-        routeCoach: AppRoutes.coachTrainings,
+        routeCoach:
+            AppRoutes
+                .coachTrainings, // Atenção ao plural/singular nas suas rotas
       ),
       _NavItem(
         icon: Icons.bar_chart,
@@ -66,23 +54,24 @@ class _BottomNavBarState extends State<BottomNavBar> {
       ),
     ];
 
-    // Descobre a rota atual (para marcar o botão ativo)
+    // Descobre a rota atual
     final currentRoute = ModalRoute.of(context)?.settings.name;
-    // debugPrint('BottomNavBar - currentRoute: $currentRoute');
 
+    // Lógica corrigida: usa o isCoachView do Provider
     final idx = items.indexWhere(
-      (i) => (_isCoach ? i.routeCoach : i.routeAthlete) == currentRoute,
+      (i) => (isCoachView ? i.routeCoach : i.routeAthlete) == currentRoute,
     );
 
-    // Se não for rota da navbar, não acende ninguém.
-    _selectedIndex = idx >= 0 ? idx : -1;
+    final selectedIndex = idx >= 0 ? idx : -1;
 
-    void onTap(int idx) {
-      final item = items[idx];
-      final destination = _isCoach ? item.routeCoach : item.routeAthlete;
+    void onTap(int index) {
+      final item = items[index];
+      // Decide o destino baseado no Provider
+      final destination = isCoachView ? item.routeCoach : item.routeAthlete;
+
       if (destination == currentRoute) return;
 
-      // Troca a página mantendo a navbar — sem precisar dar setState aqui.
+      // Navega substituindo a tela atual (sem animação de pilha)
       Navigator.pushReplacementNamed(context, destination);
     }
 
@@ -90,10 +79,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
-          top: BorderSide(
-            color: AppColors.mediumGray, // borda cinza superior
-            width: 0.5 * scale,
-          ),
+          top: BorderSide(color: AppColors.mediumGray, width: 0.5 * scale),
         ),
       ),
       padding: EdgeInsets.only(top: 6 * scale, bottom: 20 * scale),
@@ -101,7 +87,8 @@ class _BottomNavBarState extends State<BottomNavBar> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: List.generate(items.length, (i) {
           final item = items[i];
-          final selected = i == _selectedIndex;
+          final selected = i == selectedIndex;
+
           return GestureDetector(
             onTap: () => onTap(i),
             behavior: HitTestBehavior.translucent,
@@ -144,7 +131,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
   }
 }
 
-/// Agrupa ícone, label e rotas de atleta/coach.
 class _NavItem {
   final IconData icon;
   final String label;

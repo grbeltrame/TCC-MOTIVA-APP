@@ -10,6 +10,8 @@ import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/shared/widgets/utils/radio_option_tile.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
+import 'package:provider/provider.dart'; // <--- Importante
+import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart'; // <--- Seu Provider
 
 /// Perfis básicos disponíveis para cadastro.
 enum ProfileOption { athlete, coach, intern, athleteCoach, athleteIntern }
@@ -41,13 +43,16 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _submitForm() async {
+    // 1. Validações básicas do formulário
     if (!_formKey.currentState!.validate()) return;
+
     if (_selectedProfile == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Selecione seu perfil')));
       return;
     }
+
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Você deve concordar com os termos')),
@@ -56,10 +61,9 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     setState(() => _isSubmitting = true);
-    try {
-      // --- Início da Lógica de Cadastro Firebase ---
 
-      // 1. Criar o usuário no Firebase Authentication
+    try {
+      // 2. Cria o usuário no Firebase Authentication (Email/Senha)
       final UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
             email: _emailController.text.trim(),
@@ -69,48 +73,51 @@ class _SignupScreenState extends State<SignupScreen> {
       final User? user = userCredential.user;
 
       if (user != null) {
-        // 2. Salvar os dados adicionais no Cloud Firestore
-        final userDoc = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid);
-
-        // Converte o enum para uma string (ex: "ProfileOption.athlete" -> "athlete")
+        // 3. Prepara os dados para o Firestore
+        // Converte o enum (ex: ProfileOption.athleteCoach) para string ("athleteCoach")
         final String profileString =
             _selectedProfile.toString().split('.').last;
 
-        await userDoc.set({
+        // Salva no banco de dados
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'uid': user.uid,
           'name': _nameController.text.trim(),
-          'email': user.email, // Pega o email do objeto 'user' para garantir
-          'photoURL':
-              user.photoURL ?? '', // Perfil de email não tem foto inicial
-          'profile': profileString, // Salva o perfil selecionado
-          'provider': 'email', // Indica que foi cadastro por email/senha
+          'email': user.email,
+          'photoURL': user.photoURL ?? '',
+          'profile':
+              profileString, // <--- Aqui define se é athlete, coach, etc.
+          'provider': 'email',
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-        // 3. (Opcional) Atualiza o nome do usuário no Firebase Auth
+        // Atualiza o nome de exibição no Auth (opcional, mas recomendado)
         await user.updateDisplayName(_nameController.text.trim());
-      }
 
-      // navegação condicional:
-      // se atletaeCoach/intern -> coach home
-      // se coach/intern -> coach home
-      // else atleta
-      final isCoach =
-          _selectedProfile == ProfileOption.coach ||
-          _selectedProfile == ProfileOption.athleteCoach ||
-          _selectedProfile == ProfileOption.athleteIntern ||
-          _selectedProfile == ProfileOption.intern;
-      if (isCoach) {
-        Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
-      } else {
-        Navigator.pushReplacementNamed(context, AppRoutes.athleteHome);
+        // --- AQUI ESTÁ A MUDANÇA IMPORTANTE ---
+        if (!mounted) return; // Segurança do Flutter
+
+        // 4. Carrega os dados no Provider GLOBAL antes de navegar
+        // Isso ativa a lógica de permissão e o botão de troca (se necessário)
+        await Provider.of<UserProvider>(
+          context,
+          listen: false,
+        ).loadUserData(user);
+
+        // 5. Pergunta ao Provider para onde devemos ir
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+        if (userProvider.isCoachView) {
+          // Se for Coach, Intern ou Híbrido -> Vai pra Home de Coach
+          Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
+        } else {
+          // Se for só Atleta -> Vai pra Home de Aluno
+          Navigator.pushReplacementNamed(context, AppRoutes.athleteHome);
+        }
       }
     } catch (e) {
-      // Trata erros comuns do Firebase
-
+      // Tratamento de Erros
       String errorMessage = 'Ocorreu um erro ao criar a conta.';
+
       if (e is FirebaseAuthException) {
         if (e.code == 'email-already-in-use') {
           errorMessage = 'Este e-mail já está sendo usado por outra conta.';
@@ -118,13 +125,18 @@ class _SignupScreenState extends State<SignupScreen> {
           errorMessage = 'A senha é muito fraca. Tente uma mais forte.';
         } else if (e.code == 'invalid-email') {
           errorMessage = 'O formato do e-mail é inválido.';
-        } 
+        }
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(errorMessage)));
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+      }
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
