@@ -58,12 +58,12 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
             const PendingActionsSection(),
 
             // Metas quase atingidas
-            AlmostReachedGoalsSection(
-              title: 'Metas Próximas',
-              buttonLabel: 'Ver todas as metas',
-              onButtonPressed:
-                  () => Navigator.pushNamed(context, AppRoutes.athleteGoals),
-            ),
+            // AlmostReachedGoalsSection(
+            //   title: 'Metas Próximas',
+            //   buttonLabel: 'Ver todas as metas',
+            //   onButtonPressed:
+            //       () => Navigator.pushNamed(context, AppRoutes.athleteGoals),
+            // ),
           ],
         ),
       ),

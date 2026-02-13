@@ -13,14 +13,11 @@ import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/models/inisght_model.dart';
 import 'package:flutter_app/shared/widgets/register_pr/register_pr_bottom_sheet.dart';
 
-// NEW: bottom sheet de perfis semelhantes
 import 'package:flutter_app/shared/widgets/bottom_sheets/similar_profile_bottom_sheets.dart';
 
-// headers / cards
 import 'package:flutter_app/shared/widgets/pr_item/pr_item_header_movement.dart';
 import 'package:flutter_app/shared/widgets/pr_item/pr_item_header_wod.dart';
 
-// container de gráfico com dropdown
 import 'package:flutter_app/shared/widgets/pr_item/pr_line_chart_card.dart';
 
 class AthletePrItemScreen extends StatefulWidget {
@@ -119,13 +116,12 @@ class _AthletePrItemScreenState extends State<AthletePrItemScreen> {
     _reloadData(); // reconsulta séries e insights
   }
 
-  // NEW: abre o bottom sheet de perfis semelhantes
   Future<void> _openSimilarProfiles() async {
     await showSimilarProfilesBottomSheet(
       context,
       benchmarkName: _category == PrCategory.wod ? _label : null,
       movementName: _category != PrCategory.wod ? _label : null,
-      onTapRegister: _onRegisterResult, // nesta tela sempre registramos PR
+      onTapRegister: _onRegisterResult,
     );
     if (!mounted) return;
     _reloadData();
@@ -152,7 +148,6 @@ class _AthletePrItemScreenState extends State<AthletePrItemScreen> {
             child: const AppBackButton(),
           ),
 
-          // conteúdo
           Expanded(
             child:
                 !_bootstrapped

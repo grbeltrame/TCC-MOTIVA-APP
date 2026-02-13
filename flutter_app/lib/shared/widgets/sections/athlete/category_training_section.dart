@@ -6,22 +6,17 @@ import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/adaptations_suggestions_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
-import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 
-// Bottom sheet: perfis semelhantes
+import 'package:flutter_app/core/services/workout/workout_result_service.dart';
+
 import 'package:flutter_app/shared/widgets/bottom_sheets/similar_profile_bottom_sheets.dart';
 
-/// Section que exibe, em abas, o último bloco de treino de cada categoria
-/// para um dado box e data. Usa TabBar + IndexedStack para shrink-wrap automático.
 class CategoryTrainingSection extends StatefulWidget {
-  /// ID do box selecionado.
   final String boxId;
-
-  /// Data selecionada.
   final DateTime date;
 
   const CategoryTrainingSection({
@@ -36,15 +31,127 @@ class CategoryTrainingSection extends StatefulWidget {
 }
 
 class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
-  static const List<String> _categories = [
+  static const List<String> _preferredOrder = [
     'WOD',
     'LPO',
-    'Ginastica',
+    'FitnessRun',
     'Endurance',
   ];
 
-  late Future<Map<String, TrainingBlock?>> _futBlocks;
+  Future<_CategoryData>? _futData;
   bool _tabListenerAttached = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _reloadData();
+  }
+
+  @override
+  void didUpdateWidget(covariant CategoryTrainingSection old) {
+    super.didUpdateWidget(old);
+    if (old.boxId != widget.boxId || old.date != widget.date) {
+      _reloadData();
+    }
+  }
+
+  void _reloadData() {
+    _futData = _loadAll();
+    if (mounted) setState(() {});
+  }
+
+  Future<_CategoryData> _loadAll() async {
+    final rawCats = await WorkoutResultService.fetchCategoriesForDate(
+      widget.date,
+    );
+
+    final orderedCats = _orderCategories(rawCats);
+
+    final blocksMap =
+        await TrainingService.fetchTrainingBlocksByCategoryForDate(
+          boxId: widget.boxId,
+          date: widget.date,
+        );
+
+    final byCategory = _mapBlocksToCategories(
+      categories: orderedCats,
+      rawBlocksMap: blocksMap,
+    );
+
+    return _CategoryData(categories: orderedCats, blocksByCategory: byCategory);
+  }
+
+  List<String> _orderCategories(List<String> categories) {
+    final set = categories.toSet();
+
+    final preferred = <String>[];
+    for (final p in _preferredOrder) {
+      if (set.contains(p)) preferred.add(p);
+    }
+
+    final others =
+        categories.where((c) => !preferred.contains(c)).toList()
+          ..sort((a, b) => a.compareTo(b));
+
+    return [...preferred, ...others];
+  }
+
+  Map<String, TrainingBlock?> _mapBlocksToCategories({
+    required List<String> categories,
+    required Map<String, TrainingBlock?> rawBlocksMap,
+  }) {
+    final result = <String, TrainingBlock?>{};
+
+    // 1) Se o map já vier com chave = categoria, pega direto
+    for (final cat in categories) {
+      if (rawBlocksMap.containsKey(cat)) {
+        result[cat] = rawBlocksMap[cat];
+      }
+    }
+
+    // 2) Caso contrário, tenta inferir pelo conteúdo (title/subtitle/items)
+    for (final cat in categories) {
+      if (result[cat] != null) continue;
+
+      TrainingBlock? found;
+      for (final b in rawBlocksMap.values) {
+        if (b == null) continue;
+        if (_blockLooksLikeCategory(b, cat)) {
+          found = b;
+          break;
+        }
+      }
+
+      result[cat] = found;
+    }
+
+    return result;
+  }
+
+  bool _blockLooksLikeCategory(TrainingBlock block, String category) {
+    final cat = category.toLowerCase();
+
+    final title = block.title.toLowerCase();
+    final subtitle = block.subtitle.toLowerCase();
+    final itemsText = block.items.join(' ').toLowerCase();
+
+    bool contains(String needle) =>
+        title.contains(needle) ||
+        subtitle.contains(needle) ||
+        itemsText.contains(needle);
+
+    if (contains(cat)) return true;
+
+    // Normalizações extras
+    if (cat == 'fitnessrun') {
+      if (contains('fitness run')) return true;
+      if (contains('run')) return true;
+      if (contains('corrida')) return true;
+    }
+
+    return false;
+  }
+
   Future<void> _openAdaptationsForCategory(
     String category,
     TrainingBlock? block,
@@ -56,42 +163,14 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
 
     await showAdaptationSuggestionsBottomSheet(
       context,
-      category: category, // "WOD", "LPO", "Ginastica", "Endurance"
-      wodName: wodName, // só preenche quando for WOD
+      category: category,
+      wodName: wodName,
       onTapRegister: () async {
-        // em treino, registrar RESULTADO (não PR)
         await showRegisterResultBottomSheet(context);
       },
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _reloadBlocks();
-  }
-
-  @override
-  void didUpdateWidget(covariant CategoryTrainingSection old) {
-    super.didUpdateWidget(old);
-    // Se mudou box OU data, recarrega
-    if (old.boxId != widget.boxId || old.date != widget.date) {
-      _reloadBlocks();
-    }
-  }
-
-  void _reloadBlocks() {
-    _futBlocks = TrainingService.fetchTrainingBlocksByCategoryForDate(
-      boxId: widget.boxId,
-      date: widget.date,
-    );
-    setState(() {}); // força o FutureBuilder a rebuildar
-  }
-
-  // ===== Helpers para descobrir o alvo do bottom sheet =====
-
-  /// Tenta extrair o nome do WOD a partir do título do bloco.
-  /// Exemplos aceitos: 'WOD "Fran"', 'WOD “Fran”', 'WOD Fran'
   String? _extractWodNameFromTitle(String title) {
     final withQuotes = RegExp(
       r'WOD\s*[\"“](.+?)[\"”]',
@@ -108,22 +187,19 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
     return null;
   }
 
-  /// Heurística simples para pegar um “movimento principal” da lista de itens.
-  /// Ex.: '5×2 Snatch @ técnica' -> 'Snatch'
-  ///      '5×3 Clean & Jerk @ 70%' -> 'Clean & Jerk'
   String? _guessPrimaryMovementFromItems(List<String> items) {
     if (items.isEmpty) return null;
-    // pega a primeira linha com alguma letra
+
     final line = items.firstWhere(
       (l) => RegExp(r'[A-Za-zÀ-ú]').hasMatch(l),
       orElse: () => items.first,
     );
+
     var s = line;
-    // corta tudo após '@'
+
     final atIdx = s.indexOf('@');
     if (atIdx != -1) s = s.substring(0, atIdx);
-    // remove prefixos com números, porcentagens etc.
-    // mantém palavras com letras e símbolos & e -
+
     final tokens =
         s.split(RegExp(r'\s+')).where((t) {
           final hasLetter = RegExp(r'[A-Za-zÀ-ú]').hasMatch(t);
@@ -136,9 +212,7 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
 
     if (tokens.isEmpty) return null;
 
-    // junta tokens até um limite razoável
     final candidate = tokens.join(' ').trim();
-    // pequenos ajustes de pontuação
     return candidate.replaceAll(RegExp(r'[,\.;]+$'), '');
   }
 
@@ -157,7 +231,6 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
       }
     }
 
-    // Abre o sheet e, no botão "Registrar", chamamos o sheet de RESULTADO
     await showSimilarProfilesBottomSheet(
       context,
       benchmarkName: benchmarkName,
@@ -172,19 +245,58 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
-    return FutureBuilder<Map<String, TrainingBlock?>>(
-      future: _futBlocks,
+    final future = _futData;
+    if (future == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return FutureBuilder<_CategoryData>(
+      future: future,
       builder: (ctx, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
         }
-        final byCat = snap.data!;
 
-        // preparamos abas e páginas
-        final tabs = _categories.map((c) => Tab(text: c)).toList();
-        final pages = _categories
+        if (!snap.hasData) {
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+            child: Text(
+              'Não foi possível carregar os treinos.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.roboto,
+                fontSize: 12 * scale,
+                color: AppColors.mediumGray,
+              ),
+            ),
+          );
+        }
+
+        final data = snap.data!;
+        final categories = data.categories;
+        final byCat = data.blocksByCategory;
+
+        if (categories.isEmpty) {
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+            child: Text(
+              'Não há treinos cadastrados para hoje.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.roboto,
+                fontSize: 12 * scale,
+                color: AppColors.mediumGray,
+              ),
+            ),
+          );
+        }
+
+        final tabs = categories.map((c) => Tab(text: c)).toList();
+
+        final pages = categories
             .map((cat) {
               final block = byCat[cat];
+
               return Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6 * scale),
                 child: Container(
@@ -242,7 +354,6 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
                         ),
                       ],
                       SizedBox(height: 24 * scale),
-                      // primeira fileira de botões
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -253,18 +364,17 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
                             onPressed:
                                 () => _openAdaptationsForCategory(cat, block),
                           ),
-                          IconTextActionButton(
-                            text: 'Ver resultados de perfis semelhantes',
-                            iconData: Icons.groups_outlined,
-                            fontSize: 9,
-                            onPressed:
-                                () =>
-                                    _openSimilarProfilesForCategory(cat, block),
-                          ),
+                          // IconTextActionButton(
+                          //   text: 'Ver resultados de perfis semelhantes',
+                          //   iconData: Icons.groups_outlined,
+                          //   fontSize: 9,
+                          //   onPressed:
+                          //       () =>
+                          //           _openSimilarProfilesForCategory(cat, block),
+                          // ),
                         ],
                       ),
                       Divider(color: AppColors.lightGray),
-                      // segunda fileira de botões
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -277,7 +387,7 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
                                 arguments: {
                                   'boxId': widget.boxId,
                                   'date': widget.date,
-                                  'category': cat, // 'WOD' | 'LPO' | ...
+                                  'category': cat,
                                 },
                               );
                             },
@@ -299,7 +409,8 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
             .toList(growable: false);
 
         return DefaultTabController(
-          length: _categories.length,
+          key: ValueKey('cats_${categories.join("|")}'),
+          length: categories.length,
           child: Builder(
             builder: (innerCtx) {
               final tabController = DefaultTabController.of(innerCtx)!;
@@ -307,6 +418,7 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
                 tabController.addListener(() => setState(() {}));
                 _tabListenerAttached = true;
               }
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -326,4 +438,11 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
       },
     );
   }
+}
+
+class _CategoryData {
+  final List<String> categories;
+  final Map<String, TrainingBlock?> blocksByCategory;
+
+  _CategoryData({required this.categories, required this.blocksByCategory});
 }

@@ -55,21 +55,20 @@ class PrItemHeaderWod extends StatelessWidget {
           ),
           SizedBox(height: 16 * scale),
 
-          // linha 1 — apenas 1 botão
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextButton.icon(
-                onPressed: onSeeSimilarProfiles,
-                icon: const Icon(Icons.groups_outlined),
-                label: const Text('Resultados de perfis semelhantes ao seu'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.baseBlue,
-                ),
-              ),
-            ],
-          ),
-
+          // // linha 1 — apenas 1 botão
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //   children: [
+          //     TextButton.icon(
+          //       onPressed: onSeeSimilarProfiles,
+          //       icon: const Icon(Icons.groups_outlined),
+          //       label: const Text('Resultados de perfis semelhantes ao seu'),
+          //       style: TextButton.styleFrom(
+          //         foregroundColor: AppColors.baseBlue,
+          //       ),
+          //     ),
+          //   ],
+          // ),
           Divider(color: AppColors.lightGray),
 
           // linha 2 — registrar resultado

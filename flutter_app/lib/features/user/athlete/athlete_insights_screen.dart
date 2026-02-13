@@ -80,8 +80,8 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ----- Seção de Resumo Mensal -----
-            const MonthlySummaryWidget(),
-            SizedBox(height: 24 * scale),
+            // const MonthlySummaryWidget(),
+            // SizedBox(height: 24 * scale),
 
             // ----- Seção de Highlights -----
             const HighlightsSection(),
@@ -89,8 +89,8 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
             // ----- Seção de Alertas -----
             const AlertsSection(),
 
-            // -----  Seção de Sugestão de Objetivos -----
-            const SuggestedGoalsSection(),
+            // // -----  Seção de Sugestão de Objetivos -----
+            // const SuggestedGoalsSection(),
 
             // ----- Título da seção de Recomendations -----
             const RecomendationsSection(),

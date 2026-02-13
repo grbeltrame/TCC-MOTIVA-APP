@@ -45,11 +45,11 @@ class _AthleteProfileScreenState extends State<AthleteProfileScreen> {
             // Informações de Resumo de Registros do Usuario
             ProfileSummarySection(),
 
-            // Hub de navegação
-            ProfileNavHubSection(),
+            // // Hub de navegação
+            // ProfileNavHubSection(),
 
-            // Metas concluidas
-            AchievementsBadgesSection(),
+            // // Metas concluidas
+            // AchievementsBadgesSection(),
           ],
         ),
       ),

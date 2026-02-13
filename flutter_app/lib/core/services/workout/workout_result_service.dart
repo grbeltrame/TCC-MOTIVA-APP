@@ -53,7 +53,7 @@ class WorkoutResultService {
       ClassSlot(
         id: 'c3',
         startAt: day.add(const Duration(hours: 18)),
-        type: 'Ginástica',
+        type: 'FitnessRun',
       ),
       ClassSlot(
         id: 'c4',
@@ -217,7 +217,7 @@ class WorkoutResultService {
             pool.where((r) => r.wodType.toLowerCase() != 'emom').toList();
       } else if (chosenCategory == 'LPO') {
         filtered = pool.where((r) => r.adapted == true).toList();
-      } else if (chosenCategory == 'Ginástica') {
+      } else if (chosenCategory == 'FitnessRun') {
         filtered = pool.where((r) => r.completed == true).toList();
       } else if (chosenCategory == 'Endurance') {
         filtered = pool.where((r) => r.effort >= 7).toList();

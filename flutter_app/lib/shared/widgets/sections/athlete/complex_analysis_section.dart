@@ -1,6 +1,7 @@
 // lib/shared/widgets/complex_analyses_section.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_app/core/services/analysis_service.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
@@ -178,9 +179,9 @@ class _MovementsTabState extends State<_MovementsTab> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () {
-                    /* TODO: Ação Todos os PRs */
-                  },
+                  onPressed:
+                      () =>
+                          Navigator.pushNamed(context, AppRoutes.athletePrList),
                   icon: Icon(Icons.bar_chart, size: 16 * scale),
                   label: Text(
                     'Todos os PRs',
@@ -200,28 +201,28 @@ class _MovementsTabState extends State<_MovementsTab> {
                   ),
                 ),
                 SizedBox(width: 16 * scale),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    /* TODO: Ação Ver média */
-                  },
-                  icon: Icon(Icons.groups_outlined, size: 16 * scale),
-                  label: Text(
-                    'Ver média de perfis semelhantes',
-                    style: TextStyle(fontSize: 10 * scale),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.baseBlue,
-                    side: BorderSide(color: AppColors.baseBlue),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8 * scale),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 6 * scale,
-                      vertical: 4 * scale,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
+                // OutlinedButton.icon(
+                //   onPressed: () {
+                //     /* TODO: Ação Ver média */
+                //   },
+                //   icon: Icon(Icons.groups_outlined, size: 16 * scale),
+                //   label: Text(
+                //     'Ver média de perfis semelhantes',
+                //     style: TextStyle(fontSize: 10 * scale),
+                //   ),
+                //   style: OutlinedButton.styleFrom(
+                //     foregroundColor: AppColors.baseBlue,
+                //     side: BorderSide(color: AppColors.baseBlue),
+                //     shape: RoundedRectangleBorder(
+                //       borderRadius: BorderRadius.circular(8 * scale),
+                //     ),
+                //     padding: EdgeInsets.symmetric(
+                //       horizontal: 6 * scale,
+                //       vertical: 4 * scale,
+                //     ),
+                //     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                //   ),
+                // ),
               ],
             ),
           ],

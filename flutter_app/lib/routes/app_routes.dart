@@ -16,8 +16,10 @@ import 'package:flutter_app/features/user/athlete/athlete_all_championships_scre
 import 'package:flutter_app/features/user/athlete/athlete_all_goals_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_class_details_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_classes_screen.dart';
+import 'package:flutter_app/features/user/athlete/athlete_edit_profile_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_evolution_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_full_training_screen.dart';
+import 'package:flutter_app/features/user/athlete/athlete_general_settings_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_goals_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_home_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_insights_screen.dart';
@@ -85,6 +87,8 @@ class AppRoutes {
   static const String athleteClassesDetails = ClassDetailScreen.routeName;
   static const String athleteAllChampionships =
       AllChampionshipsScreen.routeName;
+  static const String athleteProfileEdit = EditProfileAthleteScreen.routeName;
+  static const String athleteSettings = AthleteGeneralSettingsScreen.routeName;
 
   // Coach
   static const String coachHome = CoachHomeScreen.routeName;
@@ -145,7 +149,7 @@ class AppRoutes {
   static const String adminManageBox = AdminManageBoxScreen.routeName;
 }
 
-/// Mapeamento de rotas para usar no MaterialApp(routes:)
+/// Mapeamento de rotas
 final Map<String, WidgetBuilder> appRouteMap = {
   // Splash / Auth
   AppRoutes.splash: (_) => const SplashScreen(),
@@ -172,6 +176,11 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.athleteClasses: (_) => const ClassesOfDayScreen(),
   AppRoutes.athleteClassesDetails: (_) => const ClassDetailScreen(),
   AppRoutes.athleteAllChampionships: (_) => const AllChampionshipsScreen(),
+  AppRoutes.athleteProfileEdit: (ctx) {
+    final settings = ModalRoute.of(ctx)!.settings;
+    return EditProfileAthleteScreen.fromArgs(settings);
+  },
+  AppRoutes.athleteSettings: (_) => const AthleteGeneralSettingsScreen(),
 
   // Coach
   AppRoutes.coachHome: (_) => const CoachHomeScreen(),

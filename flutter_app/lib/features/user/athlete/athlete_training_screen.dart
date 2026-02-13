@@ -28,11 +28,6 @@ class _AthleteTrainingScreenState extends State<AthleteTrainingScreen> {
     showAppBottomSheet(context, const BoxSignupCoach());
   }
 
-  void _onBoxChanged(Box box) {
-    _currentBox = box;
-    _loadTrainings();
-  }
-
   void _onDateChanged(DateTime date) {
     _currentDate = date;
     _loadTrainings();
@@ -65,17 +60,14 @@ class _AthleteTrainingScreenState extends State<AthleteTrainingScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Treinos do dia
-            TrainingInfoSection(
-              onBoxChanged: _onBoxChanged,
-              onDateChanged: _onDateChanged,
-            ),
+            TrainingInfoSection(onDateChanged: (DateTime value) {}),
             const SizedBox(height: 40),
 
             // Insights sobre o treino do dia
             InsightsSection(),
 
-            // Metas proximas de serem concluidas
-            const NearCompletionSection(),
+            // // Metas proximas de serem concluidas
+            // const NearCompletionSection(),
           ],
         ),
       ),

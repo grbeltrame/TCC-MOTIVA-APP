@@ -53,14 +53,14 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
             // Analises
             const AnalysisSection(),
 
-            // Campeonatos
-            const ChampionshipsSection(),
+            // // Campeonatos
+            // const ChampionshipsSection(),
 
-            // Metas do Usuario
-            const UserGoalsSection(),
+            // // Metas do Usuario
+            // const UserGoalsSection(),
 
-            // Bem estar do Usuario
-            const WellBeingSection(),
+            // // Bem estar do Usuario
+            // const WellBeingSection(),
 
             // Destaques da Semana
             const WeeklyRecomendationSection(),

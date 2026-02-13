@@ -4,19 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/users/athlete/athlete_service.dart';
 import 'package:flutter_app/shared/models/athlete_profile.dart';
 import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_svg/svg.dart';
 
+import 'package:flutter_app/features/user/athlete/athlete_edit_profile_screen.dart';
+import 'package:flutter_app/routes/app_routes.dart';
+
 /// Seção de informações do perfil do atleta:
 /// • Container com borda arredondada
 /// • Foto, nome, categoria e botão Editar Perfil (posicionado)
-/// • Blocos: Perfil Referência, Boxes cadastrados (em dropdown)
+/// • Bloco: Perfil Referência
 /// • Barra de progresso e botões de ação
 class AthleteInfoSection extends StatefulWidget {
-  const AthleteInfoSection({Key? key}) : super(key: key);
+  final VoidCallback? onRefreshRequest;
+
+  const AthleteInfoSection({Key? key, this.onRefreshRequest}) : super(key: key);
 
   @override
   State<AthleteInfoSection> createState() => _AthleteInfoSectionState();
@@ -24,12 +27,30 @@ class AthleteInfoSection extends StatefulWidget {
 
 class _AthleteInfoSectionState extends State<AthleteInfoSection> {
   late Future<AthleteProfile> _futProfile;
-  String? _selectedBox;
 
   @override
   void initState() {
     super.initState();
-    _futProfile = AthleteService.fetchAthleteProfile(); // TODO: fetch real
+    _futProfile = AthleteService.fetchAthleteProfile(); // TODO(back): real
+  }
+
+  void _reloadProfile() {
+    setState(() {
+      _futProfile = AthleteService.fetchAthleteProfile(); // TODO(back): real
+    });
+  }
+
+  Future<void> _goToEditProfile(BuildContext context) async {
+    // Mantém o mesmo padrão do coach: abre tela e, se voltar "true", recarrega
+    final changed = await Navigator.pushNamed(
+      context,
+      AppRoutes.athleteProfileEdit,
+    );
+
+    if (changed == true) {
+      _reloadProfile();
+      widget.onRefreshRequest?.call();
+    }
   }
 
   @override
@@ -42,29 +63,27 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
         if (snap.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
         }
-        final profile = snap.data!;
-
-        // Inicializa dropdown de box
-        if (profile.boxes.isNotEmpty && _selectedBox == null) {
-          _selectedBox = profile.boxes.first;
+        if (!snap.hasData) {
+          return const Center(child: Text('Falha ao carregar perfil.'));
         }
 
-        // calcula % de perfil completo
+        final profile = snap.data!;
+
+        // calcula % de perfil completo (sem box)
         int filled = 0;
-        if (profile.category != null) filled++;
+        if ((profile.category ?? '').trim().isNotEmpty) filled++;
         if (profile.reference != null) filled++;
-        if (profile.boxes.isNotEmpty) filled++;
-        const total = 3;
+        const total = 2;
         final pct = filled / total;
 
-        // largura reservada para o botão "Editar Perfil" ao lado do nome
         final btnReserve = 128 * scale;
 
-        // botão "Editar Perfil" (reutilizado no Stack)
+        // proteção (igual coach): não nulo e não vazio
+        final hasValidPhoto =
+            profile.photoUrl != null && profile.photoUrl!.isNotEmpty;
+
         final editBtn = OutlinedButton.icon(
-          onPressed: () {
-            // TODO: navegar para editar perfil
-          },
+          onPressed: () => _goToEditProfile(context),
           icon: Icon(Icons.edit, size: 14 * scale, color: AppColors.baseBlue),
           label: Text(
             'Editar Perfil',
@@ -99,22 +118,27 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ─── Cabeçalho em Stack: conteúdo ocupa 100% e o botão é posicionado ───
+              // ─── Cabeçalho em Stack ───
               Stack(
                 children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Foto do atleta
+                      // Foto do atleta (com proteção)
                       CircleAvatar(
                         radius: 28 * scale,
+                        backgroundColor: AppColors.lightGray,
                         backgroundImage:
-                            profile.photoUrl != null
+                            hasValidPhoto
                                 ? NetworkImage(profile.photoUrl!)
                                 : null,
                         child:
-                            profile.photoUrl == null
-                                ? Icon(Icons.person, size: 28 * scale)
+                            !hasValidPhoto
+                                ? Icon(
+                                  Icons.person,
+                                  size: 28 * scale,
+                                  color: AppColors.mediumGray,
+                                )
                                 : null,
                       ),
                       SizedBox(width: 6 * scale),
@@ -124,11 +148,12 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Nome (com padding à direita para não ficar sob o botão)
                             Padding(
                               padding: EdgeInsets.only(right: btnReserve),
                               child: Text(
-                                profile.name,
+                                (profile.name).isEmpty
+                                    ? 'Atleta'
+                                    : profile.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -141,7 +166,7 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                             ),
                             SizedBox(height: 4 * scale),
 
-                            // Categoria: container decorado envolve apenas ícone + label
+                            // Categoria: label decorado + valor/CTA fora
                             Row(
                               children: [
                                 Container(
@@ -159,7 +184,7 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       SvgPicture.asset(
-                                        'assets/icons/rewards.svg', // ajuste se necessário
+                                        'assets/icons/rewards.svg',
                                         width: 16 * scale,
                                         height: 16 * scale,
                                         color: AppColors.darkBlue,
@@ -179,8 +204,7 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                                 ),
                                 SizedBox(width: 6 * scale),
 
-                                // Valor/CTA fora do container decorado
-                                if (profile.category != null)
+                                if ((profile.category ?? '').trim().isNotEmpty)
                                   Expanded(
                                     child: Text(
                                       profile.category!,
@@ -199,9 +223,8 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                                         text: 'Complete seu perfil',
                                         iconData: Icons.add,
                                         fontSize: 12 * scale,
-                                        onPressed: () {
-                                          // TODO: navegar para completar perfil
-                                        },
+                                        onPressed:
+                                            () => _goToEditProfile(context),
                                       ),
                                     ),
                                   ),
@@ -213,18 +236,16 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                     ],
                   ),
 
-                  // Botão Editar Perfil posicionado no topo-direito
                   Positioned(top: 0, right: 0, child: editBtn),
                 ],
               ),
 
               SizedBox(height: 16 * scale),
 
-              // ─── Blocos de informação ───
+              // ─── Bloco: Perfil Referência ───
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Perfil Referência
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,82 +307,7 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                             text: 'Complete seu perfil',
                             iconData: Icons.add,
                             fontSize: 12 * scale,
-                            onPressed: () {
-                              // TODO: navegar para completar perfil
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(width: 18 * scale),
-
-                  // Boxes cadastrados em Dropdown
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6 * scale,
-                            vertical: 2 * scale,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.lightBlue.withAlpha(50),
-                            borderRadius: BorderRadius.circular(8 * scale),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.home_outlined,
-                                size: 16 * scale,
-                                color: AppColors.darkBlue,
-                              ),
-                              SizedBox(width: 4 * scale),
-                              Text(
-                                'Boxes Cadastrados:',
-                                style: TextStyle(
-                                  fontFamily: AppFonts.roboto,
-                                  fontWeight: AppFontWeight.bold,
-                                  fontSize: 12 * scale,
-                                  color: AppColors.darkBlue,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 4 * scale),
-                        if (profile.boxes.isNotEmpty)
-                          DropdownButton<String>(
-                            isExpanded: true,
-                            value: _selectedBox,
-                            underline: const SizedBox.shrink(),
-                            icon: Icon(
-                              Icons.arrow_drop_down,
-                              color: AppColors.darkText,
-                            ),
-                            items:
-                                profile.boxes
-                                    .map(
-                                      (b) => DropdownMenuItem(
-                                        value: b,
-                                        child: Text(b),
-                                      ),
-                                    )
-                                    .toList(),
-                            onChanged: (v) => setState(() => _selectedBox = v),
-                          )
-                        else
-                          IconTextActionButton(
-                            text: 'Cadastrar-se em um box',
-                            iconData: Icons.add,
-                            fontSize: 12 * scale,
-                            onPressed:
-                                () => showAppBottomSheet(
-                                  context,
-                                  const BoxSignupCoach(),
-                                ),
+                            onPressed: () => _goToEditProfile(context),
                           ),
                       ],
                     ),
@@ -373,7 +319,6 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
 
               // ─── Barra de progresso ───
               if (pct < 1.0) ...[
-                // Label + texto ao lado (pedido)
                 RichText(
                   text: TextSpan(
                     children: [
@@ -399,8 +344,6 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                   ),
                 ),
                 SizedBox(height: 4 * scale),
-
-                // Linha de status + porcentagem (apenas número) ao lado
                 Row(
                   children: [
                     Expanded(
@@ -410,7 +353,7 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                           value: pct,
                           minHeight: 6 * scale,
                           backgroundColor: AppColors.lightGray,
-                          valueColor: AlwaysStoppedAnimation(
+                          valueColor: const AlwaysStoppedAnimation(
                             AppColors.baseBlue,
                           ),
                         ),
@@ -436,9 +379,7 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                 children: [
                   if (pct < 1.0) ...[
                     OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: navegar para completar perfil
-                      },
+                      onPressed: () => _goToEditProfile(context),
                       icon: Icon(
                         Icons.edit,
                         size: 14 * scale,
@@ -467,37 +408,8 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                     SizedBox(width: 6 * scale),
                   ],
                   OutlinedButton.icon(
-                    onPressed:
-                        () =>
-                            showAppBottomSheet(context, const BoxSignupCoach()),
-                    icon: Icon(
-                      Icons.add,
-                      size: 14 * scale,
-                      color: AppColors.baseBlue,
-                    ),
-                    label: Text(
-                      'Cadastrar Box',
-                      style: TextStyle(
-                        fontSize: 11 * scale,
-                        color: AppColors.baseBlue,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 6 * scale,
-                        vertical: 1 * scale,
-                      ),
-                      side: BorderSide(color: AppColors.baseBlue),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8 * scale),
-                      ),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                  SizedBox(width: 6 * scale),
-                  OutlinedButton.icon(
                     onPressed: () {
-                      // TODO: navegar para configurações gerais
+                      Navigator.pushNamed(context, AppRoutes.athleteSettings);
                     },
                     icon: Icon(
                       Icons.settings,
