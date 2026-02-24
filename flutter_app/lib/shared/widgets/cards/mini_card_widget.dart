@@ -12,7 +12,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 class MiniCardWidget extends StatelessWidget {
   final Widget iconWidget;
   final String title;
-  final String tipo; // chave para o service
+  final String? tipo; // 1. MUDOU AQUI: Agora é opcional (String?)
+  final String? customValue; // 2. MUDOU AQUI: Nova variável de bypass
   final Color backgroundColor;
   final Color borderColor;
   final Color iconColor;
@@ -25,7 +26,8 @@ class MiniCardWidget extends StatelessWidget {
     Key? key,
     required this.iconWidget,
     required this.title,
-    required this.tipo,
+    this.tipo, // 3. MUDOU AQUI: Tirou o required
+    this.customValue, // 4. MUDOU AQUI: Adicionado no construtor
     required this.backgroundColor,
     required this.borderColor,
     required this.iconColor,
@@ -40,19 +42,24 @@ class MiniCardWidget extends StatelessWidget {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return FutureBuilder<String>(
+      // 5. MUDOU AQUI: Se tem customValue, pula o serviço (fica null). Se não, chama normal.
       future:
-          (tipo == WeeklyStatsType.cargas ||
+          customValue != null
+              ? null
+              : (tipo == WeeklyStatsType.cargas ||
                   tipo == WeeklyStatsType.frequencia ||
                   tipo == WeeklyStatsType.esforco)
-              ? WeeklyStatsService.getWeeklyStat(tipo: tipo)
-              : MiniCardService.getCardInfo(tipo: tipo),
+              ? WeeklyStatsService.getWeeklyStat(tipo: tipo!)
+              : MiniCardService.getCardInfo(tipo: tipo!),
       builder: (context, snapshot) {
+        // 6. MUDOU AQUI: Usa o customValue na hora, sem esperar nada. Senão, carrega o original.
         final value =
-            snapshot.connectionState == ConnectionState.waiting
+            customValue ??
+            (snapshot.connectionState == ConnectionState.waiting
                 ? '...'
                 : snapshot.hasError
                 ? 'Erro'
-                : snapshot.data ?? 'N/A';
+                : snapshot.data ?? 'N/A');
 
         return Container(
           //width: 120 * scale, // mantém a largura original do card

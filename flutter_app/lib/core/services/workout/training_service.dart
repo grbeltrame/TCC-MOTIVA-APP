@@ -726,45 +726,107 @@ extension CycleMonths on TrainingService {
 }
 
 extension CycleAll on TrainingService {
+  /// Busca todos os meses de um determinado ano que possuem ciclo cadastrado.
   static Future<List<int>> fetchRegisteredCycleMonthsForYear({
     required String boxId,
     required int year,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    final mock = <int, List<int>>{
-      2025: [1, 2, 3],
-      2026: [1],
-    };
-    final months = mock[year] ?? const <int>[];
-    final sorted = [...months]..sort();
-    return sorted;
+    try {
+      // Como os documentos são salvos no formato "MM-YYYY",
+      // podemos buscar todos e filtrar localmente, pois são poucos documentos.
+      final querySnapshot =
+          await FirebaseFirestore.instance.collection('cycles').get();
+
+      final String targetYear = year.toString();
+      List<int> months = [];
+
+      for (var doc in querySnapshot.docs) {
+        final docId = doc.id; // Ex: "02-2026"
+        if (docId.endsWith(targetYear)) {
+          final parts = docId.split('-');
+          if (parts.isNotEmpty) {
+            final monthInt = int.tryParse(parts[0]);
+            if (monthInt != null) {
+              months.add(monthInt);
+            }
+          }
+        }
+      }
+
+      // Ordena os meses do menor para o maior (ex: 1, 2, 3...)
+      months.sort();
+      // Retorna a lista garantindo que não há duplicados
+      return months.toSet().toList();
+    } catch (e) {
+      print("Erro ao buscar meses do ciclo: $e");
+      return [];
+    }
   }
 
+  /// Descobre qual é o ciclo mais recente (ou atual) cadastrado no banco.
   static Future<DateTime?> fetchCurrentCycleMonth({
     required String boxId,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    final all = <DateTime>[
-      DateTime(2025, 1),
-      DateTime(2025, 2),
-      DateTime(2025, 3),
-      DateTime(2026, 1),
-    ];
-    if (all.isEmpty) return null;
-    all.sort((a, b) => a.compareTo(b));
-    return all.last;
+    try {
+      final now = DateTime.now();
+      final currentDocId =
+          "${now.month.toString().padLeft(2, '0')}-${now.year}";
+
+      // 1. Tenta ver se o mês atual já tem ciclo
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('cycles')
+              .doc(currentDocId)
+              .get();
+      if (doc.exists) {
+        return DateTime(now.year, now.month);
+      }
+
+      // 2. Se não tem o mês atual, busca o último mês que tem registro
+      final querySnapshot =
+          await FirebaseFirestore.instance.collection('cycles').get();
+      if (querySnapshot.docs.isEmpty) return null;
+
+      List<DateTime> dates = [];
+      for (var doc in querySnapshot.docs) {
+        final parts = doc.id.split('-');
+        if (parts.length == 2) {
+          final m = int.tryParse(parts[0]);
+          final y = int.tryParse(parts[1]);
+          if (m != null && y != null) {
+            dates.add(DateTime(y, m));
+          }
+        }
+      }
+
+      if (dates.isEmpty) return null;
+
+      // Ordena e pega o mais recente
+      dates.sort((a, b) => a.compareTo(b));
+      return dates.last;
+    } catch (e) {
+      print("Erro ao buscar ciclo atual: $e");
+      return null;
+    }
   }
 
+  /// Verifica rapidamente se um ciclo específico (Mês/Ano) existe.
   static Future<bool> isCycleRegistered({
     required String boxId,
     required int year,
     required int month,
   }) async {
-    final months = await fetchRegisteredCycleMonthsForYear(
-      boxId: boxId,
-      year: year,
-    );
-    return months.contains(month);
+    try {
+      final docId = "${month.toString().padLeft(2, '0')}-$year";
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('cycles')
+              .doc(docId)
+              .get();
+      return doc.exists;
+    } catch (e) {
+      return false;
+    }
   }
 }
 

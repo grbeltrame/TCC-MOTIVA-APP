@@ -13,6 +13,10 @@ import 'package:flutter_app/shared/widgets/dialogs/confirm_delete_training.dart'
 
 /// Section: “Esses são todos os treinos cadastrados do Box”
 class CoachRegisteredTrainingsSection extends StatefulWidget {
+  // ✅ Adicionamos os parâmetros de inicialização
+  final DateTime? initialDate;
+  final String? initialCategory;
+
   // Callback opcional caso a tela pai precise saber quando algo foi clicado
   final void Function({
     required DateTime date,
@@ -21,7 +25,12 @@ class CoachRegisteredTrainingsSection extends StatefulWidget {
   })?
   onSelectionChanged;
 
-  const CoachRegisteredTrainingsSection({super.key, this.onSelectionChanged});
+  const CoachRegisteredTrainingsSection({
+    super.key,
+    this.initialDate,
+    this.initialCategory,
+    this.onSelectionChanged,
+  });
 
   @override
   State<CoachRegisteredTrainingsSection> createState() =>
@@ -32,15 +41,49 @@ class _CoachRegisteredTrainingsSectionState
     extends State<CoachRegisteredTrainingsSection> {
   static const _categories = ['WOD', 'LPO', 'Ginastica', 'Endurance'];
 
-  DateTime _date = DateTime.now();
-  String _category = _categories[0];
+  late DateTime _date;
+  late String _category;
 
   Future<Map<String, TrainingBlock?>>? _fut;
 
   @override
   void initState() {
     super.initState();
+
+    // ✅ Pega a data passada pelo pai ou usa hoje
+    _date = widget.initialDate ?? DateTime.now();
+
+    // ✅ Pega a categoria passada pelo pai, verifica se existe nas tabs, senão usa WOD
+    final passedCat = widget.initialCategory;
+    if (passedCat != null && _categories.contains(passedCat)) {
+      _category = passedCat;
+    } else {
+      _category = _categories[0];
+    }
+
     _reload();
+  }
+
+  // ✅ Adicionamos o didUpdateWidget para atualizar caso o pai mude os parâmetros (boa prática no Flutter)
+  @override
+  void didUpdateWidget(CoachRegisteredTrainingsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialDate != oldWidget.initialDate ||
+        widget.initialCategory != oldWidget.initialCategory) {
+      bool needsReload = false;
+      if (widget.initialDate != null && widget.initialDate != _date) {
+        _date = widget.initialDate!;
+        needsReload = true;
+      }
+      if (widget.initialCategory != null &&
+          widget.initialCategory != _category &&
+          _categories.contains(widget.initialCategory)) {
+        _category = widget.initialCategory!;
+        needsReload = true;
+      }
+
+      if (needsReload) _reload();
+    }
   }
 
   void _reload() {

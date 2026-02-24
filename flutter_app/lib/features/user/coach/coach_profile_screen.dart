@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/models/coach_profile.dart'; // Importante: Onde estão o Model e o Service
+import 'package:flutter_app/shared/models/coach_profile.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_info_section.dart';
-import 'package:flutter_app/shared/widgets/sections/coach/coach_recent_cycles_section.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
-// Mantive os imports que você já tinha, caso precise de outros widgets
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
+
+// ✅ Imports novos necessários para o botão e para a navegação
+import 'package:flutter_app/routes/app_routes.dart';
+import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/core/constants/app_fonts.dart';
 
 class CoachProfileScreen extends StatefulWidget {
   static const routeName = '/coach_profile';
@@ -72,7 +75,6 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           }
 
           // 3. ESTADO DE SUCESSO (Dados carregados)
-          // Aqui pegamos os dados reais do banco
           final profileData = snapshot.data!;
 
           return SingleChildScrollView(
@@ -83,14 +85,51 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ✅ CORREÇÃO: Passamos os dados para a seção e a função de recarregar
+                // Info do Coach (Foto, Nome, Bio, etc)
                 CoachInfoSection(
                   profile: profileData,
                   onRefreshRequest: _loadProfile,
                 ),
 
-                // Resumo dos ciclos (Mantido)
-                CoachRecentCyclesSection(boxId: '1'),
+                SizedBox(height: 32 * scale),
+
+                // ✅ O NOVO BOTÃO DE VER TODOS OS CICLOS
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8 * scale),
+                  child: OutlinedButton.icon(
+                    onPressed:
+                        () => Navigator.pushNamed(
+                          context,
+                          AppRoutes.coachAllCycles,
+                        ),
+                    icon: Icon(
+                      Icons.calendar_month_outlined,
+                      size: 20 * scale,
+                      color: AppColors.baseBlue,
+                    ),
+                    label: Text(
+                      'Ver todos os ciclos',
+                      style: TextStyle(
+                        fontFamily: AppFonts.roboto,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14 * scale,
+                        color: AppColors.baseBlue,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 14 * scale),
+                      side: const BorderSide(
+                        color: AppColors.baseBlue,
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8 * scale),
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 16 * scale),
               ],
             ),
           );

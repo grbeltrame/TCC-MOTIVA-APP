@@ -89,13 +89,70 @@ def run_cycle_analysis(db, current_workout, api_key):
         # Adiciona o treino atual (garantido na memória)
         month_workouts.append(current_workout)
 
-        # 3. Buscar Análise do Ciclo Anterior
+        # -----------------------------------------------------------------
+        # 3. NOVA LÓGICA: MATEMÁTICA EM PYTHON (ESTATÍSTICAS DO CICLO)
+        # -----------------------------------------------------------------
+        trainings_count = len(month_workouts)
+        type_counts = {}
+        stimulus_counts = {}
+
+        for w in month_workouts:
+            # A. Contagem de Tipos de Treino (WOD, LPO, GINÁSTICA, etc)
+            partes = w.get("partes", {})
+            for key in partes.keys():
+                k_upper = key.upper()
+                if "WOD" in k_upper:
+                    type_counts["WODs"] = type_counts.get("WODs", 0) + 1
+                elif "LPO" in k_upper:
+                    type_counts["LPO"] = type_counts.get("LPO", 0) + 1
+                elif "GYM" in k_upper or "GINASTICA" in k_upper or "GINÁSTICA" in k_upper:
+                    type_counts["Ginástica"] = type_counts.get("Ginástica", 0) + 1
+                elif "ENDURANCE" in k_upper or "CARDIO" in k_upper:
+                    type_counts["Endurance"] = type_counts.get("Endurance", 0) + 1
+
+            # B. Contagem de Estímulos (puxando as key_metrics da análise diária já gerada pela IA)
+            analise = w.get("analise", {})
+            summary = analise.get("summary", {})
+            key_metrics = summary.get("key_metrics", [])
+            
+            for metric in key_metrics:
+                m_cap = str(metric).strip().title() # Formata bonitinho: Ex: "Força", "Potência"
+                stimulus_counts[m_cap] = stimulus_counts.get(m_cap, 0) + 1
+
+        # Prepara a lista de tipos de treino no formato exato que o Flutter espera
+        training_types_list = []
+        for t_label, count in type_counts.items():
+            training_types_list.append({
+                "typeLabel": t_label,
+                "typeKey": t_label.lower(), # ex: "wods", "lpo"
+                "count": count
+            })
+
+        # Prepara a lista do Gráfico de Pizza (Estímulos) para o Flutter
+        stimulus_list = []
+        biggest_stimulus_label = "Equilibrado"
+        max_stim_count = 0
+        
+        for s_label, count in stimulus_counts.items():
+            stimulus_list.append({
+                "stimulus": s_label,
+                "count": count
+            })
+            if count > max_stim_count:
+                max_stim_count = count
+                biggest_stimulus_label = s_label # Descobre qual foi o estímulo mais frequente
+
+        # -----------------------------------------------------------------
+        # 4. Buscar Análise do Ciclo Anterior
+        # -----------------------------------------------------------------
         prev_cycle_ref = db.collection("cycles").document(prev_month_key)
         prev_cycle_doc = prev_cycle_ref.get()
         prev_cycle_data = prev_cycle_doc.to_dict() if prev_cycle_doc.exists else None
 
-        # 4. Gerar Prompt e Chamar IA
-        logging.info(f"Gerando análise de ciclo ({current_month_key}) com {len(month_workouts)} treinos.")
+        # -----------------------------------------------------------------
+        # 5. Gerar Prompt e Chamar IA
+        # -----------------------------------------------------------------
+        logging.info(f"Gerando análise de ciclo ({current_month_key}) com {trainings_count} treinos.")
         
         prompt_text = create_cycle_prompt(
             month_workouts=month_workouts,
@@ -114,12 +171,30 @@ def run_cycle_analysis(db, current_workout, api_key):
         chain = llm | cycle_parser
         
         result = chain.invoke(prompt_text)
+        cycle_ai_data = result.dict() # Converte a resposta estruturada em dicionário
+
+        # -----------------------------------------------------------------
+        # 6. Mesclar Dados (Python + IA) e Salvar no Firestore
+        # -----------------------------------------------------------------
+        final_document = {
+            **cycle_ai_data, # Espalha todos os dados gerados pela IA (overview, quick_alerts, etc)
+            
+            # Dados processados pelo Python, mastigados para o Dashboard no Flutter
+            "overview_stats": { 
+                "updatedAt": datetime.now().isoformat(),
+                "trainingsCount": trainings_count,
+                "registrosCount": 0,      # WIP (Em breve)
+                "activeStudentsPct": 0    # WIP (Em breve)
+            },
+            "trainingTypes": training_types_list,
+            "stimulus": stimulus_list,
+            "biggestStimulusLabel": biggest_stimulus_label
+        }
         
-        # 5. Salvar no Firestore
         cycle_ref = db.collection("cycles").document(current_month_key)
-        cycle_ref.set(result.dict())
+        cycle_ref.set(final_document)
         
-        return result.dict()
+        return final_document
 
     except Exception as e:
         logging.error(f"Erro CRÍTICO na análise de ciclo: {e}")
