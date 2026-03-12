@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
+import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
@@ -17,10 +18,6 @@ class CoachTrainingInsightsScreen extends StatefulWidget {
 
 class _CoachTrainingInsightsScreenState
     extends State<CoachTrainingInsightsScreen> {
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
-
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -44,10 +41,45 @@ class _CoachTrainingInsightsScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppBackButton(),
+            // ── Topo: voltar + Ver todos os ciclos ───────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const AppBackButton(),
+                GestureDetector(
+                  onTap:
+                      () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.coachAllCycles,
+                      ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Ver todos os ciclos',
+                        style: TextStyle(
+                          fontFamily: AppFonts.roboto,
+                          fontSize: 11 * scale,
+                          color: AppColors.baseBlue,
+                          fontWeight: AppFontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(width: 3 * scale),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 10 * scale,
+                        color: AppColors.baseBlue,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             SizedBox(height: 12 * scale),
 
             CoachCycleInsightsSection(boxId: boxId, initialMonth: initialMonth),
+
+            SizedBox(height: 16 * scale),
           ],
         ),
       ),

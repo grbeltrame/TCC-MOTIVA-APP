@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_class_registration_section.dart';
-import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_insights_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_registered_trainings_section.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
@@ -33,13 +32,11 @@ class _CoachRegisteredTrainingScreenState
     if (_didInit) return;
     _didInit = true;
 
-    // ✅ Captura os argumentos da rota (se vier da tela de Ciclo)
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
 
     if (args.containsKey('year') && args.containsKey('month')) {
       final year = args['year'] as int;
       final month = args['month'] as int;
-      // Se estamos no mesmo mês atual, abre no dia de hoje. Se for mês passado/futuro, abre no dia 1.
       final now = DateTime.now();
       _selectedDate =
           (now.year == year && now.month == month)
@@ -49,13 +46,11 @@ class _CoachRegisteredTrainingScreenState
       _selectedDate = DateTime.now();
     }
 
-    // ✅ Mapeia a categoria que veio do clique (WOD, LPO, etc)
     if (args.containsKey('typeLabel')) {
       _selectedCategory = _mapTypeLabelToCategory(args['typeLabel'] as String);
     }
   }
 
-  // Função auxiliar para garantir que o filtro vá com o nome exato que a aba espera
   String _mapTypeLabelToCategory(String typeLabel) {
     final l = typeLabel.toLowerCase().trim();
     if (l.contains('wod')) return 'WOD';
@@ -65,12 +60,14 @@ class _CoachRegisteredTrainingScreenState
     return typeLabel.trim();
   }
 
+  // Fix Bug 4: assinatura alinhada com a section.
+  // trainingBlockId é String? (nullable) — igual à declaração na section.
+  // Antes estava "required String" causando erro de tipo na compilação.
   void _onSelectionChanged({
     required DateTime date,
     required String category,
-    required String trainingBlockId,
+    String? trainingBlockId,
   }) {
-    // Evita setState desnecessário se nada mudou
     if (_selectedDate == date &&
         _selectedCategory == category &&
         _selectedTrainingId == trainingBlockId)
@@ -100,27 +97,16 @@ class _CoachRegisteredTrainingScreenState
           children: [
             const AppBackButton(),
 
-            // ✅ Passamos as variáveis iniciais para a Section desenhar a tela certa
+            // A section já gerencia o reload internamente via
+            // _onTapEditarTreino → .then((saved) { if (saved==true) _reload(); })
+            // Não precisamos de refreshKey nem onEditCompleted aqui.
             CoachRegisteredTrainingsSection(
               key: const ValueKey('registered_trainings'),
-              initialDate: _selectedDate, // Precisamos adicionar isso lá!
-              initialCategory:
-                  _selectedCategory, // Precisamos adicionar isso lá!
-              // onSelectionChanged: _onSelectionChanged, // Descomente quando a section suportar
+              initialDate: _selectedDate,
+              initialCategory: _selectedCategory,
+              onSelectionChanged: _onSelectionChanged,
             ),
 
-            SizedBox(height: 16 * scale),
-
-            CoachDailyInsightsSection(
-              date: _selectedDate,
-              boxId: _boxId,
-              selectedCategory: _selectedCategory,
-              trainingId: _selectedTrainingId,
-              title: 'Insights do Treino',
-              showSeeAllButton: true,
-              showWeeklyAnalysisButton: false,
-              showCycleProjectionButton: false,
-            ),
             SizedBox(height: 16 * scale),
           ],
         ),

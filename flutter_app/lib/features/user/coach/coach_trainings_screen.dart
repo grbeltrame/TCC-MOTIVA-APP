@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_overview_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_trainings_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_trainings_actions_section.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
@@ -62,11 +61,6 @@ class _CoachTrainingScreenState extends State<CoachTrainingScreen> {
             // SEÇÃO DE TREINOS DO DIA
             // Passamos a data selecionada para que ele busque WOD, LPO, etc daquele dia
             CoachDailyTrainingsSection(boxId: '1', date: _selectedDate),
-
-            const SizedBox(height: 16),
-
-            // Visão Geral do Coach
-            CoachDailyOverviewSection(date: _selectedDate, boxId: '1'),
           ],
         ),
       ),

@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>430412921098-vjnevhn45ifiighgf2saj8pcldr1tt3r.apps.googleusercontent.com</string>
+	<string>430412921098-c433je4r1f0e8s2ri8nem097r8b6vllo.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.430412921098-vjnevhn45ifiighgf2saj8pcldr1tt3r</string>
+	<string>com.googleusercontent.apps.430412921098-c433je4r1f0e8s2ri8nem097r8b6vllo</string>
 	<key>ANDROID_CLIENT_ID</key>
 	<string>430412921098-da4if8bnl47h0dqfu037qln4l1hkrn37.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.flutterApp</string>
+	<string>com.projetofinal.motivaapp</string>
 	<key>PROJECT_ID</key>
 	<string>motiva-8b82f</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:430412921098:ios:b4325bd4d8ff640ba422f3</string>
+	<string>1:430412921098:ios:a4f22f8b8a9f309da422f3</string>
 </dict>
 </plist>

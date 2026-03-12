@@ -6,7 +6,6 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
-import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/dialogs/confirm_delete_training.dart';
@@ -439,24 +438,20 @@ class _CoachRegisteredTrainingsSectionState
         ),
         SizedBox(height: 8 * scale),
 
-        // 2) Linha: Date + Ver ciclos
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            CompactDatePicker(
+        // 2) Date picker — centralizado e com largura limitada (Fitt's Law:
+        //    alvo menor e bem posicionado é mais fácil de acertar que
+        //    um elemento que estica por toda a tela)
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: CompactDatePicker(
               initialDate: _date,
               onChanged: (d) {
                 _date = d;
                 _reload();
               },
             ),
-            TextActionButton(
-              text: 'Ver todos os ciclos',
-              icon: Icons.add,
-              onPressed:
-                  () => Navigator.pushNamed(context, AppRoutes.coachAllCycles),
-            ),
-          ],
+          ),
         ),
         SizedBox(height: 12 * scale),
 
