@@ -3,17 +3,61 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/models/training.dart'; // DailyWorkoutSummary
+import 'package:flutter_app/shared/models/training.dart';
 
 /*
-  Card “Treino de hoje” (professor)
-  - Dropdown sem container (texto azul + seta)
-  - “Estímulo do dia:” (cinza, bold) + valências separadas por “ + ”
-  - “Objetivo:” (cinza) + objetivo
-  - Divisor sutil
-  - Dois botões com ícones (sem outline)
-  - Borda azul arredondada no card
+  Card "Treino de hoje" (professor)
+  ─────────────────────────────────────────────────────────────
+  • Dropdown filtra por TIPO DE TREINO (WOD / LPO / Ginástica /
+    Endurance) — cada opção = um documento do dia no Firestore.
+    Se houver 2 WODs no dia: "WOD" e "WOD (2)".
+  • "Treino do dia:"  → nomeWod da parte principal do documento
+  • "Foco do dia:"    → 1ª frase do overview da IA (até o '.')
+  • Divisor sutil + botão "Ver treino"
+  • Borda azul arredondada no card
 */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modelo interno — agrega Summary + wodName + focusText num único Future
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CardData {
+  final DailyWorkoutSummary? summary;
+  final String? wodName; // nomeWod da parte selecionada
+  final String? focusText; // 1ª frase do overview da IA
+
+  const _CardData({this.summary, this.wodName, this.focusText});
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Opção do dropdown — label exibido + chave de busca
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _DropdownOption {
+  final String label; // ex: "WOD", "WOD (2)", "ENDURANCE"
+  final String category; // chave da parte: "WOD", "ENDURANCE" …
+  final String? trainingId; // ID do documento (para múltiplos WODs no dia)
+
+  const _DropdownOption({
+    required this.label,
+    required this.category,
+    this.trainingId,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is _DropdownOption &&
+      label == other.label &&
+      category == other.category &&
+      trainingId == other.trainingId;
+
+  @override
+  int get hashCode => Object.hash(label, category, trainingId);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Widget principal
+// ─────────────────────────────────────────────────────────────────────────────
 
 class CoachTodayWorkoutCard extends StatefulWidget {
   final String boxId;
@@ -30,72 +74,172 @@ class CoachTodayWorkoutCard extends StatefulWidget {
 }
 
 class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
-  // Futuro “blindado”: sempre vira Future<List<String>> independente do que o Service retornar.
-  late final Future<List<String>> _futCategories;
+  // Futuro das opções do dropdown
+  late final Future<List<_DropdownOption>> _futOptions;
 
-  String? _selectedCategoryLabel;
-  Future<DailyWorkoutSummary?>? _futSummaryForSelected;
+  _DropdownOption? _selected;
+  Future<_CardData>? _futCardData;
 
-  // Cores/estilo
+  // Estilo
   static const Color kBlue = Color(0xFF224DFF);
   static const Color kBlueBorder = Color(0xFF224DFF);
-  static const Color kGreyTitle = Color(0xFF8A8A8E);
   static const Color kGreyBody = Color(0xFF666666);
   static const double kRadius = 12;
+
+  // ── Inicialização ───────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
-    _futCategories = _loadCategoriesAsList();
-
-    _futCategories.then((labels) {
-      if (!mounted) return;
-      final defaultLabel =
-          labels.contains('WOD')
-              ? 'WOD'
-              : (labels.isNotEmpty ? labels.first : null);
-
+    _futOptions = _buildDropdownOptions();
+    _futOptions.then((opts) {
+      if (!mounted || opts.isEmpty) return;
+      // Padrão: primeiro WOD, senão primeira opção disponível
+      final def = opts.firstWhere(
+        (o) => o.category.toUpperCase() == 'WOD',
+        orElse: () => opts.first,
+      );
       setState(() {
-        _selectedCategoryLabel = defaultLabel;
-        if (defaultLabel != null) {
-          _futSummaryForSelected = _loadSummaryFor(defaultLabel);
-        }
+        _selected = def;
+        _futCardData = _loadCardData(def);
       });
     });
   }
 
-  /// Converte a resposta do service (List<String> OU Map<String,String> OU outros)
-  /// para uma List<String> consistente para o dropdown.
-  Future<List<String>> _loadCategoriesAsList() async {
-    // Chama o helper; se ele retornar Map, List, etc., normalizamos.
-    final dynamic raw =
-        await TodayWorkoutHelpers.fetchAvailableCategoriesForDate(
-          boxId: widget.boxId,
-          date: widget.date,
-        );
+  // ── Constrói as opções do dropdown ─────────────────────────────────────────
+  //
+  // Cada Training do dia = um documento = uma opção.
+  // O TIPO é determinado pela parte principal do documento:
+  //   LPO > Ginástica > Endurance > WOD (em ordem de especificidade)
+  // Partes de suporte (WARM UP, EXTRA TRAINING) são ignoradas para o label.
+  // Se dois docs têm o mesmo tipo: "WOD" e "WOD (2)".
 
-    if (raw is List<String>) return raw;
-    if (raw is List) return raw.map((e) => e.toString()).toList();
-    if (raw is Map<String, String>) return raw.keys.toList();
-    if (raw is Map) return raw.keys.map((e) => e.toString()).toList();
+  static const _kSupportParts = {
+    'WARM UP',
+    'WARMUP',
+    'EXTRA TRAINING',
+    'EXTRA',
+    'MOBILIDADE',
+    'MOBILITY',
+  };
 
-    return <String>[];
+  String _detectType(Map<String, dynamic> partes) {
+    final keys = partes.keys.map((k) => k.toUpperCase()).toSet();
+    if (keys.contains('LPO')) return 'LPO';
+    if (keys.any((k) => k.contains('GINASTIC') || k.contains('GYMNAST'))) {
+      return 'Ginástica';
+    }
+    if (keys.any(
+      (k) => k.contains('ENDUR') || k.contains('RUNNING') || k.contains('RUN'),
+    )) {
+      return 'Endurance';
+    }
+    if (keys.contains('WOD')) return 'WOD';
+    // Fallback: primeira parte que não seja suporte
+    final main = partes.keys.firstWhere(
+      (k) => !_kSupportParts.contains(k.toUpperCase()),
+      orElse: () => partes.keys.first,
+    );
+    return main.toUpperCase();
   }
 
-  Future<DailyWorkoutSummary?> _loadSummaryFor(String category) {
-    // Mantém o helper existente; ele já normaliza “Ginástica”/“Ginastica”.
-    return TodayWorkoutHelpers.fetchDailyWorkoutSummaryByCategory(
+  Future<List<_DropdownOption>> _buildDropdownOptions() async {
+    final trainings = await TrainingService.fetchTrainingsListForDate(
       boxId: widget.boxId,
       date: widget.date,
-      category: category,
     );
+
+    final List<_DropdownOption> opts = [];
+    final Map<String, int> typeCount = {};
+
+    for (final t in trainings) {
+      if (t.partes.isEmpty) continue;
+      final type = _detectType(t.partes);
+      typeCount[type] = (typeCount[type] ?? 0) + 1;
+      final count = typeCount[type]!;
+      opts.add(
+        _DropdownOption(
+          label: count == 1 ? type : '$type ($count)',
+          category: type,
+          trainingId: t.id,
+        ),
+      );
+    }
+
+    // Ordena: WOD primeiro, depois alfabético
+    opts.sort((a, b) {
+      if (a.category == 'WOD') return -1;
+      if (b.category == 'WOD') return 1;
+      return a.label.compareTo(b.label);
+    });
+
+    return opts;
   }
+
+  // ── Carrega Summary + wodName + focusText em paralelo ──────────────────────
+
+  Future<_CardData> _loadCardData(_DropdownOption opt) async {
+    // Busca todos os trainings do dia (o service tem cache implícito na sessão)
+    final trainings = await TrainingService.fetchTrainingsListForDate(
+      boxId: widget.boxId,
+      date: widget.date,
+    );
+
+    // Encontra o Training correto: por ID se disponível, senão por categoria
+    Training? matched;
+    if (opt.trainingId != null) {
+      matched = trainings.cast<Training?>().firstWhere(
+        (t) => t?.id == opt.trainingId,
+        orElse: () => null,
+      );
+    }
+    matched ??= trainings.cast<Training?>().firstWhere(
+      (t) => t?.partes.containsKey(opt.category) ?? false,
+      orElse: () => null,
+    );
+
+    // ── wodName: busca nomeWod dentro da parte selecionada
+    String? wodName;
+    if (matched != null) {
+      final parte =
+          matched.partes[opt.category] as Map<String, dynamic>? ??
+          matched.partes[opt.category.toUpperCase()] as Map<String, dynamic>?;
+      final raw = parte?['nomeWod']?.toString().trim();
+      if (raw != null && raw.isNotEmpty) wodName = raw;
+    }
+
+    // ── focusText: 1ª frase do overview da IA
+    String? focusText;
+    final overview = matched?.analysis?.overview;
+    if (overview != null && overview.trim().isNotEmpty) {
+      final dotIdx = overview.indexOf('.');
+      focusText =
+          dotIdx > 0
+              ? overview.substring(0, dotIdx + 1).trim()
+              : (overview.trim().length > 120
+                  ? '${overview.trim().substring(0, 120)}...'
+                  : overview.trim());
+    }
+
+    // ── DailyWorkoutSummary (para compatibilidade futura)
+    final summary =
+        await TodayWorkoutHelpers.fetchDailyWorkoutSummaryByCategory(
+          boxId: widget.boxId,
+          date: widget.date,
+          category: opt.category,
+        );
+
+    return _CardData(summary: summary, wodName: wodName, focusText: focusText);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final width = MediaQuery.of(context).size.width;
-    final scale = width / 375.0;
+    final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Container(
       decoration: BoxDecoration(
@@ -114,12 +258,11 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ===== DROPDOWN (sem container de fundo) =====
-          FutureBuilder<List<String>>(
-            future: _futCategories,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting ||
-                  snapshot.connectionState == ConnectionState.active) {
+          // ── Dropdown de categoria / treino ──────────────────────────────
+          FutureBuilder<List<_DropdownOption>>(
+            future: _futOptions,
+            builder: (context, snap) {
+              if (!snap.hasData) {
                 return Row(
                   children: [
                     Text(
@@ -140,24 +283,20 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
                 );
               }
 
-              if (snapshot.hasError) {
+              if (snap.hasError || snap.data!.isEmpty) {
                 return Text(
-                  'Falha ao carregar treinos do dia',
+                  snap.hasError
+                      ? 'Falha ao carregar treinos'
+                      : 'Nenhum treino disponível hoje',
                   style: textTheme.bodyMedium?.copyWith(color: kGreyBody),
                 );
               }
 
-              final labels = snapshot.data ?? const <String>[];
-              if (labels.isEmpty) {
-                return Text(
-                  'Nenhum treino disponível hoje',
-                  style: textTheme.bodyMedium?.copyWith(color: kGreyBody),
-                );
-              }
+              final opts = snap.data!;
 
               return DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedCategoryLabel,
+                child: DropdownButton<_DropdownOption>(
+                  value: _selected,
                   icon: const Icon(
                     Icons.arrow_drop_down,
                     color: kBlue,
@@ -169,12 +308,12 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
                     fontWeight: FontWeight.w700,
                   ),
                   items:
-                      labels
+                      opts
                           .map(
-                            (label) => DropdownMenuItem<String>(
-                              value: label,
+                            (opt) => DropdownMenuItem<_DropdownOption>(
+                              value: opt,
                               child: Text(
-                                label,
+                                opt.label,
                                 style: textTheme.titleMedium?.copyWith(
                                   color: AppColors.baseBlue,
                                   fontSize: 18 * scale,
@@ -187,8 +326,8 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
                   onChanged: (val) {
                     if (val == null) return;
                     setState(() {
-                      _selectedCategoryLabel = val;
-                      _futSummaryForSelected = _loadSummaryFor(val);
+                      _selected = val;
+                      _futCardData = _loadCardData(val);
                     });
                   },
                 ),
@@ -198,60 +337,37 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
 
           const SizedBox(height: 8),
 
-          // ===== CONTEÚDO: Estímulo + Objetivo =====
-          FutureBuilder<DailyWorkoutSummary?>(
-            future: _futSummaryForSelected,
-            builder: (context, snapshot) {
-              if (_selectedCategoryLabel == null ||
-                  snapshot.connectionState == ConnectionState.waiting ||
-                  snapshot.connectionState == ConnectionState.active) {
-                return _skeletonContent(textTheme);
-              }
-
-              if (snapshot.hasError) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _stimulusRow(textTheme, '—'),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Não foi possível carregar o objetivo.',
-                      style: textTheme.bodyMedium?.copyWith(color: kGreyBody),
-                    ),
-                    const SizedBox(height: 10),
-                    Divider(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      height: 16,
-                    ),
-                    const SizedBox(height: 6),
-                    _buttonsRow(textTheme),
-                  ],
+          // ── Conteúdo dinâmico ───────────────────────────────────────────
+          FutureBuilder<_CardData>(
+            future: _futCardData,
+            builder: (context, snap) {
+              // Skeleton enquanto carrega
+              if (_selected == null ||
+                  snap.connectionState == ConnectionState.waiting ||
+                  snap.connectionState == ConnectionState.active) {
+                return _buildContent(
+                  textTheme: textTheme,
+                  scale: scale,
+                  wodName: null,
+                  focusText: null,
                 );
               }
 
-              final summary = snapshot.data;
-              final stimulusText = (summary?.stimuli ?? const <String>[])
-                  .where((s) => s.trim().isNotEmpty)
-                  .join(' + ');
-              final objective = summary?.objectiveShort ?? '';
+              if (snap.hasError) {
+                return _buildContent(
+                  textTheme: textTheme,
+                  scale: scale,
+                  wodName: '—',
+                  focusText: 'Não foi possível carregar o foco.',
+                );
+              }
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _stimulusRow(
-                    textTheme,
-                    stimulusText.isEmpty ? '—' : stimulusText,
-                  ),
-                  const SizedBox(height: 8),
-                  _objectiveRow(textTheme, objective.isEmpty ? '—' : objective),
-                  const SizedBox(height: 10),
-                  Divider(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    height: 16,
-                  ),
-                  const SizedBox(height: 6),
-                  _buttonsRow(textTheme),
-                ],
+              final data = snap.data!;
+              return _buildContent(
+                textTheme: textTheme,
+                scale: scale,
+                wodName: data.wodName,
+                focusText: data.focusText,
               );
             },
           ),
@@ -260,15 +376,42 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
     );
   }
 
-  // ===== UI helpers =====
+  // ─────────────────────────────────────────────────────────────────────────
+  // Conteúdo: Treino do dia + Foco do dia + botões
+  // ─────────────────────────────────────────────────────────────────────────
 
-  Widget _skeletonContent(TextTheme textTheme) {
+  Widget _buildContent({
+    required TextTheme textTheme,
+    required double scale,
+    required String? wodName,
+    required String? focusText,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _stimulusRow(textTheme, '—'),
+        // "Treino do dia: NOME DO WOD"
+        _labelValueRow(
+          textTheme: textTheme,
+          scale: scale,
+          label: 'Treino do dia: ',
+          value: wodName ?? '—',
+          valueFontSize: 16 * scale,
+          valueWeight: AppFontWeight.medium,
+        ),
+
         const SizedBox(height: 8),
-        _objectiveRow(textTheme, '—'),
+
+        // "Foco do dia: 1ª frase do overview da IA"
+        _labelValueRow(
+          textTheme: textTheme,
+          scale: scale,
+          label: 'Foco do dia: ',
+          value: focusText ?? '—',
+          valueFontSize: 12 * scale,
+          valueWeight: AppFontWeight.regular,
+          valueHeight: 1.3,
+        ),
+
         const SizedBox(height: 10),
         Divider(color: Colors.black.withValues(alpha: 0.12), height: 16),
         const SizedBox(height: 6),
@@ -277,54 +420,33 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
     );
   }
 
-  Widget _stimulusRow(TextTheme textTheme, String value) {
-    final width = MediaQuery.of(context).size.width;
-    final scale = width / 375.0;
+  Widget _labelValueRow({
+    required TextTheme textTheme,
+    required double scale,
+    required String label,
+    required String value,
+    required double valueFontSize,
+    required FontWeight valueWeight,
+    double? valueHeight,
+  }) {
     return RichText(
       text: TextSpan(
         children: [
           TextSpan(
-            text: 'Estímulo do dia: ',
-            style: textTheme.titleMedium?.copyWith(
-              color: AppColors.mediumGray,
-              fontSize: 16 * scale,
-              fontWeight: AppFontWeight.medium,
+            text: label,
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.darkText, // título: sempre escuro
+              fontSize: valueFontSize,
+              fontWeight: AppFontWeight.bold,
             ),
           ),
           TextSpan(
             text: value,
-            style: textTheme.titleMedium?.copyWith(
-              fontSize: 16 * scale,
-              color: AppColors.mediumGray,
-              fontWeight: AppFontWeight.regular,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _objectiveRow(TextTheme textTheme, String value) {
-    final width = MediaQuery.of(context).size.width;
-    final scale = width / 375.0;
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: 'Objetivo: ',
-            style: textTheme.bodySmall?.copyWith(
-              color: AppColors.mediumGray,
-              fontSize: 12 * scale,
-              fontWeight: AppFontWeight.medium,
-            ),
-          ),
-          TextSpan(
-            text: value,
-            style: textTheme.bodySmall?.copyWith(
-              color: AppColors.mediumGray,
-              fontSize: 12 * scale,
-              fontWeight: AppFontWeight.regular,
-              height: 1.25,
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.mediumGray, // valor: sempre cinza
+              fontSize: valueFontSize,
+              fontWeight: valueWeight,
+              height: valueHeight,
             ),
           ),
         ],
@@ -334,48 +456,28 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
 
   Widget _buttonsRow(TextTheme textTheme) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        _flatIconButton(
-          icon: Icons.add,
-          label: 'Ver treino',
-          onTap: () {
-            Navigator.pushNamed(context, AppRoutes.coachTrainings);
-          },
-        ),
-        const SizedBox(width: 12),
-        _flatIconButton(
-          icon: Icons.bar_chart,
-          label: 'Análise do Ciclo',
-          onTap: () {
-            Navigator.pushNamed(context, AppRoutes.coachEvolutions);
-          },
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, AppRoutes.coachTrainings),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Ver treino',
+                style: TextStyle(
+                  color: kBlue,
+                  fontFamily: AppFonts.roboto,
+                  fontWeight: AppFontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(width: 3),
+              const Icon(Icons.arrow_forward_ios, size: 10, color: kBlue),
+            ],
+          ),
         ),
       ],
-    );
-  }
-
-  Widget _flatIconButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: kBlue),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(color: kBlue, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

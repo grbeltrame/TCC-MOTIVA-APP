@@ -1,13 +1,74 @@
-// lib/shared/widgets/daily_training_summary_card.dart
-import 'dart:async';
+// lib/shared/widgets/cards/daily_training_summary_card.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
-import 'package:flutter_app/shared/models/box.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
+
+/*
+  Card "Treino de hoje" (atleta)
+  ─────────────────────────────────────────────────────────────
+  Usa a mesma fonte de dados do coach: fetchTrainingsListForDate.
+  Hierarquia visual:
+    1. Dropdown de tipo (WOD / LPO / Ginástica / Endurance)
+    2. Nome do WOD  → partes[key]['nomeWod']
+    3. Foco do dia  → 1ª frase de analysis.overview
+    4. Estímulos    → analysis.keyMetrics (chips)
+    5. "Ver treino" → AppRoutes.athleteTraining
+  ─────────────────────────────────────────────────────────────
+*/
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constantes de estilo
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _kBlue = Color(0xFF224DFF);
+const _kRadius = 12.0;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modelo interno — dados do card para o tipo selecionado
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CardData {
+  final String? wodName;
+  final String? focusText;
+  final List<String> keyMetrics;
+
+  const _CardData({this.wodName, this.focusText, this.keyMetrics = const []});
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Opção do dropdown — tipo de treino + id do documento
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _DropdownOption {
+  final String label;
+  final String type;
+  final String? trainingId;
+
+  const _DropdownOption({
+    required this.label,
+    required this.type,
+    this.trainingId,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is _DropdownOption &&
+      label == other.label &&
+      type == other.type &&
+      trainingId == other.trainingId;
+
+  @override
+  int get hashCode => Object.hash(label, type, trainingId);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Widget principal
+// ─────────────────────────────────────────────────────────────────────────────
 
 class DailyTrainingSummaryCard extends StatefulWidget {
   const DailyTrainingSummaryCard({Key? key}) : super(key: key);
@@ -18,350 +79,460 @@ class DailyTrainingSummaryCard extends StatefulWidget {
 }
 
 class _DailyTrainingSummaryCardState extends State<DailyTrainingSummaryCard> {
-  String? _selectedBoxId;
-  int _currentIdx = 0;
-  Timer? _rotTimer;
+  static const String _boxId = 'BOX_PRINCIPAL';
 
-  @override
-  void dispose() {
-    _rotTimer?.cancel();
-    super.dispose();
-  }
+  late final Future<List<_DropdownOption>> _futOptions;
+  _DropdownOption? _selected;
+  Future<_CardData>? _futCardData;
 
-  void _startRotationIfNeeded(List<DailyWorkoutSummary> items) {
-    _rotTimer?.cancel();
-    if (items.length <= 1) return;
-    // menos rápido: 12s
-    _rotTimer = Timer.periodic(const Duration(seconds: 8), (_) {
-      if (!mounted) return;
-      setState(() {
-        _currentIdx = (_currentIdx + 1) % items.length;
-      });
-    });
-  }
+  // ── Partes ignoradas na detecção de tipo ──────────────────────────────────
+  static const _kSupportParts = {
+    'WARM UP',
+    'WARMUP',
+    'EXTRA TRAINING',
+    'EXTRA',
+    'MOBILIDADE',
+    'MOBILITY',
+    'SKILL',
+  };
 
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 375.0;
-
-    return FutureBuilder<List<Box>>(
-      future: TrainingService.fetchUserBoxes(),
-      builder: (ctx, snapBoxes) {
-        if (snapBoxes.connectionState != ConnectionState.done) {
-          return const SizedBox.shrink();
-        }
-        final boxes = snapBoxes.data ?? const <Box>[];
-
-        // 0 boxes → CTA para cadastrar
-        if (boxes.isEmpty) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              border: Border.all(color: AppColors.baseBlue),
-              borderRadius: BorderRadius.circular(12 * scale),
-            ),
-            padding: EdgeInsets.all(12 * scale),
-            child: OutlinedButton.icon(
-              onPressed:
-                  () => showAppBottomSheet(context, const BoxSignupCoach()),
-              icon: Icon(
-                Icons.add,
-                color: AppColors.baseBlue,
-                size: 16 * scale,
-              ),
-              label: Text(
-                'Cadastrar box',
-                style: TextStyle(
-                  fontFamily: AppFonts.roboto,
-                  fontWeight: AppFontWeight.medium,
-                  fontSize: 14 * scale,
-                  color: AppColors.baseBlue,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.baseBlue),
-                padding: EdgeInsets.symmetric(
-                  horizontal: 8 * scale,
-                  vertical: 4 * scale,
-                ),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-          );
-        }
-
-        _selectedBoxId ??= boxes.first.id;
-
-        return FutureBuilder<List<DailyWorkoutSummary>>(
-          future: DailySummaries.fetchDailyWorkoutSummariesForBox(
-            boxId: _selectedBoxId!,
-            date: DateTime.now(),
-          ),
-          builder: (ctx2, snapW) {
-            if (snapW.connectionState != ConnectionState.done) {
-              return const SizedBox.shrink();
-            }
-            final workouts = snapW.data ?? const <DailyWorkoutSummary>[];
-            if (_currentIdx >= workouts.length) _currentIdx = 0;
-            _startRotationIfNeeded(workouts);
-
-            // conteúdo variável (categoria/linhas) vai dentro do AnimatedSwitcher
-            Widget variableContent;
-            if (workouts.isEmpty) {
-              variableContent = Padding(
-                key: const ValueKey('empty'),
-                padding: EdgeInsets.only(top: 8 * scale),
-                child: Text(
-                  'Nenhum treino publicado para hoje',
-                  style: TextStyle(
-                    fontFamily: AppFonts.roboto,
-                    fontWeight: AppFontWeight.regular,
-                    fontSize: 14 * scale,
-                    color: AppColors.mediumGray,
-                  ),
-                ),
-              );
-            } else {
-              final w = workouts[_currentIdx];
-              variableContent = Column(
-                key: ValueKey('idx$_currentIdx-${w.category}'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (workouts.length > 1) ...[
-                    SizedBox(height: 6 * scale),
-                    _CategoryTag(text: w.category),
-                  ],
-                  SizedBox(height: 8 * scale),
-                  _StimulusLine(stimuli: w.stimuli),
-                  SizedBox(height: 6 * scale),
-                  _ObjectiveLine(text: w.objectiveShort),
-                  SizedBox(height: 8 * scale),
-                  _QuoteLine(text: w.quote),
-                ],
-              );
-            }
-
-            return Container(
-              margin: EdgeInsets.only(bottom: 6 * scale), // respiro
-              decoration: BoxDecoration(
-                color: Colors.transparent, // fundo transparente
-                border: Border.all(color: AppColors.baseBlue),
-                borderRadius: BorderRadius.circular(12 * scale),
-              ),
-              padding: EdgeInsets.all(12 * scale),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ===== Título (dropdown ou texto) =====
-                  _BoxTitle(
-                    boxes: boxes,
-                    selectedId: _selectedBoxId!,
-                    onChanged: (id) {
-                      if (id == _selectedBoxId) return;
-                      setState(() {
-                        _selectedBoxId = id;
-                        _currentIdx = 0;
-                      });
-                    },
-                  ),
-
-                  // ===== Conteúdo variável com transição suave =====
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 600),
-                    switchInCurve: Curves.easeInOut,
-                    switchOutCurve: Curves.easeInOut,
-                    transitionBuilder: (child, anim) {
-                      // fade + leve slide para baixo -> cima
-                      final slide = Tween<Offset>(
-                        begin: const Offset(0, .06),
-                        end: Offset.zero,
-                      ).animate(anim);
-                      return FadeTransition(
-                        opacity: anim,
-                        child: SlideTransition(position: slide, child: child),
-                      );
-                    },
-                    child: variableContent,
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+  // ── Detecta tipo principal do documento ───────────────────────────────────
+  String _detectType(Map<String, dynamic> partes) {
+    final keys = partes.keys.map((k) => k.toUpperCase()).toSet();
+    if (keys.contains('LPO')) return 'LPO';
+    if (keys.any((k) => k.contains('GINASTIC') || k.contains('GYMNAST'))) {
+      return 'Ginástica';
+    }
+    if (keys.any(
+      (k) => k.contains('ENDUR') || k.contains('RUNNING') || k.contains('RUN'),
+    )) {
+      return 'Endurance';
+    }
+    if (keys.contains('WOD')) return 'WOD';
+    final main = partes.keys.firstWhere(
+      (k) => !_kSupportParts.contains(k.toUpperCase()),
+      orElse: () => partes.keys.first,
     );
+    return main.toUpperCase();
   }
-}
 
-class _BoxTitle extends StatelessWidget {
-  final List<Box> boxes;
-  final String selectedId;
-  final ValueChanged<String> onChanged;
-  const _BoxTitle({
-    Key? key,
-    required this.boxes,
-    required this.selectedId,
-    required this.onChanged,
-  }) : super(key: key);
+  // ── Monta opções do dropdown — um Training = uma opção ────────────────────
+  Future<List<_DropdownOption>> _buildDropdownOptions() async {
+    final trainings = await TrainingService.fetchTrainingsListForDate(
+      boxId: _boxId,
+      date: DateTime.now(),
+    );
 
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 375.0;
+    final List<_DropdownOption> opts = [];
+    final Map<String, int> typeCount = {};
 
-    // 1 box → só texto
-    if (boxes.length == 1) {
-      return Text(
-        boxes.first.name,
-        style: TextStyle(
-          fontFamily: AppFonts.roboto,
-          fontWeight: AppFontWeight.medium,
-          fontSize: 18 * scale,
-          color: AppColors.baseBlue,
+    for (final t in trainings) {
+      if (t.partes.isEmpty) continue;
+      final type = _detectType(t.partes);
+      typeCount[type] = (typeCount[type] ?? 0) + 1;
+      final count = typeCount[type]!;
+      opts.add(
+        _DropdownOption(
+          label: count == 1 ? type : '$type ($count)',
+          type: type,
+          trainingId: t.id,
         ),
       );
     }
 
-    // 2+ boxes → dropdown estilizado
+    opts.sort((a, b) {
+      if (a.type == 'WOD') return -1;
+      if (b.type == 'WOD') return 1;
+      return a.label.compareTo(b.label);
+    });
+
+    return opts;
+  }
+
+  // ── Carrega dados do tipo selecionado ─────────────────────────────────────
+  Future<_CardData> _loadCardData(_DropdownOption opt) async {
+    final trainings = await TrainingService.fetchTrainingsListForDate(
+      boxId: _boxId,
+      date: DateTime.now(),
+    );
+
+    Training? matched;
+    if (opt.trainingId != null) {
+      matched = trainings.cast<Training?>().firstWhere(
+        (t) => t?.id == opt.trainingId,
+        orElse: () => null,
+      );
+    }
+    matched ??= trainings.cast<Training?>().firstWhere(
+      (t) => t?.partes.isNotEmpty ?? false,
+      orElse: () => null,
+    );
+
+    if (matched == null) return const _CardData();
+
+    // ── nomeWod: busca na parte principal (não-suporte)
+    String? wodName;
+    final mainKey = matched.partes.keys.firstWhere(
+      (k) => !_kSupportParts.contains(k.toUpperCase()),
+      orElse: () => matched!.partes.keys.first,
+    );
+    final mainPart = matched.partes[mainKey] as Map<String, dynamic>?;
+    final raw = mainPart?['nomeWod']?.toString().trim();
+    if (raw != null && raw.isNotEmpty) wodName = raw;
+
+    // ── focusText: 1ª frase do overview da IA
+    String? focusText;
+    final overview = matched.analysis?.overview;
+    if (overview != null && overview.trim().isNotEmpty) {
+      final dotIdx = overview.indexOf('.');
+      focusText =
+          dotIdx > 0
+              ? overview.substring(0, dotIdx + 1).trim()
+              : (overview.trim().length > 120
+                  ? '${overview.trim().substring(0, 120)}...'
+                  : overview.trim());
+    }
+
+    // ── keyMetrics da IA
+    final keyMetrics = matched.analysis?.keyMetrics ?? [];
+
+    return _CardData(
+      wodName: wodName,
+      focusText: focusText,
+      keyMetrics: keyMetrics,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _futOptions = _buildDropdownOptions();
+    _futOptions.then((opts) {
+      if (!mounted || opts.isEmpty) return;
+      final def = opts.firstWhere(
+        (o) => o.type == 'WOD',
+        orElse: () => opts.first,
+      );
+      setState(() {
+        _selected = def;
+        _futCardData = _loadCardData(def);
+      });
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final scale = MediaQuery.of(context).size.width / 375.0;
+
+    return FutureBuilder<List<_DropdownOption>>(
+      future: _futOptions,
+      builder: (context, snap) {
+        // Sem dados ainda
+        if (!snap.hasData) return const SizedBox.shrink();
+
+        // Nenhum treino hoje → CTA para cadastrar box
+        if (snap.data!.isEmpty) {
+          return _buildEmptyState(scale);
+        }
+
+        // Tem treino → card completo
+        return Container(
+          margin: EdgeInsets.only(bottom: 6 * scale),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(_kRadius * scale),
+            border: Border.all(color: _kBlue, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: _kBlue.withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.fromLTRB(
+            12 * scale,
+            8 * scale,
+            12 * scale,
+            10 * scale,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Dropdown de tipo ────────────────────────────────────────
+              _buildDropdown(snap.data!, textTheme, scale),
+
+              const SizedBox(height: 8),
+
+              // ── Conteúdo dinâmico ───────────────────────────────────────
+              FutureBuilder<_CardData>(
+                future: _futCardData,
+                builder: (context, dataSnap) {
+                  final data = dataSnap.data;
+                  return _buildContent(
+                    textTheme: textTheme,
+                    scale: scale,
+                    wodName: data?.wodName,
+                    focusText: data?.focusText,
+                    keyMetrics: data?.keyMetrics ?? [],
+                    loading: dataSnap.connectionState != ConnectionState.done,
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Dropdown
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildDropdown(
+    List<_DropdownOption> opts,
+    TextTheme textTheme,
+    double scale,
+  ) {
+    if (opts.length == 1) {
+      // Só um tipo → texto simples sem dropdown
+      return Text(
+        opts.first.label,
+        style: textTheme.titleMedium?.copyWith(
+          color: _kBlue,
+          fontSize: 18 * scale,
+          fontWeight: AppFontWeight.bold,
+        ),
+      );
+    }
+
     return DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: selectedId,
+      child: DropdownButton<_DropdownOption>(
+        value: _selected,
+        icon: const Icon(Icons.arrow_drop_down, color: _kBlue, size: 20),
         isDense: true,
-        icon: Icon(
-          Icons.arrow_drop_down,
-          color: AppColors.baseBlue,
-          size: 18 * scale,
+        style: textTheme.titleMedium?.copyWith(
+          color: _kBlue,
+          fontWeight: FontWeight.w700,
         ),
         items:
-            boxes
+            opts
                 .map(
-                  (b) => DropdownMenuItem(
-                    value: b.id,
+                  (opt) => DropdownMenuItem<_DropdownOption>(
+                    value: opt,
                     child: Text(
-                      b.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: AppFonts.roboto,
-                        fontWeight: AppFontWeight.medium,
-                        fontSize: 18 * scale,
+                      opt.label,
+                      style: textTheme.titleMedium?.copyWith(
                         color: AppColors.baseBlue,
+                        fontSize: 18 * scale,
+                        fontWeight: AppFontWeight.bold,
                       ),
                     ),
                   ),
                 )
                 .toList(),
-        onChanged: (v) => v != null ? onChanged(v) : null,
+        onChanged: (val) {
+          if (val == null) return;
+          setState(() {
+            _selected = val;
+            _futCardData = _loadCardData(val);
+          });
+        },
       ),
     );
   }
-}
 
-class _CategoryTag extends StatelessWidget {
-  final String text;
-  const _CategoryTag({Key? key, required this.text}) : super(key: key);
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 375.0;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 2 * scale),
-      decoration: BoxDecoration(
-        color: AppColors.lightBlue.withAlpha(50),
-        border: Border.all(color: AppColors.baseBlue),
-        borderRadius: BorderRadius.circular(8 * scale),
+  // ─────────────────────────────────────────────────────────────────────────
+  // Conteúdo: wodName + focusText + chips + botão
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildContent({
+    required TextTheme textTheme,
+    required double scale,
+    required String? wodName,
+    required String? focusText,
+    required List<String> keyMetrics,
+    required bool loading,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Nome do WOD
+        _labelValueRow(
+          textTheme: textTheme,
+          scale: scale,
+          label: 'Treino do dia: ',
+          value: loading ? '...' : (wodName ?? '—'),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Foco do dia
+        _labelValueRow(
+          textTheme: textTheme,
+          scale: scale,
+          label: 'Foco do dia: ',
+          value: loading ? '...' : (focusText ?? '—'),
+          valueSize: 12 * scale,
+        ),
+
+        // Chips de estímulos
+        if (!loading && keyMetrics.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6 * scale,
+            runSpacing: 4 * scale,
+            children:
+                keyMetrics
+                    .map((m) => _StimulusChip(label: m, scale: scale))
+                    .toList(),
+          ),
+        ],
+
+        const SizedBox(height: 10),
+        Divider(color: Colors.black.withOpacity(0.12), height: 16),
+        const SizedBox(height: 6),
+
+        // CTA
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            GestureDetector(
+              onTap:
+                  () => Navigator.pushNamed(context, AppRoutes.athleteTraining),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Ver treino',
+                    style: TextStyle(
+                      color: _kBlue,
+                      fontFamily: AppFonts.roboto,
+                      fontWeight: AppFontWeight.bold,
+                      fontSize: 11 * scale,
+                    ),
+                  ),
+                  SizedBox(width: 3 * scale),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 10 * scale,
+                    color: _kBlue,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _labelValueRow({
+    required TextTheme textTheme,
+    required double scale,
+    required String label,
+    required String value,
+    double? valueSize,
+  }) {
+    final size = valueSize ?? 16 * scale;
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: label,
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.darkText,
+              fontSize: size,
+              fontWeight: AppFontWeight.bold,
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.mediumGray,
+              fontSize: size,
+              fontWeight: AppFontWeight.medium,
+              height: 1.3,
+            ),
+          ),
+        ],
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: AppFonts.roboto,
-          fontWeight: AppFontWeight.medium,
-          fontSize: 12 * scale,
-          color: AppColors.darkBlue,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Estado vazio — nenhum treino cadastrado
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildEmptyState(double scale) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        border: Border.all(color: AppColors.baseBlue),
+        borderRadius: BorderRadius.circular(_kRadius * scale),
+      ),
+      padding: EdgeInsets.all(12 * scale),
+      child: OutlinedButton.icon(
+        onPressed: () => showAppBottomSheet(context, const BoxSignupCoach()),
+        icon: Icon(Icons.add, color: AppColors.baseBlue, size: 16 * scale),
+        label: Text(
+          'Cadastrar box',
+          style: TextStyle(
+            fontFamily: AppFonts.roboto,
+            fontWeight: AppFontWeight.medium,
+            fontSize: 14 * scale,
+            color: AppColors.baseBlue,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: AppColors.baseBlue),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8 * scale,
+            vertical: 4 * scale,
+          ),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ),
     );
   }
 }
 
-class _StimulusLine extends StatelessWidget {
-  final List<String> stimuli;
-  const _StimulusLine({Key? key, required this.stimuli}) : super(key: key);
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 375.0;
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: 'Estímulo do dia: ',
-            style: TextStyle(
-              fontFamily: AppFonts.roboto,
-              fontWeight: FontWeight.w600, // semibold
-              fontSize: 16 * scale,
-              color: AppColors.mediumGray,
-            ),
-          ),
-          TextSpan(
-            text: stimuli.join(' + '),
-            style: TextStyle(
-              fontFamily: AppFonts.roboto,
-              fontWeight: AppFontWeight.regular,
-              fontSize: 16 * scale,
-              color: AppColors.mediumGray,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Chip de estímulo da IA
+// ─────────────────────────────────────────────────────────────────────────────
 
-class _ObjectiveLine extends StatelessWidget {
-  final String text;
-  const _ObjectiveLine({Key? key, required this.text}) : super(key: key);
-  @override
-  Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 375.0;
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: 'Objetivo: ',
-            style: TextStyle(
-              fontFamily: AppFonts.roboto,
-              fontWeight: AppFontWeight.medium, // medium 12dp
-              fontSize: 12 * scale,
-              color: AppColors.mediumGray,
-            ),
-          ),
-          TextSpan(
-            text: text,
-            style: TextStyle(
-              fontFamily: AppFonts.roboto,
-              fontWeight: AppFontWeight.regular,
-              fontSize: 12 * scale,
-              color: AppColors.mediumGray,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+class _StimulusChip extends StatelessWidget {
+  final String label;
+  final double scale;
 
-class _QuoteLine extends StatelessWidget {
-  final String text;
-  const _QuoteLine({Key? key, required this.text}) : super(key: key);
+  const _StimulusChip({required this.label, required this.scale});
+
   @override
   Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 375.0;
-    return Text(
-      '“$text”',
-      style: TextStyle(
-        fontFamily: AppFonts.roboto,
-        fontStyle: FontStyle.italic,
-        fontWeight: AppFontWeight.regular,
-        fontSize: 14 * scale,
-        color: AppColors.mediumGray,
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8 * scale, vertical: 3 * scale),
+      decoration: BoxDecoration(
+        color: AppColors.baseBlue.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20 * scale),
+        border: Border.all(
+          color: AppColors.baseBlue.withOpacity(0.25),
+          width: 0.8,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: AppFonts.roboto,
+          fontSize: 11 * scale,
+          color: AppColors.baseBlue,
+          fontWeight: AppFontWeight.medium,
+        ),
       ),
     );
   }

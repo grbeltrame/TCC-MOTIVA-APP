@@ -6,13 +6,16 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
-import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/dialogs/confirm_delete_training.dart';
 
 /// Section: “Esses são todos os treinos cadastrados do Box”
 class CoachRegisteredTrainingsSection extends StatefulWidget {
+  // ✅ Adicionamos os parâmetros de inicialização
+  final DateTime? initialDate;
+  final String? initialCategory;
+
   // Callback opcional caso a tela pai precise saber quando algo foi clicado
   final void Function({
     required DateTime date,
@@ -21,7 +24,12 @@ class CoachRegisteredTrainingsSection extends StatefulWidget {
   })?
   onSelectionChanged;
 
-  const CoachRegisteredTrainingsSection({super.key, this.onSelectionChanged});
+  const CoachRegisteredTrainingsSection({
+    super.key,
+    this.initialDate,
+    this.initialCategory,
+    this.onSelectionChanged,
+  });
 
   @override
   State<CoachRegisteredTrainingsSection> createState() =>
@@ -32,15 +40,49 @@ class _CoachRegisteredTrainingsSectionState
     extends State<CoachRegisteredTrainingsSection> {
   static const _categories = ['WOD', 'LPO', 'Ginastica', 'Endurance'];
 
-  DateTime _date = DateTime.now();
-  String _category = _categories[0];
+  late DateTime _date;
+  late String _category;
 
   Future<Map<String, TrainingBlock?>>? _fut;
 
   @override
   void initState() {
     super.initState();
+
+    // ✅ Pega a data passada pelo pai ou usa hoje
+    _date = widget.initialDate ?? DateTime.now();
+
+    // ✅ Pega a categoria passada pelo pai, verifica se existe nas tabs, senão usa WOD
+    final passedCat = widget.initialCategory;
+    if (passedCat != null && _categories.contains(passedCat)) {
+      _category = passedCat;
+    } else {
+      _category = _categories[0];
+    }
+
     _reload();
+  }
+
+  // ✅ Adicionamos o didUpdateWidget para atualizar caso o pai mude os parâmetros (boa prática no Flutter)
+  @override
+  void didUpdateWidget(CoachRegisteredTrainingsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialDate != oldWidget.initialDate ||
+        widget.initialCategory != oldWidget.initialCategory) {
+      bool needsReload = false;
+      if (widget.initialDate != null && widget.initialDate != _date) {
+        _date = widget.initialDate!;
+        needsReload = true;
+      }
+      if (widget.initialCategory != null &&
+          widget.initialCategory != _category &&
+          _categories.contains(widget.initialCategory)) {
+        _category = widget.initialCategory!;
+        needsReload = true;
+      }
+
+      if (needsReload) _reload();
+    }
   }
 
   void _reload() {
@@ -396,24 +438,20 @@ class _CoachRegisteredTrainingsSectionState
         ),
         SizedBox(height: 8 * scale),
 
-        // 2) Linha: Date + Ver ciclos
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            CompactDatePicker(
+        // 2) Date picker — centralizado e com largura limitada (Fitt's Law:
+        //    alvo menor e bem posicionado é mais fácil de acertar que
+        //    um elemento que estica por toda a tela)
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: CompactDatePicker(
               initialDate: _date,
               onChanged: (d) {
                 _date = d;
                 _reload();
               },
             ),
-            TextActionButton(
-              text: 'Ver todos os ciclos',
-              icon: Icons.add,
-              onPressed:
-                  () => Navigator.pushNamed(context, AppRoutes.coachAllCycles),
-            ),
-          ],
+          ),
         ),
         SizedBox(height: 12 * scale),
 

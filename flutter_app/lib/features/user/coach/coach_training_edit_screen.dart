@@ -11,6 +11,76 @@ import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 
+// =============================================================================
+// CONSTANTES
+// =============================================================================
+
+const _kSectionTypes = <String>['WarmUp', 'ExtraTraining', 'Skill', 'WOD'];
+
+/// Modalidades disponíveis no selector de cada seção.
+/// "ROUNDS FOR TIME" exige preenchimento do campo de rounds.
+const _kModalidades = <String>['AMRAP', 'FOR TIME', 'EMOM', 'ROUNDS FOR TIME'];
+
+// =============================================================================
+// MODELOS EDITÁVEIS
+// =============================================================================
+
+class EditableMovement {
+  /// Ex.: "21", "400m", "12'", "5x5"
+  String reps;
+
+  /// Apenas o nome do movimento. Ex.: "Thrusters", "Run"
+  String name;
+
+  /// Carga (opcional). Ex.: "40/25", "60kg", "Rx"
+  String? load;
+
+  EditableMovement({required this.reps, required this.name, this.load});
+}
+
+class EditableSection {
+  String id;
+
+  /// Tipo da seção: WarmUp / ExtraTraining / Skill / WOD
+  String type;
+
+  /// Nome da seção. Ex.: "SKY IS THE LIMIT"
+  String? name;
+
+  /// Tempo em minutos (opcional). Ex.: 5
+  int? timeMinutes;
+
+  /// Modalidade do treino. Ex.: "AMRAP", "FOR TIME", "ROUNDS FOR TIME"
+  String? modalidade;
+
+  /// Número de rounds — preenchido quando modalidade == "ROUNDS FOR TIME"
+  int? rounds;
+
+  final List<EditableMovement> movements;
+
+  EditableSection({
+    required this.id,
+    required this.type,
+    this.name,
+    this.timeMinutes,
+    this.modalidade,
+    this.rounds,
+    List<EditableMovement>? movements,
+  }) : movements = movements ?? <EditableMovement>[];
+}
+
+class EditableTraining {
+  final String category;
+  final List<EditableSection> sections;
+
+  EditableTraining({required this.category, List<EditableSection>? sections})
+    : sections = sections ?? <EditableSection>[];
+}
+
+// =============================================================================
+// TELA PRINCIPAL
+// =============================================================================
+
 class CoachTrainingEditScreen extends StatefulWidget {
   static const routeName = '/coach_training_edit';
 
@@ -43,60 +113,8 @@ class CoachTrainingEditScreen extends StatefulWidget {
       _CoachTrainingEditScreenState();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Modelo editável
-// ─────────────────────────────────────────────────────────────────────────────
-
-const _kSectionTypes = <String>['WarmUp', 'ExtraTraining', 'Skill', 'WOD'];
-
-class EditableMovement {
-  /// Ex.: "21", "400m", "12'", "5x5", "21-15-9" (mas aqui a gente já separa em linhas)
-  String reps;
-
-  /// Apenas o nome do movimento. Ex.: "Thrusters", "Muscle Snatch", "Run"
-  String name;
-
-  /// Carga (opcional). Ex.: "40/25", "60kg", "Rx", etc.
-  String? load;
-
-  EditableMovement({required this.reps, required this.name, this.load});
-}
-
-class EditableSection {
-  String id;
-  String type; // WarmUp/ExtraTraining/Skill/WOD
-
-  /// Nome da seção SEM tempo (ex.: "WOD - Fran")
-  String? name;
-
-  /// Tempo (minutos) separado (ex.: 5)
-  int? timeMinutes;
-
-  final List<EditableMovement> movements;
-
-  EditableSection({
-    required this.id,
-    required this.type,
-    this.name,
-    this.timeMinutes,
-    List<EditableMovement>? movements,
-  }) : movements = movements ?? <EditableMovement>[];
-}
-
-class EditableTraining {
-  final String category;
-  final List<EditableSection> sections;
-
-  EditableTraining({required this.category, List<EditableSection>? sections})
-    : sections = sections ?? <EditableSection>[];
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
   late Future<EditableTraining> _futureEditable;
-
-  /// Mantém sempre o último estado editado vindo do _EditBody.
   EditableTraining? _currentEdited;
 
   @override
@@ -110,16 +128,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // AppBar solicitado
-  // ───────────────────────────────────────────────────────────────────────────
-
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-
   String _fmtDate(DateTime d) {
     final dd = d.day.toString().padLeft(2, '0');
     final mm = d.month.toString().padLeft(2, '0');
@@ -127,16 +135,12 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     return '$dd/$mm/$yy';
   }
 
-  // ── Parsers ────────────────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
+  // Parsing de título em nome + tempo
+  // ---------------------------------------------------------------------------
 
-  /// Divide título em nome + tempo. Exemplos:
-  /// "Warm Up - 5 min" => ("Warm Up", 5)
-  /// "WarmUp 10min"    => ("WarmUp", 10)
-  /// "WOD - Fran"      => ("WOD - Fran", null)
   (String name, int? minutes) _splitTitleNameAndTime(String title) {
     final t = title.trim();
-
-    // ... - 5 min | ... - 10min
     final dashMin = RegExp(
       r'^(.*?)[\s\-–—]+(\d+)\s*min\s*$',
       caseSensitive: false,
@@ -145,27 +149,23 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     if (m1 != null) {
       return (m1.group(1)!.trim(), int.tryParse(m1.group(2)!) ?? 0);
     }
-
-    // ... 5 min | ... 10min
     final tailMin = RegExp(r'^(.*?)[\s]+(\d+)\s*min\s*$', caseSensitive: false);
     final m2 = tailMin.firstMatch(t);
     if (m2 != null) {
       return (m2.group(1)!.trim(), int.tryParse(m2.group(2)!) ?? 0);
     }
-
     return (t, null);
   }
 
-  /// "21-15-9 Thrusters (40/25)" → 3 linhas:
-  ///   (21, Thrusters, 40/25), (15, Thrusters, 40/25), (9, Thrusters, 40/25)
-  ///
-  /// "5 Muscle Snatch" → (5, Muscle Snatch, null)
-  /// "400m Run" → (400m, Run, null)
+  // ---------------------------------------------------------------------------
+  // Parsing de linha em movements
+  // ---------------------------------------------------------------------------
+
   List<EditableMovement> _parseLineIntoMovements(String raw) {
     final s = raw.trim();
     if (s.isEmpty) return const [];
 
-    // 21-15-9 Thrusters (40/25)
+    // "21-15-9 Thrusters (40/25)"
     final dashRe = RegExp(
       r'^\s*(\d+(?:-\d+)+)\s+([A-Za-z].*?)(?:\s*\(([^)]+)\))?\s*$',
     );
@@ -178,7 +178,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
           .where((e) => e.isNotEmpty);
       final name = dashM.group(2)!.trim();
       final load = dashM.group(3)?.trim();
-
       return repsSeq
           .map(
             (r) => EditableMovement(
@@ -190,69 +189,90 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
           .toList();
     }
 
-    // 400m Run | 1km Row | 12' Burpees
+    // "400m Run" | "1km Row" | "12' Burpees"
     final distRe = RegExp(
       r"^\s*(\d+\s*(?:m|km|min|sec|[\x27\x22]))\s+(.+?)(?:\s*\(([^)]+)\))?\s*$",
       caseSensitive: false,
     );
     final distM = distRe.firstMatch(s);
     if (distM != null) {
-      final reps = distM.group(1)!.trim();
-      final name = distM.group(2)!.trim();
-      final load = distM.group(3)?.trim();
-
       return [
         EditableMovement(
-          reps: reps,
-          name: name,
-          load: (load?.trim().isEmpty ?? true) ? null : load!.trim(),
+          reps: distM.group(1)!.trim(),
+          name: distM.group(2)!.trim(),
+          load:
+              (distM.group(3)?.trim().isEmpty ?? true)
+                  ? null
+                  : distM.group(3)!.trim(),
         ),
       ];
     }
 
-    // 5x5 Back Squat (60/40) → reps "5x5"
+    // "5x5 Back Squat (60/40)"
     final setRe = RegExp(
       r'^\s*(\d+\s*x\s*\d+)\s+(.+?)(?:\s*\(([^)]+)\))?\s*$',
       caseSensitive: false,
     );
     final setM = setRe.firstMatch(s);
     if (setM != null) {
-      final reps = setM.group(1)!.replaceAll(RegExp(r'\s+'), '');
-      final name = setM.group(2)!.trim();
-      final load = setM.group(3)?.trim();
-
       return [
         EditableMovement(
-          reps: reps,
-          name: name,
-          load: (load?.trim().isEmpty ?? true) ? null : load!.trim(),
+          reps: setM.group(1)!.replaceAll(RegExp(r'\s+'), ''),
+          name: setM.group(2)!.trim(),
+          load:
+              (setM.group(3)?.trim().isEmpty ?? true)
+                  ? null
+                  : setM.group(3)!.trim(),
         ),
       ];
     }
 
-    // 5 Muscle Snatch (opcionalmente com carga)
+    // "5 Muscle Snatch (optionally with carga)"
     final simpleRe = RegExp(
       r'^\s*(\d+)\s+(.+?)(?:\s*\(([^)]+)\))?\s*$',
       caseSensitive: false,
     );
     final sm = simpleRe.firstMatch(s);
     if (sm != null) {
-      final reps = sm.group(1)!.trim();
-      final name = sm.group(2)!.trim();
-      final load = sm.group(3)?.trim();
-
       return [
         EditableMovement(
-          reps: reps,
-          name: name,
-          load: (load?.trim().isEmpty ?? true) ? null : load!.trim(),
+          reps: sm.group(1)!.trim(),
+          name: sm.group(2)!.trim(),
+          load:
+              (sm.group(3)?.trim().isEmpty ?? true)
+                  ? null
+                  : sm.group(3)!.trim(),
         ),
       ];
     }
 
-    // fallback: trata tudo como nome
+    // "15|12|9|6|3 HSPU strict" — reps decrescentes separadas por pipe
+    // Gerado pelo parser quando há esquema de reps em linha isolada
+    // seguido do nome do exercício. Ex: "15|12|9|6|3 HSPU strict (70/50)"
+    final pipeRe = RegExp(
+      r'^\s*(\d+(?:\|\d+)+)\s+(.+?)(?:\s*\(([^)]+)\))?\s*$',
+      caseSensitive: false,
+    );
+    final pipeM = pipeRe.firstMatch(s);
+    if (pipeM != null) {
+      return [
+        EditableMovement(
+          reps: pipeM.group(1)!.trim(),
+          name: pipeM.group(2)!.trim(),
+          load:
+              (pipeM.group(3)?.trim().isEmpty ?? true)
+                  ? null
+                  : pipeM.group(3)!.trim(),
+        ),
+      ];
+    }
+
     return [EditableMovement(reps: '', name: s, load: null)];
   }
+
+  // ---------------------------------------------------------------------------
+  // Inferência de tipo e modalidade
+  // ---------------------------------------------------------------------------
 
   String _inferTypeFromTitle(String title) {
     final t = title.trim().toLowerCase();
@@ -262,47 +282,130 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     return 'WOD';
   }
 
+  /// Extrai modalidade e rounds de uma WorkoutPart vinda do Firestore.
+  /// Suporta schema novo (campo 'modalidade') e antigo (campo 'tipo').
+  (String? modalidade, int? rounds) _inferModalidadeFromPart(
+    Map<String, dynamic>? partData,
+  ) {
+    if (partData == null) return (null, null);
+
+    final raw =
+        partData['modalidade']?.toString() ??
+        partData['tipo']?.toString() ??
+        '';
+    final roundsFromDb = partData['rounds'] as int?;
+
+    if (raw.isEmpty) return (null, null);
+
+    final m = raw.trim().toUpperCase();
+
+    // "3 ROUNDS FOR TIME" → ("ROUNDS FOR TIME", 3)
+    final roundsForTimeMatch = RegExp(
+      r'^(\d+)\s+ROUNDS?\s+FOR\s+TIME',
+    ).firstMatch(m);
+    if (roundsForTimeMatch != null) {
+      final r = int.tryParse(roundsForTimeMatch.group(1)!) ?? roundsFromDb;
+      return ('ROUNDS FOR TIME', r);
+    }
+
+    // "3 ROUNDS" → ("ROUNDS FOR TIME", 3)
+    final roundsOnlyMatch = RegExp(r'^(\d+)\s+ROUNDS?$').firstMatch(m);
+    if (roundsOnlyMatch != null) {
+      final r = int.tryParse(roundsOnlyMatch.group(1)!) ?? roundsFromDb;
+      return ('ROUNDS FOR TIME', r);
+    }
+
+    if (m.contains('AMRAP')) return ('AMRAP', null);
+    if (m.contains('EMOM')) return ('EMOM', null);
+    if (m.contains('FOR TIME')) return ('FOR TIME', null);
+
+    // Schema antigo: tipo "WOD", "SKILL" etc não são modalidades reais
+    return (null, null);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mapeamento de blocks → EditableTraining
+  // ---------------------------------------------------------------------------
+
   EditableTraining _mapBlocksToEditable(List<TrainingBlock> blocks) {
     final sections = <EditableSection>[];
 
     for (var i = 0; i < blocks.length; i++) {
       final b = blocks[i];
       final id = b.id.isNotEmpty ? b.id : 'section_$i';
-
       final inferredType = _inferTypeFromTitle(b.title);
       final (nameOnly, minutes) = _splitTitleNameAndTime(b.title);
 
+      // Extrai nome limpo (remove prefixo da seção: "WOD - " → "")
+      String? cleanName = nameOnly;
+      if (cleanName != null) {
+        for (final prefix in ['WARM UP', 'EXTRA TRAINING', 'SKILL', 'WOD']) {
+          if (cleanName!.toUpperCase().startsWith(prefix)) {
+            cleanName = cleanName
+                .substring(prefix.length)
+                .replaceFirst(RegExp(r'^[\s\-–—:]+'), '');
+            break;
+          }
+        }
+        if (cleanName!.trim().isEmpty) cleanName = null;
+      }
+
+      // Modalidade e rounds
+      // b.subtitle já contém a modalidade montada pelo fetchFullTrainingBlocks
+      // mas para maior precisão usamos _inferModalidadeFromPart com o dado raw
+      final subtitleModalidade = _inferModalidadeFromSubtitle(b.subtitle);
+      final (modalidade, rounds) = subtitleModalidade;
+
       final movements = <EditableMovement>[];
       for (final raw in b.items) {
-        final parsed = _parseLineIntoMovements(raw);
-        movements.addAll(parsed);
+        movements.addAll(_parseLineIntoMovements(raw));
       }
 
       sections.add(
         EditableSection(
           id: id,
           type: inferredType,
-          name: nameOnly.isNotEmpty ? nameOnly : null,
+          name: cleanName,
           timeMinutes: minutes,
+          modalidade: modalidade,
+          rounds: rounds,
           movements: movements,
         ),
       );
     }
 
     if (sections.isEmpty) {
-      sections.add(
-        EditableSection(
-          id: 'section_0',
-          type: 'WOD',
-          name: null,
-          timeMinutes: null,
-          movements: [],
-        ),
-      );
+      sections.add(EditableSection(id: 'section_0', type: 'WOD'));
     }
 
     return EditableTraining(category: widget.category, sections: sections);
   }
+
+  /// Extrai modalidade e rounds do subtitle do TrainingBlock.
+  /// Ex: "3 ROUNDS FOR TIME (20 min)" → ("ROUNDS FOR TIME", 3)
+  /// Ex: "AMRAP (5 min)"              → ("AMRAP", null)
+  (String? modalidade, int? rounds) _inferModalidadeFromSubtitle(
+    String subtitle,
+  ) {
+    final s = subtitle.trim().toUpperCase();
+
+    final roundsForTime = RegExp(
+      r'^(\d+)\s+ROUNDS?\s+FOR\s+TIME',
+    ).firstMatch(s);
+    if (roundsForTime != null) {
+      return ('ROUNDS FOR TIME', int.tryParse(roundsForTime.group(1)!));
+    }
+
+    if (s.contains('AMRAP')) return ('AMRAP', null);
+    if (s.contains('EMOM')) return ('EMOM', null);
+    if (s.contains('FOR TIME')) return ('FOR TIME', null);
+
+    return (null, null);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Carregamento e persistência
+  // ---------------------------------------------------------------------------
 
   Future<EditableTraining> _loadEditableFromService({
     required String boxId,
@@ -328,30 +431,21 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     return _mapBlocksToEditable(blocks);
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Persistência REAL
-  // ───────────────────────────────────────────────────────────────────────────
-
   Future<void> _persistEditedTraining(EditableTraining edited) async {
     String? realDocId;
-
-    // 1. Extrai o ID do Documento da string composta (ex: "XyZ123__WOD" vira "XyZ123")
     if (widget.highlightBlockId != null &&
         widget.highlightBlockId!.contains('__')) {
       realDocId = widget.highlightBlockId!.split('__')[0];
-    }
-    // Fallback: Caso venha um ID antigo simples
-    else {
+    } else {
       realDocId = widget.highlightBlockId;
     }
 
-    // 2. Chama o serviço passando o DocID explícito
     await TrainingService.updateTrainingFromEditable(
       boxId: widget.boxId,
       date: widget.date,
       category: widget.category,
       edited: edited,
-      docId: realDocId, // <--- O PULO DO GATO ESTÁ AQUI
+      docId: realDocId,
     );
   }
 
@@ -359,7 +453,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     final edited = _currentEdited;
     if (edited == null) return;
 
-    // Loading...
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -368,25 +461,18 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
 
     try {
       await _persistEditedTraining(edited);
-
       if (!mounted) return;
-      // Fecha o loading
       Navigator.of(context).pop();
-
-      // Mostra sucesso
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Treino atualizado com sucesso!'),
           backgroundColor: AppColors.baseBlue,
         ),
       );
-
-      // Fecha a tela e retorna true para dar refresh na lista anterior
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      Navigator.of(context).pop(); // Fecha loading
-
+      Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Falha ao salvar treino: $e'),
@@ -396,7 +482,9 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     }
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -415,13 +503,11 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
               return const Center(child: Text('Falha ao carregar treino.'));
             }
 
-            // primeira carga: se ainda não tem estado editado, inicia
             _currentEdited ??= snap.data!;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // BACK BUTTON
                 Padding(
                   padding: EdgeInsets.only(
                     top: 8 * scale,
@@ -433,8 +519,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
                     child: AppBackButton(),
                   ),
                 ),
-
-                // TÍTULO
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     12 * scale,
@@ -443,7 +527,8 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
                     8 * scale,
                   ),
                   child: Text(
-                    'Você está editando o treino\ndo dia ${_fmtDate(widget.date)} da categoria ${widget.category}',
+                    'Você está editando o treino\n'
+                    'do dia ${_fmtDate(widget.date)} da categoria ${widget.category}',
                     style: TextStyle(
                       fontFamily: AppFonts.roboto,
                       fontWeight: AppFontWeight.bold,
@@ -452,7 +537,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
                     ),
                   ),
                 ),
-
                 Expanded(
                   child: _EditBody(
                     editable: _currentEdited!,
@@ -466,7 +550,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
           },
         ),
       ),
-
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(12, 8, 12, 12 + 4 * scale),
@@ -496,7 +579,9 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// =============================================================================
+// _EditBody — lista de seções com drag para reordenar seções
+// =============================================================================
 
 class _EditBody extends StatefulWidget {
   const _EditBody({required this.editable, required this.onEditedChanged});
@@ -517,9 +602,7 @@ class _EditBodyState extends State<_EditBody> {
     _edited = widget.editable;
   }
 
-  void _notify() {
-    widget.onEditedChanged(_edited);
-  }
+  void _notify() => widget.onEditedChanged(_edited);
 
   void _addSection() {
     final id = 'section_${DateTime.now().microsecondsSinceEpoch}';
@@ -530,6 +613,8 @@ class _EditBodyState extends State<_EditBody> {
           type: 'WOD',
           name: null,
           timeMinutes: null,
+          modalidade: null,
+          rounds: null,
           movements: [],
         ),
       );
@@ -538,9 +623,7 @@ class _EditBodyState extends State<_EditBody> {
   }
 
   void _removeSection(String id) {
-    setState(() {
-      _edited.sections.removeWhere((s) => s.id == id);
-    });
+    setState(() => _edited.sections.removeWhere((s) => s.id == id));
     _notify();
   }
 
@@ -563,7 +646,6 @@ class _EditBodyState extends State<_EditBody> {
                   label: const Text('Adicionar seção'),
                 );
               }
-
               final section = _edited.sections[index];
               return _SectionEditorCard(
                 key: ValueKey(section.id),
@@ -582,7 +664,9 @@ class _EditBodyState extends State<_EditBody> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// =============================================================================
+// _SectionEditorCard — card de edição de uma seção
+// =============================================================================
 
 class _SectionEditorCard extends StatefulWidget {
   const _SectionEditorCard({
@@ -602,9 +686,19 @@ class _SectionEditorCard extends StatefulWidget {
 
 class _SectionEditorCardState extends State<_SectionEditorCard> {
   List<String> _typesWithCurrent(String current) {
-    final set = <String>{..._kSectionTypes};
-    set.add(current);
+    final set = <String>{..._kSectionTypes, current};
     return set.toList();
+  }
+
+  /// Ao reordenar no ReorderableListView, Flutter passa o new_index
+  /// ANTES de remover o item, então ajustamos aqui.
+  void _onReorderMovements(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex -= 1;
+      final item = widget.section.movements.removeAt(oldIndex);
+      widget.section.movements.insert(newIndex, item);
+    });
+    widget.onChanged?.call();
   }
 
   void _addMovement() {
@@ -629,16 +723,10 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
     if (load == null) return false;
     final v = load.trim();
     if (v.isEmpty) return false;
-
-    // "40/25", "60", "60kg", "Rx"
-    final rx = RegExp(r'^(rx|r[xX])$', caseSensitive: false);
-    if (rx.hasMatch(v)) return true;
-
-    final hasDigit = RegExp(r'\d').hasMatch(v);
-    final hasSlash = v.contains('/');
-    final hasKgLb = RegExp(r'(kg|lb)', caseSensitive: false).hasMatch(v);
-
-    return hasDigit || hasSlash || hasKgLb;
+    if (RegExp(r'^(rx|r[xX])$', caseSensitive: false).hasMatch(v)) return true;
+    return RegExp(r'\d').hasMatch(v) ||
+        v.contains('/') ||
+        RegExp(r'(kg|lb)', caseSensitive: false).hasMatch(v);
   }
 
   @override
@@ -650,9 +738,15 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
             .map((e) => DropdownMenuItem<String>(value: e, child: Text(e)))
             .toList();
 
-    final hintLoad = TextStyle(
-      color: AppColors.mediumGray.withValues(alpha: 0.7),
-    );
+    // Opções de modalidade: null (Nenhuma) + lista de modalidades
+    final modalidadeItems = <DropdownMenuItem<String?>>[
+      const DropdownMenuItem<String?>(value: null, child: Text('— Nenhuma —')),
+      ..._kModalidades.map(
+        (e) => DropdownMenuItem<String?>(value: e, child: Text(e)),
+      ),
+    ];
+
+    final bool needsRounds = widget.section.modalidade == 'ROUNDS FOR TIME';
 
     return Container(
       decoration: BoxDecoration(
@@ -671,12 +765,12 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: tipo + delete
+          // ── Linha 1: Tipo da seção + botão deletar ──────────────────────
           Row(
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  initialValue: widget.section.type,
+                  value: widget.section.type,
                   items: typeItems,
                   onChanged: (val) {
                     if (val == null) return;
@@ -696,7 +790,7 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
           ),
           SizedBox(height: 8 * scale),
 
-          // Nome (limpo, sem tempo)
+          // ── Nome da seção ────────────────────────────────────────────────
           TextFormField(
             initialValue: widget.section.name ?? '',
             onChanged: (v) {
@@ -711,15 +805,14 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
           ),
           SizedBox(height: 8 * scale),
 
-          // Tempo (minutos) — separado
+          // ── Tempo (minutos) ──────────────────────────────────────────────
           TextFormField(
             initialValue:
                 widget.section.timeMinutes != null
                     ? '${widget.section.timeMinutes}'
                     : '',
             onChanged: (v) {
-              final n = int.tryParse(v);
-              setState(() => widget.section.timeMinutes = n);
+              setState(() => widget.section.timeMinutes = int.tryParse(v));
               widget.onChanged?.call();
             },
             keyboardType: TextInputType.number,
@@ -728,8 +821,52 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
               labelText: 'Tempo (min, opcional)',
             ),
           ),
-          SizedBox(height: 12 * scale),
+          SizedBox(height: 8 * scale),
 
+          // ── Modalidade ───────────────────────────────────────────────────
+          DropdownButtonFormField<String?>(
+            value: widget.section.modalidade,
+            items: modalidadeItems,
+            onChanged: (val) {
+              setState(() {
+                widget.section.modalidade = val;
+                // Limpa rounds se a nova modalidade não precisar
+                if (val != 'ROUNDS FOR TIME') {
+                  widget.section.rounds = null;
+                }
+              });
+              widget.onChanged?.call();
+            },
+            decoration: const InputDecoration(
+              labelText: 'Modalidade (ex: AMRAP, FOR TIME)',
+            ),
+          ),
+          SizedBox(height: 8 * scale),
+
+          // ── Rounds — só aparece quando modalidade == ROUNDS FOR TIME ─────
+          if (needsRounds) ...[
+            TextFormField(
+              initialValue:
+                  widget.section.rounds != null
+                      ? '${widget.section.rounds}'
+                      : '',
+              onChanged: (v) {
+                setState(() => widget.section.rounds = int.tryParse(v));
+                widget.onChanged?.call();
+              },
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Número de rounds',
+                hintText: 'Ex: 3',
+              ),
+            ),
+            SizedBox(height: 8 * scale),
+          ],
+
+          SizedBox(height: 4 * scale),
+
+          // ── Título da lista de movimentos ────────────────────────────────
           Text(
             'Movimentos',
             style: TextStyle(
@@ -741,18 +878,41 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
           ),
           SizedBox(height: 6 * scale),
 
-          for (int i = 0; i < widget.section.movements.length; i++) ...[
-            _MovementRow(
-              index: i,
-              movement: widget.section.movements[i],
-              onChanged: () => setState(() {}),
-              onDelete: () => _removeMovement(i),
-              hintLoadStyle: hintLoad,
-              looksLikeLoad: _looksLikeLoad(widget.section.movements[i].load),
-            ),
-            SizedBox(height: 8 * scale),
-          ],
+          // ── Lista de movimentos com drag & drop ──────────────────────────
+          // ReorderableListView em modo não-scrollável dentro do CustomScrollView.
+          // Cada linha tem um handle à esquerda para arrastar.
+          ReorderableListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: widget.section.movements.length,
+            onReorder: _onReorderMovements,
+            proxyDecorator: (child, index, animation) {
+              // Eleva visualmente o item sendo arrastado
+              return Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(8),
+                child: child,
+              );
+            },
+            itemBuilder: (ctx, i) {
+              final mov = widget.section.movements[i];
+              return _MovementRow(
+                // ObjectKey(mov): o state segue o OBJETO após reorder,
+                // não o índice. Corrige o bug visual do drag & drop.
+                key: ObjectKey(mov),
+                index: i,
+                movement: mov,
+                onChanged: () => setState(() {}),
+                onDelete: () => _removeMovement(i),
+                hintLoadStyle: TextStyle(
+                  color: AppColors.mediumGray.withValues(alpha: 0.7),
+                ),
+                looksLikeLoad: _looksLikeLoad(mov.load),
+              );
+            },
+          ),
 
+          // ── Botão adicionar movimento ────────────────────────────────────
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
@@ -767,8 +927,13 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
   }
 }
 
+// =============================================================================
+// _MovementRow — linha de um movimento com handle de drag
+// =============================================================================
+
 class _MovementRow extends StatefulWidget {
   const _MovementRow({
+    super.key,
     required this.index,
     required this.movement,
     required this.onChanged,
@@ -789,6 +954,30 @@ class _MovementRow extends StatefulWidget {
 }
 
 class _MovementRowState extends State<_MovementRow> {
+  // Controllers evitam o bug do initialValue:
+  // initialValue só é lido na CRIAÇÃO do widget. Após um reorder com
+  // ObjectKey, o mesmo state é reutilizado pelo mesmo objeto, e os
+  // controllers mantêm o texto correto sem precisar de rebuild.
+  late TextEditingController _repsCtrl;
+  late TextEditingController _nameCtrl;
+  late TextEditingController _loadCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _repsCtrl = TextEditingController(text: widget.movement.reps);
+    _nameCtrl = TextEditingController(text: widget.movement.name);
+    _loadCtrl = TextEditingController(text: widget.movement.load ?? '');
+  }
+
+  @override
+  void dispose() {
+    _repsCtrl.dispose();
+    _nameCtrl.dispose();
+    _loadCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -797,70 +986,82 @@ class _MovementRowState extends State<_MovementRow> {
         widget.looksLikeLoad ||
         (widget.movement.load?.trim().isNotEmpty ?? false);
 
-    return Row(
-      children: [
-        // Reps
-        Expanded(
-          flex: 3,
-          child: TextFormField(
-            initialValue: widget.movement.reps,
-            onChanged: (v) {
-              setState(() => widget.movement.reps = v);
-              widget.onChanged();
-            },
-            decoration: const InputDecoration(
-              labelText: 'Reps',
-              hintText: "ex.: 21 | 400m | 12'",
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8 * scale),
+      child: Row(
+        children: [
+          // Handle de drag — o ReorderableListView usa isso para iniciar o arraste
+          ReorderableDragStartListener(
+            index: widget.index,
+            child: Icon(
+              Icons.drag_handle,
+              color: AppColors.mediumGray,
+              size: 20 * scale,
             ),
           ),
-        ),
-        SizedBox(width: 8 * scale),
+          SizedBox(width: 4 * scale),
 
-        // Movimento (apenas o nome)
-        Expanded(
-          flex: 4,
-          child: TextFormField(
-            initialValue: widget.movement.name,
-            onChanged: (v) {
-              setState(() => widget.movement.name = v);
-              widget.onChanged();
-            },
-            decoration: const InputDecoration(labelText: 'Movimento'),
-          ),
-        ),
-        SizedBox(width: 8 * scale),
-
-        // Carga (opcional)
-        Expanded(
-          flex: 3,
-          child: TextFormField(
-            initialValue: widget.movement.load ?? '',
-            onChanged: (v) {
-              final val = v.trim();
-              setState(() => widget.movement.load = val.isEmpty ? null : val);
-              widget.onChanged();
-            },
-            enabled: true,
-            decoration: InputDecoration(
-              labelText: 'Carga',
-              hintText: '',
-              hintStyle: widget.hintLoadStyle,
-              filled: !loadEnabled,
-              fillColor:
-                  !loadEnabled
-                      ? AppColors.lightGray.withValues(alpha: 0.35)
-                      : null,
+          // Reps
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              controller: _repsCtrl,
+              onChanged: (v) {
+                setState(() => widget.movement.reps = v);
+                widget.onChanged();
+              },
+              decoration: const InputDecoration(
+                labelText: 'Reps',
+                hintText: "ex.: 21 | 400m | 12'",
+              ),
             ),
           ),
-        ),
+          SizedBox(width: 6 * scale),
 
-        SizedBox(width: 4 * scale),
-        IconButton(
-          onPressed: widget.onDelete,
-          icon: const Icon(Icons.delete_outline, color: Colors.red),
-          tooltip: 'Remover movimento',
-        ),
-      ],
+          // Nome do movimento
+          Expanded(
+            flex: 4,
+            child: TextFormField(
+              controller: _nameCtrl,
+              onChanged: (v) {
+                setState(() => widget.movement.name = v);
+                widget.onChanged();
+              },
+              decoration: const InputDecoration(labelText: 'Movimento'),
+            ),
+          ),
+          SizedBox(width: 6 * scale),
+
+          // Carga (opcional)
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              controller: _loadCtrl,
+              onChanged: (v) {
+                final val = v.trim();
+                setState(() => widget.movement.load = val.isEmpty ? null : val);
+                widget.onChanged();
+              },
+              decoration: InputDecoration(
+                labelText: 'Carga',
+                hintStyle: widget.hintLoadStyle,
+                filled: !loadEnabled,
+                fillColor:
+                    !loadEnabled
+                        ? AppColors.lightGray.withValues(alpha: 0.35)
+                        : null,
+              ),
+            ),
+          ),
+
+          SizedBox(width: 2 * scale),
+          IconButton(
+            onPressed: widget.onDelete,
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            tooltip: 'Remover movimento',
+          ),
+        ],
+      ),
     );
   }
 }

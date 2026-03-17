@@ -1,36 +1,56 @@
 // lib/core/services/athlete_service.dart
 
-import 'dart:async';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_app/shared/models/athlete_profile.dart';
-import 'package:flutter_app/core/services/workout/training_service.dart';
 
-/// Serviço para trazer (_mock_) perfil do usuário.
 class AthleteService {
-  static Future<AthleteProfileReference> fetchAthleteProfileReference() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    // TODO: substituir este mock por chamada real ao backend
-    return AthleteProfileReference(
-      gender: 'Mulheres',
-      ageRange: 'Entre 20 e 30 anos',
-      weightRange: 'Entre 50 e 60 kg',
-      practiceYears: 'Entre 3 e 5 anos de prática',
-      heightRange: 'Mais de 170 cm',
-    );
+  /// Busca o perfil do atleta logado diretamente do Firestore.
+  /// Lê users/{uid} — o documento criado no signup/select_profile.
+  static Future<AthleteProfile> fetchAthleteProfile() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    // Fallback: usuário não logado
+    if (uid == null) {
+      return AthleteProfile(name: 'Atleta');
+    }
+
+    try {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (!doc.exists) return AthleteProfile(name: 'Atleta');
+
+      final data = doc.data()!;
+      final name = data['name']?.toString().trim() ?? '';
+
+      return AthleteProfile(
+        name: name.isNotEmpty ? name : 'Atleta',
+        photoUrl:
+            data['photoURL']?.toString().isNotEmpty == true
+                ? data['photoURL'].toString()
+                : null,
+        // category e reference serão preenchidos quando a edição
+        // de perfil do atleta for implementada (fase futura)
+        category: null,
+        reference: null,
+        boxes: const [],
+      );
+    } catch (e) {
+      print('ERRO fetchAthleteProfile: $e');
+      return AthleteProfile(name: 'Atleta');
+    }
   }
 
-  /// Busca o perfil completo do atleta.
-  static Future<AthleteProfile> fetchAthleteProfile() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    // TODO: substituir este mock por chamada real ao backend
-    return AthleteProfile(
-      name: 'Camila Souza',
-      photoUrl: null, // ou URL real
-      category: null, // simula perfil ainda incompleto
-      reference: await AthleteService.fetchAthleteProfileReference(),
-      boxes: await TrainingService.fetchUserBoxes().then(
-        (list) => list.map((b) => b.name).toList(),
-      ),
+  /// Mantido para compatibilidade — retorna referência vazia.
+  /// Será implementado junto com a edição de perfil do atleta.
+  static Future<AthleteProfileReference> fetchAthleteProfileReference() async {
+    return AthleteProfileReference(
+      gender: '',
+      ageRange: '',
+      weightRange: '',
+      practiceYears: '',
+      heightRange: '',
     );
   }
 }

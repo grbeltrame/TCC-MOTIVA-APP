@@ -22,6 +22,8 @@ import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 
 import 'package:flutter_app/shared/widgets/cards/cycle_training_type_card.dart';
 
+import 'package:flutter_app/features/user/coach/coach_registered_trainings_screen.dart';
+
 class CoachCycleDetailScreen extends StatefulWidget {
   static const routeName = '/coach_cycle_detail';
   const CoachCycleDetailScreen({Key? key}) : super(key: key);
@@ -89,9 +91,10 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
   }
 
   String _formatUpdatedAt(DateTime d) {
-    final date = DateFormat('dd/MM/yyyy', 'pt_BR').format(d);
-    final hour = DateFormat('H', 'pt_BR').format(d);
-    final minute = DateFormat('mm', 'pt_BR').format(d);
+    final localDate = d.toLocal();
+    final date = DateFormat('dd/MM/yyyy', 'pt_BR').format(localDate);
+    final hour = DateFormat('H', 'pt_BR').format(localDate);
+    final minute = DateFormat('mm', 'pt_BR').format(localDate);
     return '$date às ${hour}h$minute';
   }
 
@@ -106,7 +109,7 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
   void _openTrainingTypeDetail(String typeKey, String label) {
     Navigator.pushNamed(
       context,
-      AppRoutes.coachCycleTrainingTypeDetail,
+      CoachRegisteredTrainingScreen.routeName,
       arguments: {
         'year': _year,
         'month': _month,
@@ -219,7 +222,7 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
                         ),
                         title: 'Treinos',
                         valueFontSize: 12,
-                        tipo: CardInfoType.cycleTrainings,
+                        customValue: '${overview.trainingsCount} cadastros',
                         backgroundColor: AppColors.baseBlue,
                         borderColor: AppColors.baseBlue,
                         iconColor: AppColors.darkText,
@@ -232,7 +235,7 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
                         iconWidget: const Icon(Icons.edit_outlined),
                         title: 'Registros',
                         valueFontSize: 12,
-                        tipo: CardInfoType.cycleRegistros,
+                        customValue: 'Em breve',
                         backgroundColor: AppColors.baseBlue,
                         borderColor: AppColors.baseBlue,
                         iconColor: AppColors.darkText,
@@ -245,7 +248,7 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
                         iconWidget: const Icon(Icons.people_outline),
                         title: 'Alunos Ativos',
                         valueFontSize: 12,
-                        tipo: CardInfoType.cycleActiveStudents,
+                        customValue: 'Em breve',
                         backgroundColor: AppColors.baseBlue,
                         borderColor: AppColors.baseBlue,
                         iconColor: AppColors.darkText,

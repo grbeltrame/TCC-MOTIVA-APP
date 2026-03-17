@@ -68,6 +68,7 @@ class CycleAnalysis(BaseModel):
     # Resumo Geral
     overview: str = Field(..., description="Um parágrafo resumindo a 'cara' deste ciclo até agora.")
 
+    quick_alerts: List[str] = Field(..., description="3 a 5 alertas rápidos e diretos (máximo 20 palavras cada) destacando volume, estímulos ou riscos do mês.")
 # ... (Mantenha os parsers no final) ...
 
 

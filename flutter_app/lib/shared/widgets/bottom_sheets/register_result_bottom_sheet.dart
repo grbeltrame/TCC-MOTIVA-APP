@@ -1,22 +1,27 @@
 // lib/shared/widgets/register_result/register_result_bottom_sheet.dart
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/services/effort_service.dart';
 import 'package:flutter_app/core/services/workout/movement_service.dart';
+import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/core/services/workout/workout_result_service.dart';
 import 'package:flutter_app/core/theme/app_theme.dart';
+import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-
-// sections & helpers
-import 'package:flutter_app/shared/widgets/register_result/section_results.dart';
-import 'package:flutter_app/shared/widgets/register_result/section_adaptations.dart';
-import 'package:flutter_app/shared/widgets/register_result/movements.dart';
-import 'package:flutter_app/shared/widgets/register_result/section_effort.dart';
-import 'package:flutter_app/core/services/effort_service.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
+import 'package:flutter_app/shared/widgets/register_result/section_adaptations.dart';
+import 'package:flutter_app/shared/widgets/register_result/section_effort.dart';
+import 'package:flutter_app/shared/widgets/register_result/movements.dart';
+import 'package:intl/intl.dart';
+
+// =============================================================================
+// Função pública de abertura
+// =============================================================================
 
 Future<void> showRegisterResultBottomSheet(BuildContext context) {
-  // Abre o sheet imediatamente — conteúdo carrega por dentro.
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -28,6 +33,30 @@ Future<void> showRegisterResultBottomSheet(BuildContext context) {
   );
 }
 
+// =============================================================================
+// Partes de suporte ignoradas na detecção do tipo principal
+// =============================================================================
+
+const _kSupportParts = {
+  'WARM UP',
+  'WARMUP',
+  'EXTRA TRAINING',
+  'EXTRA',
+  'MOBILIDADE',
+  'MOBILITY',
+  'SKILL',
+};
+
+// =============================================================================
+// Etapas do sheet
+// =============================================================================
+
+enum _SheetStep { selectTraining, fillForm }
+
+// =============================================================================
+// Widget principal
+// =============================================================================
+
 class _RegisterResultSheetContent extends StatefulWidget {
   const _RegisterResultSheetContent({Key? key}) : super(key: key);
 
@@ -38,31 +67,52 @@ class _RegisterResultSheetContent extends StatefulWidget {
 
 class _RegisterResultSheetContentState
     extends State<_RegisterResultSheetContent> {
-  // --- loading / dados ---
-  bool _loading = true;
-  _FormData? _data;
+  // ── Etapa atual ─────────────────────────────────────────────────────────────
+  _SheetStep _step = _SheetStep.selectTraining;
 
-  // --- estado de formulário ---
+  // ── Data selecionada ─────────────────────────────────────────────────────────
+  DateTime _selectedDate = DateTime.now();
+
+  // ── Treinos disponíveis para a data ──────────────────────────────────────────
+  bool _loadingTrainings = false;
+  List<Training> _trainings = [];
+
+  // ── Treino selecionado ───────────────────────────────────────────────────────
+  Training? _selectedTraining;
+  String? _wodType; // "WOD" | "LPO" | "Ginástica" | "Endurance"
+  String? _wodName; // "HEAVEN IN HELL"
+  String? _modalidade; // "FOR TIME" | "AMRAP" | "EMOM"
+  List<String> _keyMetrics = [];
+  String? _trainingDocId;
+  String? _dayOfWeek;
+
+  // ── Campos do formulário ─────────────────────────────────────────────────────
   String? _selectedCategory;
   String? _selectedAdapted; // 'Sim' | 'Não'
   String? _selectedCompleted; // 'Sim' | 'Não'
-  String? _selectedClassId;
-  String? _selectedWodType;
+  TimeOfDay? _trainingTime;
 
+  // Resultado condicional
+  int? _forTimeSeconds;
+  int? _maxForTimeSeconds; // cap do FOR TIME — vem de duracaoMinutos do treino
   int? _amrapRounds;
   int? _amrapReps;
-  int? _forTimeSeconds;
+  bool _emomCompleted = true;
+  int? _emomCompletedRounds;
 
-  final EffortService _effortService = EffortService();
-  int _effortValue = 5; // 1..10, atualizado pela SectionEffort
+  // Esforço
+  int _effortValue = 5;
 
-  String? _movementsForClassId;
+  // Adaptações
   final List<MovementRowData> _movementRows = [];
+  bool _loadingCategories = false;
+  List<String> _categories = ['Iniciante', 'Scale', 'Intermediário', 'RX'];
 
   @override
   void initState() {
     super.initState();
-    _startLoad(); // dispara o carregamento sem bloquear a abertura do sheet
+    _loadTrainings();
+    _loadCategories();
   }
 
   @override
@@ -71,59 +121,133 @@ class _RegisterResultSheetContentState
     super.dispose();
   }
 
-  Future<void> _startLoad() async {
-    // carrega tudo em paralelo
-    final catsF = WorkoutResultService.fetchUserCategories();
-    final defCatF = WorkoutResultService.fetchDefaultUserCategory();
-    final classesF = WorkoutResultService.fetchClassesForDate(DateTime.now());
-    final wodTypesF = WorkoutResultService.fetchWorkoutTypes();
+  // ── Carregamentos ────────────────────────────────────────────────────────────
 
-    final cats = await catsF;
-    final defCat = await defCatF;
-    final classes = await classesF;
-    final wodTypes = await wodTypesF;
-
-    // estados iniciais
-    _selectedCategory = defCat;
-    _selectedAdapted = 'Não';
-    _selectedCompleted = 'Sim';
-    _selectedClassId = classes.isNotEmpty ? classes.first.id : null;
-    _selectedWodType = wodTypes.isNotEmpty ? wodTypes.first : null;
-
-    // Pré-carrega movimentos da turma default (se houver)
-    final presets =
-        _selectedClassId != null
-            ? await WorkoutResultService.fetchMovementsForClass(
-              _selectedClassId!,
-            )
-            : <MovementPreset>[];
-    _applyMovementPresets(_selectedClassId, presets);
-
-    _data = _FormData(
-      categories: cats,
-      defaultCategory: defCat,
-      classes: classes,
-      wodTypes: wodTypes,
-    );
-
-    if (!mounted) return;
-    setState(() => _loading = false);
-  }
-
-  void _applyMovementPresets(String? classId, List<MovementPreset> presets) {
-    for (final r in _movementRows) r.dispose();
-    _movementRows.clear();
-    _movementsForClassId = classId;
-    for (final p in presets) {
-      _movementRows.add(MovementRowData.fromPreset(p));
+  Future<void> _loadTrainings() async {
+    setState(() => _loadingTrainings = true);
+    try {
+      final list = await TrainingService.fetchTrainingsListForDate(
+        boxId: 'BOX_PRINCIPAL',
+        date: _selectedDate,
+      );
+      if (mounted) setState(() => _trainings = list);
+    } finally {
+      if (mounted) setState(() => _loadingTrainings = false);
     }
   }
 
-  Future<void> _reloadMovementsForClass(String classId) async {
-    final presets = await WorkoutResultService.fetchMovementsForClass(classId);
-    if (!mounted) return;
-    setState(() => _applyMovementPresets(classId, presets));
+  Future<void> _loadCategories() async {
+    setState(() => _loadingCategories = true);
+    try {
+      final cats = await WorkoutResultService.fetchUserCategories();
+      final defCat = await WorkoutResultService.fetchDefaultUserCategory();
+      if (mounted) {
+        setState(() {
+          _categories = cats;
+          _selectedCategory = defCat;
+          _loadingCategories = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingCategories = false);
+    }
   }
+
+  // ── Seleção de data ──────────────────────────────────────────────────────────
+
+  Future<void> _pickOtherDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 90)),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'),
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedDate = picked;
+      _trainings = [];
+      _selectedTraining = null;
+    });
+    await _loadTrainings();
+  }
+
+  // ── Seleção de treino ────────────────────────────────────────────────────────
+
+  String _detectType(Map<String, dynamic> partes) {
+    final keys = partes.keys.map((k) => k.toUpperCase()).toSet();
+    if (keys.contains('LPO')) return 'LPO';
+    if (keys.any((k) => k.contains('GINASTIC') || k.contains('GYMNAST'))) {
+      return 'Ginástica';
+    }
+    if (keys.any(
+      (k) => k.contains('ENDUR') || k.contains('RUNNING') || k.contains('RUN'),
+    )) {
+      return 'Endurance';
+    }
+    if (keys.contains('WOD')) return 'WOD';
+    final main = partes.keys.firstWhere(
+      (k) => !_kSupportParts.contains(k.toUpperCase()),
+      orElse: () => partes.keys.first,
+    );
+    return main.toUpperCase();
+  }
+
+  void _onTrainingSelected(Training training) {
+    final type = _detectType(training.partes);
+
+    // Encontra a parte principal
+    final mainKey = training.partes.keys.firstWhere(
+      (k) => !_kSupportParts.contains(k.toUpperCase()),
+      orElse: () => training.partes.keys.first,
+    );
+    final mainPart = training.partes[mainKey] as Map<String, dynamic>?;
+
+    final wodName = mainPart?['nomeWod']?.toString().trim();
+    final modalidade = mainPart?['modalidade']?.toString().trim().toUpperCase();
+    final duracaoMinutos = mainPart?['duracaoMinutos'] as int?;
+
+    setState(() {
+      _selectedTraining = training;
+      _wodType = type;
+      _wodName = (wodName != null && wodName.isNotEmpty) ? wodName : null;
+      _modalidade = modalidade;
+      _maxForTimeSeconds = duracaoMinutos != null ? duracaoMinutos * 60 : null;
+      _keyMetrics = training.analysis?.keyMetrics ?? [];
+      _trainingDocId = training.id;
+      _dayOfWeek = null; // será preenchido abaixo se disponível
+
+      // Reset campos condicionais ao trocar de treino
+      _forTimeSeconds = null;
+      _amrapRounds = null;
+      _amrapReps = null;
+      _emomCompleted = true;
+      _emomCompletedRounds = null;
+
+      _step = _SheetStep.fillForm;
+    });
+  }
+
+  // ── Seleção de horário ───────────────────────────────────────────────────────
+
+  Future<void> _pickTrainingTime() async {
+    final initial = _trainingTime ?? TimeOfDay.now();
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder:
+          (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+            child: child!,
+          ),
+    );
+    if (picked != null) setState(() => _trainingTime = picked);
+  }
+
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  // ── InputDecoration padrão ───────────────────────────────────────────────────
 
   InputDecoration _inputDecoration(
     BuildContext context, {
@@ -134,7 +258,7 @@ class _RegisterResultSheetContentState
     return InputDecoration(
       isDense: true,
       hintText: hintText,
-      suffixText: suffixText, // 'kg' e 's' permanecem visíveis
+      suffixText: suffixText,
       contentPadding: EdgeInsets.symmetric(
         horizontal: 3 * scale,
         vertical: 4 * scale,
@@ -157,16 +281,78 @@ class _RegisterResultSheetContentState
     );
   }
 
+  // ── Submissão ────────────────────────────────────────────────────────────────
+
   Future<void> _handleRegisterPressed(BuildContext sheetContext) async {
-    await _effortService.submitEffort(
+    // Validação mínima
+    if (_trainingTime == null) {
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
+        const SnackBar(content: Text('Informe o horário que você treinou')),
+      );
+      return;
+    }
+    if (_selectedCategory == null) {
+      ScaffoldMessenger.of(
+        sheetContext,
+      ).showSnackBar(const SnackBar(content: Text('Selecione sua categoria')));
+      return;
+    }
+
+    // Adaptações
+    final adaptations =
+        _selectedAdapted == 'Sim'
+            ? _movementRows
+                .map(
+                  (r) => {
+                    'movement': r.movement,
+                    'qty': r.qty,
+                    'loadKg': r.loadKg,
+                    'timeSec': r.timeSec,
+                  },
+                )
+                .toList()
+            : <Map<String, dynamic>>[];
+
+    final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+    final record = AthleteResultRecord(
+      date: dateKey,
+      wodType: _wodType ?? 'WOD',
+      wodName: _wodName,
+      modalidade: _modalidade,
+      keyMetrics: _keyMetrics,
+      trainingDocId: _trainingDocId,
+      trainingTime: _formatTime(_trainingTime!),
+      category: _selectedCategory!,
+      adapted: _selectedAdapted == 'Sim',
+      completed: _selectedCompleted == 'Sim',
+      forTimeSec: _modalidade == 'FOR TIME' ? _forTimeSeconds : null,
+      amrapRounds: _modalidade == 'AMRAP' ? _amrapRounds : null,
+      amrapReps: _modalidade == 'AMRAP' ? _amrapReps : null,
+      emomCompletedRounds:
+          (_modalidade == 'EMOM' && !_emomCompleted)
+              ? _emomCompletedRounds
+              : null,
       effort: _effortValue,
-      classId: _selectedClassId,
-      date: DateTime.now(),
+      adaptations: adaptations,
+      dayOfWeek: _dayOfWeek,
     );
+
+    try {
+      await EffortService.submitResult(record);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          sheetContext,
+        ).showSnackBar(SnackBar(content: Text('Erro ao salvar: $e')));
+      }
+      return;
+    }
 
     if (Navigator.of(sheetContext).canPop()) {
       Navigator.of(sheetContext).pop();
     }
+
     await Future.microtask(() {});
     await showDialog(
       context: sheetContext,
@@ -177,7 +363,7 @@ class _RegisterResultSheetContentState
             icon: Icons.star_outline,
             title: 'Você está progredindo!',
             message:
-                'Cada resultado registrado te deixa mais próximo do seus objetivos.\n\n'
+                'Cada resultado registrado te deixa mais próximo dos seus objetivos.\n\n'
                 'Mantenha o foco!',
             primaryAction: TextButton(
               onPressed:
@@ -188,6 +374,8 @@ class _RegisterResultSheetContentState
           ),
     );
   }
+
+  // ── BUILD ────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +394,7 @@ class _RegisterResultSheetContentState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Handle
             Center(
               child: Container(
                 width: 40 * scale,
@@ -218,163 +406,851 @@ class _RegisterResultSheetContentState
               ),
             ),
             SizedBox(height: 12 * scale),
-            Text(
-              'Vamos registrar seu resultado?',
+
+            // Conteúdo por etapa
+            if (_step == _SheetStep.selectTraining)
+              _buildSelectTrainingStep(scale)
+            else
+              _buildFillFormStep(scale),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── ETAPA 1: Selecionar treino ───────────────────────────────────────────────
+
+  Widget _buildSelectTrainingStep(double scale) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Vamos registrar seu resultado?',
+          style: TextStyle(
+            fontFamily: AppFonts.montserrat,
+            fontWeight: AppFontWeight.bold,
+            fontSize: 20 * scale,
+            color: AppColors.darkText,
+          ),
+        ),
+        SizedBox(height: 4 * scale),
+        Text(
+          DateFormat("d 'de' MMMM", 'pt_BR').format(_selectedDate),
+          style: TextStyle(
+            fontFamily: AppFonts.roboto,
+            fontSize: 12 * scale,
+            color: AppColors.mediumGray,
+          ),
+        ),
+        SizedBox(height: 24 * scale),
+
+        // Lista de treinos ou skeleton
+        if (_loadingTrainings)
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 32 * scale),
+              child: const CircularProgressIndicator(),
+            ),
+          )
+        else if (_trainings.isEmpty)
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 32 * scale),
+              child: Text(
+                'Nenhum treino encontrado para esta data',
+                style: TextStyle(
+                  fontFamily: AppFonts.roboto,
+                  fontSize: 14 * scale,
+                  color: AppColors.mediumGray,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          )
+        else
+          ..._trainings.map((t) {
+            final type = _detectType(t.partes);
+            final mainKey = t.partes.keys.firstWhere(
+              (k) => !_kSupportParts.contains(k.toUpperCase()),
+              orElse: () => t.partes.keys.first,
+            );
+            final mainPart = t.partes[mainKey] as Map<String, dynamic>?;
+            final name = mainPart?['nomeWod']?.toString().trim() ?? '';
+            final label = name.isNotEmpty ? '$type — $name' : type;
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: 10 * scale),
+              child: OutlinedButton(
+                onPressed: () => _onTrainingSelected(t),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 48 * scale),
+                  side: BorderSide(color: AppColors.baseBlue),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10 * scale),
+                  ),
+                  backgroundColor: AppColors.baseBlue.withOpacity(0.05),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontWeight: AppFontWeight.bold,
+                    fontSize: 15 * scale,
+                    color: AppColors.baseBlue,
+                  ),
+                ),
+              ),
+            );
+          }),
+
+        // Link "Outro dia"
+        Center(
+          child: TextButton.icon(
+            onPressed: _pickOtherDate,
+            icon: Icon(
+              Icons.calendar_today,
+              size: 14 * scale,
+              color: AppColors.mediumGray,
+            ),
+            label: Text(
+              'Registrar treino de outro dia',
               style: TextStyle(
-                fontFamily: AppFonts.montserrat,
-                fontWeight: AppFontWeight.bold,
-                fontSize: 20 * scale,
+                fontFamily: AppFonts.roboto,
+                fontSize: 12 * scale,
+                color: AppColors.mediumGray,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 8 * scale),
+      ],
+    );
+  }
+
+  // ── ETAPA 2: Preencher formulário ────────────────────────────────────────────
+
+  Widget _buildFillFormStep(double scale) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Header com botão voltar
+        Row(
+          children: [
+            GestureDetector(
+              onTap: () => setState(() => _step = _SheetStep.selectTraining),
+              child: Icon(
+                Icons.arrow_back_ios,
+                size: 16 * scale,
                 color: AppColors.darkText,
               ),
             ),
-            SizedBox(height: 10 * scale),
-
-            // === Section: resultados (ou skeleton enquanto carrega)
-            if (_loading)
-              _ResultsSkeleton(scale: scale)
-            else
-              SectionResults(
-                categories: _data!.categories,
-                selectedCategory: _selectedCategory,
-                onChangedCategory: (v) => setState(() => _selectedCategory = v),
-
-                selectedAdapted: _selectedAdapted,
-                onChangedAdapted: (v) => setState(() => _selectedAdapted = v),
-
-                selectedCompleted: _selectedCompleted,
-                onChangedCompleted:
-                    (v) => setState(() => _selectedCompleted = v),
-
-                classes: _data!.classes,
-                selectedClassId: _selectedClassId,
-                onChangedClass: (v) async {
-                  setState(() => _selectedClassId = v);
-                  if (v != null) await _reloadMovementsForClass(v);
-                },
-
-                wodTypes: _data!.wodTypes,
-                selectedWodType: _selectedWodType,
-                onChangedWodType: (v) => setState(() => _selectedWodType = v),
-
-                amrapRounds: _amrapRounds,
-                amrapReps: _amrapReps,
-                onChangedAmrapRounds:
-                    (val) => setState(() => _amrapRounds = val),
-                onChangedAmrapReps: (val) => setState(() => _amrapReps = val),
-
-                forTimeSeconds: _forTimeSeconds,
-                onChangedForTime:
-                    (val) => setState(() => _forTimeSeconds = val),
-              ),
-
-            SizedBox(height: 10 * scale),
-
-            // === Section: adaptações (ou skeleton)
-            if (_loading)
-              _AdaptationsSkeleton(scale: scale)
-            else
-              SectionAdaptations(
-                visible: _selectedAdapted == 'Sim',
-                movementRows: _movementRows,
-                inputDecorationBuilder: _inputDecoration,
-              ),
-
-            SizedBox(height: 8 * scale),
-
-            const Divider(height: 24),
-
-            // === Section: Esforço (pode abrir já visível; não depende do load)
-            SectionEffort(
-              classId: _selectedClassId,
-              onEffortChanged: (val) => _effortValue = val,
-            ),
-
-            // Botões
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 24 * scale),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    style: AppTheme.secondaryButtonStyle(
-                      AppColors.darkBlue,
-                      AppColors.baseBlue,
-                    ),
-                    onPressed: () => _handleRegisterPressed(context),
-                    child: const Text('Registrar'),
-                  ),
-                  OutlinedButton(
-                    style: AppTheme.tertiaryButtonStyle(AppColors.baseMagenta),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Fechar'),
-                  ),
-                ],
+            SizedBox(width: 8 * scale),
+            Expanded(
+              child: Text(
+                _wodName != null
+                    ? '$_wodType — $_wodName'
+                    : (_wodType ?? 'Treino'),
+                style: TextStyle(
+                  fontFamily: AppFonts.montserrat,
+                  fontWeight: AppFontWeight.bold,
+                  fontSize: 18 * scale,
+                  color: AppColors.darkText,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
+        ),
+        SizedBox(height: 6 * scale),
+
+        // Chip de modalidade (read-only)
+        if (_modalidade != null) ...[
+          _ModalidadeChip(label: _modalidade!, scale: scale),
+          SizedBox(height: 12 * scale),
+        ],
+
+        // Linha 1: Categoria + Adaptado
+        Wrap(
+          spacing: 12 * scale,
+          runSpacing: 6 * scale,
+          children: [
+            _LabeledDropdown(
+              label: 'Categoria:',
+              value: _selectedCategory,
+              items: _loadingCategories ? ['Intermediário'] : _categories,
+              onChanged: (v) => setState(() => _selectedCategory = v),
+              scale: scale,
+            ),
+            _LabeledDropdown(
+              label: 'Adaptado?:',
+              value: _selectedAdapted ?? 'Não',
+              items: const ['Sim', 'Não'],
+              onChanged: (v) => setState(() => _selectedAdapted = v),
+              scale: scale,
+            ),
+          ],
+        ),
+
+        // Linha 2: Concluiu + resultado condicional
+        _buildConditionalResultRow(scale),
+
+        SizedBox(height: 6 * scale),
+
+        // Horário do treino
+        _buildTrainingTimePicker(scale),
+
+        SizedBox(height: 10 * scale),
+
+        // Adaptações
+        SectionAdaptations(
+          visible: _selectedAdapted == 'Sim',
+          movementRows: _movementRows,
+          inputDecorationBuilder: _inputDecoration,
+        ),
+
+        const Divider(height: 24),
+
+        // Esforço
+        SectionEffort(
+          classId: null,
+          onEffortChanged: (val) => setState(() => _effortValue = val),
+        ),
+
+        SizedBox(height: 16 * scale),
+
+        // Botão primário — largura total, ação principal
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: AppTheme.secondaryButtonStyle(
+              AppColors.darkBlue,
+              AppColors.baseBlue,
+            ),
+            onPressed: () => _handleRegisterPressed(context),
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 4 * scale),
+              child: const Text('Registrar resultado'),
+            ),
+          ),
+        ),
+
+        // Botão secundário — link de texto, ação destrutiva menor
+        Center(
+          child: TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Fechar',
+              style: TextStyle(
+                fontFamily: AppFonts.roboto,
+                fontSize: 13 * scale,
+                color: AppColors.mediumGray,
+              ),
+            ),
+          ),
+        ),
+
+        SizedBox(height: 8 * scale),
+      ],
+    );
+  }
+
+  // ── Resultado condicional por modalidade ─────────────────────────────────────
+
+  Widget _buildConditionalResultRow(double scale) {
+    if (_modalidade == 'FOR TIME') {
+      return Wrap(
+        spacing: 12 * scale,
+        runSpacing: 6 * scale,
+        children: [
+          _LabeledDropdown(
+            label: 'Concluiu?:',
+            value: _selectedCompleted ?? 'Sim',
+            items: const ['Sim', 'Não'],
+            onChanged: (v) => setState(() => _selectedCompleted = v),
+            scale: scale,
+          ),
+          _LabeledTimePicker(
+            label: 'Seu tempo:',
+            seconds: _forTimeSeconds,
+            maxSeconds: _maxForTimeSeconds,
+            onChanged: (v) => setState(() => _forTimeSeconds = v),
+            scale: scale,
+          ),
+        ],
+      );
+    }
+
+    if (_modalidade == 'AMRAP') {
+      return Wrap(
+        spacing: 12 * scale,
+        runSpacing: 6 * scale,
+        children: [
+          _LabeledInputInt(
+            label: 'Rounds:',
+            value: _amrapRounds,
+            onChanged: (v) => setState(() => _amrapRounds = v),
+            scale: scale,
+            inputDecoration: _inputDecoration,
+          ),
+          _LabeledInputInt(
+            label: 'Reps:',
+            value: _amrapReps,
+            onChanged: (v) => setState(() => _amrapReps = v),
+            scale: scale,
+            inputDecoration: _inputDecoration,
+          ),
+        ],
+      );
+    }
+
+    if (_modalidade == 'EMOM') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _LabeledDropdown(
+            label: 'Completou todos os rounds?:',
+            value: _emomCompleted ? 'Sim' : 'Não',
+            items: const ['Sim', 'Não'],
+            onChanged: (v) => setState(() => _emomCompleted = v == 'Sim'),
+            scale: scale,
+          ),
+          if (!_emomCompleted) ...[
+            SizedBox(height: 6 * scale),
+            _LabeledInputInt(
+              label: 'Quantos minutos completou?:',
+              value: _emomCompletedRounds,
+              onChanged: (v) => setState(() => _emomCompletedRounds = v),
+              scale: scale,
+              inputDecoration: _inputDecoration,
+            ),
+          ],
+        ],
+      );
+    }
+
+    // Modalidade desconhecida ou nula — mostra só Concluiu
+    return _LabeledDropdown(
+      label: 'Concluiu?:',
+      value: _selectedCompleted ?? 'Sim',
+      items: const ['Sim', 'Não'],
+      onChanged: (v) => setState(() => _selectedCompleted = v),
+      scale: scale,
+    );
+  }
+
+  // ── Time picker de horário do treino ─────────────────────────────────────────
+
+  Widget _buildTrainingTimePicker(double scale) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8 * scale),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Que horas treinou?:',
+            style: TextStyle(
+              fontFamily: AppFonts.roboto,
+              fontWeight: AppFontWeight.bold,
+              fontSize: 12 * scale,
+              color: AppColors.mediumGray,
+            ),
+          ),
+          SizedBox(width: 8 * scale),
+          GestureDetector(
+            onTap: _pickTrainingTime,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.baseBlue.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(6 * scale),
+                border: Border.all(
+                  color: AppColors.baseBlue.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 8 * scale,
+                  vertical: 4 * scale,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _trainingTime != null
+                          ? _formatTime(_trainingTime!)
+                          : '--:--',
+                      style: TextStyle(
+                        fontFamily: AppFonts.roboto,
+                        fontSize: 13 * scale,
+                        fontWeight: AppFontWeight.medium,
+                        color:
+                            _trainingTime != null
+                                ? AppColors.darkText
+                                : AppColors.mediumGray,
+                      ),
+                    ),
+                    SizedBox(width: 4 * scale),
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 14 * scale,
+                      color: AppColors.baseBlue,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Widgets auxiliares internos
+// =============================================================================
+
+class _ModalidadeChip extends StatelessWidget {
+  final String label;
+  final double scale;
+  const _ModalidadeChip({required this.label, required this.scale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 10 * scale,
+        vertical: 4 * scale,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.baseBlue.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20 * scale),
+        border: Border.all(
+          color: AppColors.baseBlue.withOpacity(0.25),
+          width: 0.8,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: AppFonts.roboto,
+          fontSize: 11 * scale,
+          color: AppColors.baseBlue,
+          fontWeight: AppFontWeight.medium,
         ),
       ),
     );
   }
 }
 
-class _FormData {
-  final List<String> categories;
-  final String defaultCategory;
-  final List<ClassSlot> classes;
-  final List<String> wodTypes;
-
-  _FormData({
-    required this.categories,
-    required this.defaultCategory,
-    required this.classes,
-    required this.wodTypes,
-  });
-}
-
-/// Skeletons simples (cinza) para abrir o sheet instantaneamente, sem flicker.
-class _ResultsSkeleton extends StatelessWidget {
-  const _ResultsSkeleton({required this.scale});
+class _LabeledDropdown extends StatelessWidget {
+  final String label;
+  final String? value;
+  final List<String> items;
+  final ValueChanged<String?> onChanged;
   final double scale;
 
-  Widget _bar(double h) => Container(
-    height: h * scale,
-    decoration: BoxDecoration(
-      color: AppColors.lightGray,
-      borderRadius: BorderRadius.circular(6 * scale),
-    ),
-  );
+  const _LabeledDropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    required this.scale,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _bar(36),
-        SizedBox(height: 8 * scale),
-        _bar(36),
-        SizedBox(height: 8 * scale),
-        _bar(36),
-        SizedBox(height: 8 * scale),
-        _bar(36),
-      ],
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8 * scale),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Label à esquerda
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppFonts.roboto,
+              fontWeight: AppFontWeight.bold,
+              fontSize: 12 * scale,
+              color: AppColors.mediumGray,
+            ),
+          ),
+          SizedBox(width: 8 * scale),
+          // Dropdown à direita com cara de botão
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.baseBlue.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(6 * scale),
+              border: Border.all(
+                color: AppColors.baseBlue.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: value,
+                isDense: true,
+                icon: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: AppColors.baseBlue,
+                  size: 16 * scale,
+                ),
+                style: TextStyle(
+                  fontFamily: AppFonts.roboto,
+                  fontSize: 13 * scale,
+                  color: AppColors.darkText,
+                  fontWeight: AppFontWeight.medium,
+                ),
+                underline: const SizedBox.shrink(),
+                selectedItemBuilder:
+                    (context) =>
+                        items
+                            .map(
+                              (it) => Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8 * scale,
+                                  vertical: 4 * scale,
+                                ),
+                                child: Text(
+                                  it,
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.roboto,
+                                    fontSize: 13 * scale,
+                                    color: AppColors.darkText,
+                                    fontWeight: AppFontWeight.medium,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                items:
+                    items
+                        .map(
+                          (it) => DropdownMenuItem(
+                            value: it,
+                            child: Text(
+                              it,
+                              style: TextStyle(
+                                fontFamily: AppFonts.roboto,
+                                fontSize: 13 * scale,
+                                color: AppColors.darkText,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                onChanged: onChanged,
+                borderRadius: BorderRadius.circular(6 * scale),
+                dropdownColor: Colors.white,
+                menuMaxHeight: 200 * scale,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _AdaptationsSkeleton extends StatelessWidget {
-  const _AdaptationsSkeleton({required this.scale});
+class _LabeledInputInt extends StatelessWidget {
+  final String label;
+  final int? value;
+  final ValueChanged<int?>? onChanged;
   final double scale;
+  final InputDecoration Function(
+    BuildContext, {
+    String? suffixText,
+    String? hintText,
+  })
+  inputDecoration;
 
-  Widget _row() => Container(
-    height: 40 * scale,
-    decoration: BoxDecoration(
-      color: AppColors.lightGray,
-      borderRadius: BorderRadius.circular(6 * scale),
-    ),
-  );
+  const _LabeledInputInt({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    required this.scale,
+    required this.inputDecoration,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [_row(), SizedBox(height: 6 * scale), _row()]);
+    final controller = TextEditingController(text: value?.toString() ?? '');
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10 * scale),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppFonts.roboto,
+              fontWeight: AppFontWeight.bold,
+              fontSize: 12 * scale,
+              color: AppColors.mediumGray,
+            ),
+          ),
+          SizedBox(height: 4 * scale),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.baseBlue.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(8 * scale),
+              border: Border.all(
+                color: AppColors.baseBlue.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12 * scale),
+              child: TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 12 * scale),
+                ),
+                onChanged:
+                    (t) => onChanged?.call(t.isEmpty ? null : int.parse(t)),
+                style: TextStyle(
+                  fontFamily: AppFonts.roboto,
+                  fontSize: 14 * scale,
+                  fontWeight: AppFontWeight.medium,
+                  color: AppColors.darkText,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LabeledTimePicker extends StatelessWidget {
+  final String label;
+  final int? seconds;
+  final int? maxSeconds; // cap opcional — vem de duracaoMinutos do WOD
+  final ValueChanged<int?> onChanged;
+  final double scale;
+
+  const _LabeledTimePicker({
+    required this.label,
+    required this.seconds,
+    this.maxSeconds,
+    required this.onChanged,
+    required this.scale,
+  });
+
+  String _fmt(int total) {
+    final m = (total ~/ 60).toString().padLeft(2, '0');
+    final s = (total % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  Future<void> _pick(BuildContext context) async {
+    final currentSec = seconds ?? 0;
+    final maxMin = maxSeconds != null ? maxSeconds! ~/ 60 : 99;
+    int tempMin = (currentSec ~/ 60).clamp(0, maxMin);
+    int tempSec = currentSec % 60;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final s = MediaQuery.of(ctx).size.width / 375.0;
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return SafeArea(
+              top: false,
+              child: SizedBox(
+                height: 280 * s,
+                child: Column(
+                  children: [
+                    SizedBox(height: 8 * s),
+                    Text(
+                      maxSeconds != null
+                          ? 'Seu tempo (máx. ${_fmt(maxSeconds!)})'
+                          : 'Seu tempo',
+                      style: TextStyle(
+                        fontFamily: AppFonts.montserrat,
+                        fontWeight: AppFontWeight.bold,
+                        fontSize: 16 * s,
+                        color: AppColors.darkText,
+                      ),
+                    ),
+                    SizedBox(height: 8 * s),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Minutos — limitado ao cap
+                          SizedBox(
+                            width: 80 * s,
+                            child: CupertinoPicker(
+                              scrollController: FixedExtentScrollController(
+                                initialItem: tempMin,
+                              ),
+                              itemExtent: 40 * s,
+                              onSelectedItemChanged: (i) {
+                                setModalState(() {
+                                  tempMin = i;
+                                  // Se chegou no minuto máximo,
+                                  // zera os segundos automaticamente
+                                  if (maxSeconds != null && tempMin == maxMin) {
+                                    tempSec = 0;
+                                  }
+                                });
+                              },
+                              children: List.generate(
+                                maxMin + 1,
+                                (i) => Center(
+                                  child: Text(
+                                    i.toString().padLeft(2, '0'),
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.roboto,
+                                      fontSize: 22 * s,
+                                      color: AppColors.darkText,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            ':',
+                            style: TextStyle(
+                              fontSize: 24 * s,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.darkText,
+                            ),
+                          ),
+                          // Segundos — 00 a 59, ou só 00 se minuto = maxMin
+                          SizedBox(
+                            width: 80 * s,
+                            child: CupertinoPicker(
+                              key: ValueKey(tempMin == maxMin),
+                              scrollController: FixedExtentScrollController(
+                                initialItem:
+                                    (maxSeconds != null && tempMin == maxMin)
+                                        ? 0
+                                        : tempSec,
+                              ),
+                              itemExtent: 40 * s,
+                              onSelectedItemChanged: (i) {
+                                setModalState(() => tempSec = i);
+                              },
+                              children: List.generate(
+                                // Se minuto no cap: só mostra 00
+                                (maxSeconds != null && tempMin == maxMin)
+                                    ? 1
+                                    : 60,
+                                (i) => Center(
+                                  child: Text(
+                                    i.toString().padLeft(2, '0'),
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.roboto,
+                                      fontSize: 22 * s,
+                                      color: AppColors.darkText,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 10 * s),
+                      child: CupertinoButton.filled(
+                        onPressed: () {
+                          onChanged(tempMin * 60 + tempSec);
+                          Navigator.of(ctx).pop();
+                        },
+                        child: const Text('Confirmar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8 * scale),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppFonts.roboto,
+              fontWeight: AppFontWeight.bold,
+              fontSize: 12 * scale,
+              color: AppColors.mediumGray,
+            ),
+          ),
+          SizedBox(width: 8 * scale),
+          GestureDetector(
+            onTap: () => _pick(context),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.baseBlue.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(6 * scale),
+                border: Border.all(
+                  color: AppColors.baseBlue.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 8 * scale,
+                  vertical: 4 * scale,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      seconds != null ? _fmt(seconds!) : '--:--',
+                      style: TextStyle(
+                        fontFamily: AppFonts.roboto,
+                        fontSize: 13 * scale,
+                        fontWeight: AppFontWeight.medium,
+                        color:
+                            seconds != null
+                                ? AppColors.darkText
+                                : AppColors.mediumGray,
+                      ),
+                    ),
+                    SizedBox(width: 4 * scale),
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 14 * scale,
+                      color: AppColors.baseBlue,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

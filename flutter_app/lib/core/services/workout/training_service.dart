@@ -21,7 +21,7 @@ class TrainingService {
   // 1. LEITURA DE DADOS (FETCH)
   // ===========================================================================
 
-  /// Helper crucial para pegar o ID do documento da data
+  /// Helper para pegar o ID do documento pela data.
   static Future<String?> fetchDocumentIdForDate(DateTime date) async {
     final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
     final snap =
@@ -34,7 +34,7 @@ class TrainingService {
     return null;
   }
 
-  /// Busca TODOS os documentos de treino do dia.
+  /// Busca TODOS os documentos de treino do dia como lista de Training.
   static Future<List<Training>> fetchTrainingsListForDate({
     required String boxId,
     required DateTime date,
@@ -59,7 +59,7 @@ class TrainingService {
 
         return Training(
           id: doc.id,
-          title: "Treino do Dia",
+          title: 'Treino do Dia',
           date: date,
           description: null,
           partes: partesMap,
@@ -70,30 +70,30 @@ class TrainingService {
         );
       }).toList();
     } catch (e) {
-      print("ERRO FETCH LIST (COACH): $e");
+      print('ERRO FETCH LIST (COACH): $e');
       return [];
     }
   }
 
   /// Busca e converte o treino em Blocos (TrainingBlock) para a UI.
+  /// Suporta schema antigo e novo sem crash.
   static Future<List<TrainingBlock>> fetchFullTrainingBlocks({
     required String boxId,
     required DateTime date,
     required String category,
-    String? trainingId, // <--- Esse cara é a chave de tudo
+    String? trainingId,
   }) async {
     try {
       Map<String, dynamic>? data;
       String? currentDocId = trainingId;
 
-      // CENÁRIO A: Busca EXATA pelo ID (Prioridade Total)
+      // CENÁRIO A: Busca EXATA pelo ID (prioridade total)
       if (trainingId != null && trainingId.isNotEmpty) {
-        // Removemos qualquer sufixo composto se houver (ex: "id__WOD" vira "id")
         if (trainingId.contains('__')) {
           currentDocId = trainingId.split('__')[0];
         }
 
-        print("🔍 Buscando documento específico ID: $currentDocId");
+        print('🔍 Buscando documento específico ID: $currentDocId');
 
         final docSnapshot =
             await FirebaseFirestore.instance
@@ -104,14 +104,14 @@ class TrainingService {
         if (docSnapshot.exists) {
           data = docSnapshot.data();
         } else {
-          print("⚠️ Documento $currentDocId não encontrado!");
+          print('⚠️ Documento $currentDocId não encontrado!');
           return [];
         }
       }
 
-      // CENÁRIO B: Busca pela data (SOMENTE se não tiver ID)
+      // CENÁRIO B: Busca pela data (somente se não tiver ID)
       if (data == null && (trainingId == null || trainingId.isEmpty)) {
-        print("🔍 Buscando primeiro treino disponível na data: $date");
+        print('🔍 Buscando treino na data: $date');
         final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
         final snapshot =
             await FirebaseFirestore.instance
@@ -128,35 +128,36 @@ class TrainingService {
 
       if (data == null) return [];
 
-      // --- Daqui para baixo é a conversão dos dados (Mantemos igual) ---
+      // Converte via DailyWorkoutModel (suporta schema antigo e novo)
       final workoutData = DailyWorkoutModel.fromJson(data);
-      List<TrainingBlock> blocks = [];
-      final order = ['WARM UP', 'SKILL', 'WOD', 'EXTRA TRAINING'];
+      final List<TrainingBlock> blocks = [];
+
+      // Ordem correta do CrossFit: Warm Up → Extra Training → Skill → WOD
+      const sectionOrder = ['WARM UP', 'EXTRA TRAINING', 'SKILL', 'WOD'];
 
       workoutData.parts.forEach((key, part) {
+        // Monta título: "WOD - SKY IS THE LIMIT"
         String title = key;
         if (part.wodName != null && part.wodName!.isNotEmpty) {
-          title += " - ${part.wodName}";
+          title += ' - ${part.wodName}';
         }
 
-        // ... (resto da lógica de montagem dos textos mantém igual) ...
-        String subtitle = part.type;
+        // Monta subtitle usando part.type, que já resolve:
+        //   schema novo → modalidade (ex: "3 ROUNDS FOR TIME")
+        //   schema antigo → tipo (ex: "AMRAP")
+        String subtitle = part.type.isNotEmpty ? part.type : key;
         if (part.durationMinutes != null && part.durationMinutes! > 0) {
-          subtitle += " (${part.durationMinutes} min)";
+          subtitle += ' (${part.durationMinutes} min)';
         }
 
         List<String> items = List.from(part.exercises);
-        if (items.isEmpty && part.observations != null)
+        if (items.isEmpty && part.observations != null) {
           items.add(part.observations!);
+        }
 
         blocks.add(
           TrainingBlock(
-            // AQUI É IMPORTANTE: O ID do bloco DEVE conter o ID do Documento
-            // Mantemos o formato composto para a UI saber qual aba abrir,
-            // mas o ID do doc é o principal.
-            id: "$currentDocId",
-            // Nota: Se você precisar diferenciar partes na UI, pode usar "$currentDocId__$key"
-            // Mas para "Editar o Treino", precisamos saber o DocID.
+            id: '$currentDocId',
             title: title,
             subtitle: subtitle,
             items: items,
@@ -164,43 +165,34 @@ class TrainingService {
         );
       });
 
-      // ... (ordenação mantém igual) ...
+      // Ordena pelos índices de sectionOrder.
+      // Seções desconhecidas (ex: LPO) vão para o final.
       blocks.sort((a, b) {
-        // ... (sua lógica de sort) ...
-        return 0; // simplificado aqui
+        final keyA = a.title.split(' - ').first.trim();
+        final keyB = b.title.split(' - ').first.trim();
+        final idxA = sectionOrder.indexOf(keyA);
+        final idxB = sectionOrder.indexOf(keyB);
+        final orderA = idxA == -1 ? sectionOrder.length : idxA;
+        final orderB = idxB == -1 ? sectionOrder.length : idxB;
+        return orderA.compareTo(orderB);
       });
 
       return blocks;
     } catch (e) {
-      print("❌ ERRO FETCH FIREBASE BLOCKS: $e");
+      print('❌ ERRO FETCH FIREBASE BLOCKS: $e');
       return [];
     }
   }
 
-  static List<String>? _parseCompositeId(String compositeId) {
-    if (compositeId.contains('__')) {
-      final parts = compositeId.split('__');
-      if (parts.length >= 2) {
-        return [parts[0], parts[1]]; // [docId, mapKey]
-      }
-    }
-    return null;
-  }
-
-  static String _mapUiTypeToDbKey(String uiType) {
-    final t = uiType.trim().toUpperCase();
-    if (t.contains('WARM')) return 'WARM UP';
-    if (t.contains('SKILL')) return 'SKILL';
-    if (t.contains('EXTRA')) return 'EXTRA TRAINING';
-    return 'WOD'; // Padrão
-  }
+  // ===========================================================================
+  // 2. ESCRITA DE DADOS (UPDATE / DELETE)
+  // ===========================================================================
 
   static Future<void> deleteTraining({
     required String boxId,
     required DateTime date,
     required String category,
-    required String
-    blockId, // Esperamos que aqui chegue o ID do Documento (ex: igTZ...)
+    required String blockId,
   }) async {
     try {
       final collection = FirebaseFirestore.instance.collection('exercises');
@@ -210,14 +202,11 @@ class TrainingService {
         docId = blockId.split('__')[0];
       }
 
-      print("🗑️ [DELETE] Apagando documento inteiro ID: $docId");
-
-      // 2. A "Bomba Atômica": Apaga o documento direto pelo ID.
+      print('🗑️ [DELETE] Apagando documento ID: $docId');
       await collection.doc(docId).delete();
-
-      print("✅ Documento $docId removido com sucesso.");
+      print('✅ Documento $docId removido com sucesso.');
     } catch (e) {
-      print("❌ ERRO AO DELETAR TREINO: $e");
+      print('❌ ERRO AO DELETAR TREINO: $e');
       rethrow;
     }
   }
@@ -227,21 +216,20 @@ class TrainingService {
     required DateTime date,
     required String category,
     required EditableTraining edited,
-    String? docId, // <--- Agora aceitamos o ID explícito
+    String? docId,
   }) async {
     try {
       final collection = FirebaseFirestore.instance.collection('exercises');
       DocumentReference docRef;
       bool exists = false;
 
-      // 1. Identifica o documento (Prioridade para o docId explícito)
+      // 1. Identifica o documento (prioridade para docId explícito)
       if (docId != null && docId.isNotEmpty) {
         docRef = collection.doc(docId);
         final snap = await docRef.get();
         exists = snap.exists;
-        print("💾 Salvando no DocID específico: $docId");
+        print('💾 Salvando no DocID específico: $docId');
       } else {
-        // Fallback para Data
         final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
         final snapshot =
             await collection
@@ -252,91 +240,117 @@ class TrainingService {
         if (snapshot.docs.isNotEmpty) {
           docRef = snapshot.docs.first.reference;
           exists = true;
-          print(
-            "💾 Salvando via busca por Data (Doc encontrado: ${docRef.id})",
-          );
+          print('💾 Salvando via busca por data (Doc: ${docRef.id})');
         } else {
           docRef = collection.doc();
           exists = false;
-          print("💾 Criando novo documento.");
+          print('💾 Criando novo documento.');
         }
       }
 
-      // 2. Constrói o mapa 'partes'
+      // 2. Constrói o mapa 'partes' no NOVO schema
       Map<String, dynamic> partesMap = {};
 
       for (var section in edited.sections) {
-        // Pega a chave correta: "WARM UP", "SKILL", "WOD"
-        String dbKeyBase = _mapUiTypeToDbKey(section.type);
+        final String dbKeyBase = _mapUiTypeToDbKey(section.type);
         String finalKey = dbKeyBase;
-
-        // Trata chaves duplicadas (ex: WOD_2)
         int count = 2;
         while (partesMap.containsKey(finalKey)) {
-          finalKey = "${dbKeyBase}_$count";
+          finalKey = '${dbKeyBase}_$count';
           count++;
         }
 
-        // --- LIMPEZA DE NOME (Mantida sua lógica original) ---
+        // Limpeza do nome: remove o prefixo da seção se vier junto
+        // Ex: "WOD - SKY IS THE LIMIT" → "SKY IS THE LIMIT"
         String? cleanName = section.name;
         if (cleanName != null && cleanName.trim().isNotEmpty) {
-          String pattern =
+          final pattern =
               '(${RegExp.escape(dbKeyBase)}|${RegExp.escape(section.type)})[\\s\\-:]*';
           final regExp = RegExp('^($pattern)+', caseSensitive: false);
-
           cleanName = cleanName.replaceAll(regExp, '').trim();
-
           if (cleanName.startsWith('-')) {
             cleanName = cleanName.substring(1).trim();
           }
         }
-        // ----------------------------------------------------
+        if (cleanName != null && cleanName.isEmpty) cleanName = null;
 
-        // Reconstrói a lista de exercícios
-        List<String> exercisesList = [];
+        // 3. Reconstrói exercícios no NOVO schema (lista de Maps estruturados)
+        final List<Map<String, dynamic>> exerciciosNovos = [];
+
         for (var mov in section.movements) {
-          String line = "";
-          if (mov.reps.isNotEmpty) line = mov.reps;
+          final String reps = mov.reps.trim();
+          final String name = mov.name.trim();
+          final String? load =
+              (mov.load?.trim().isEmpty ?? true) ? null : mov.load!.trim();
 
-          if (mov.name.isNotEmpty) {
-            line = line.isEmpty ? mov.name : "$line ${mov.name}";
+          // Monta a string 'raw' para compatibilidade com a UI
+          String raw = reps.isNotEmpty ? reps : '';
+          if (name.isNotEmpty) raw = raw.isEmpty ? name : '$raw $name';
+          if (load != null) raw = '$raw ($load)';
+          raw = raw.trim();
+
+          if (raw.isEmpty) continue;
+
+          // Detecta distância: "500m Run"
+          int? quantidade;
+          String unidade = 'reps';
+          final distMatch = RegExp(
+            r'^(\d+)m\s',
+            caseSensitive: false,
+          ).firstMatch(raw);
+          if (distMatch != null) {
+            quantidade = int.tryParse(distMatch.group(1)!);
+            unidade = 'metros';
+          } else {
+            final numMatch = RegExp(r'^(\d+)').firstMatch(reps);
+            if (numMatch != null) quantidade = int.tryParse(numMatch.group(1)!);
           }
 
-          if (mov.load != null && mov.load!.trim().isNotEmpty) {
-            line = "$line (${mov.load})";
+          // Separa carga RX e Scaled: "24Kg|18Kg"
+          String? cargaRx;
+          String? cargaScaled;
+          if (load != null) {
+            if (load.contains('|')) {
+              final loadParts = load.split('|').map((p) => p.trim()).toList();
+              cargaRx = loadParts[0];
+              cargaScaled = loadParts.length > 1 ? loadParts[1] : null;
+            } else {
+              cargaRx = load;
+            }
           }
 
-          if (line.trim().isNotEmpty) {
-            exercisesList.add(line);
-          }
+          exerciciosNovos.add({
+            'raw': raw,
+            'quantidade': quantidade,
+            'nome': name.isNotEmpty ? name : raw,
+            'unidade': unidade,
+            'cargaRx': cargaRx,
+            'cargaScaled': cargaScaled,
+          });
         }
 
         partesMap[finalKey] = {
-          // Se for WarmUp, salva tipo AMRAP (padrão antigo) ou o próprio tipo
-          'tipo':
-              section.type.toUpperCase() == 'WARMUP'
-                  ? 'AMRAP'
-                  : section.type.toUpperCase(),
+          'secao': dbKeyBase,
+          'modalidade': section.modalidade, // ex: "AMRAP", "3 ROUNDS FOR TIME"
+          'rounds': section.rounds, // ex: 3 (ou null)
           'nomeWod': cleanName,
           'duracaoMinutos': section.timeMinutes,
-          'exercicios': exercisesList,
+          'exercicios': exerciciosNovos, // lista de Maps (schema novo)
           'observacoes': null,
         };
       }
 
-      // 3. Salva no Firestore
+      // 4. Salva no Firestore
       if (exists) {
-        // Atualiza o mapa de partes no documento existente
         await docRef.update({'partes': partesMap, 'statusAnalise': 'pendente'});
-        print("✅ Treino atualizado com sucesso.");
+        print('✅ Treino atualizado com sucesso.');
       } else {
-        // Cria novo documento
         final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
         await docRef.set({
           'boxId': boxId,
           'dataTreinoIso': dataFormatada,
           'dataDoTreinoTexto':
-              "${date.day} ${DateFormat('MMMM', 'pt_BR').format(date).toUpperCase()}",
+              '${date.day} ${DateFormat('MMMM', 'pt_BR').format(date).toUpperCase()}',
           'diaDaSemana': DateFormat(
             'EEEE',
             'pt_BR',
@@ -347,16 +361,36 @@ class TrainingService {
           'uploadedBy': 'COACH_APP',
           'status': 'processado',
         });
-        print("✅ Novo treino criado com sucesso.");
+        print('✅ Novo treino criado com sucesso.');
       }
     } catch (e) {
-      print("❌ ERRO AO SALVAR TREINO: $e");
+      print('❌ ERRO AO SALVAR TREINO: $e');
       rethrow;
     }
   }
 
   // ===========================================================================
-  // 3. HELPER: SUMMARY DE CARDS
+  // 3. HELPERS INTERNOS
+  // ===========================================================================
+
+  static List<String>? _parseCompositeId(String compositeId) {
+    if (compositeId.contains('__')) {
+      final parts = compositeId.split('__');
+      if (parts.length >= 2) return [parts[0], parts[1]];
+    }
+    return null;
+  }
+
+  static String _mapUiTypeToDbKey(String uiType) {
+    final t = uiType.trim().toUpperCase();
+    if (t.contains('WARM')) return 'WARM UP';
+    if (t.contains('SKILL')) return 'SKILL';
+    if (t.contains('EXTRA')) return 'EXTRA TRAINING';
+    return 'WOD';
+  }
+
+  // ===========================================================================
+  // 4. SUMMARY DE CARDS
   // ===========================================================================
 
   static DailyWorkoutSummary createSummaryFromBlocks(
@@ -364,46 +398,59 @@ class TrainingService {
   ) {
     if (blocks.isEmpty) {
       return DailyWorkoutSummary(
-        category: "REST DAY",
-        stimuli: ["Recuperação"],
-        objectiveShort: "Sem treino cadastrado",
-        quote: "Aproveite o descanso.",
+        category: 'REST DAY',
+        stimuli: ['Recuperação'],
+        objectiveShort: 'Sem treino cadastrado',
+        quote: 'Aproveite o descanso.',
       );
     }
 
     final mainBlock = blocks.firstWhere(
-      (b) => b.id.contains('WOD') || b.title.contains('WOD'),
+      (b) => b.title.toUpperCase().contains('WOD'),
       orElse: () => blocks.last,
     );
 
-    String category = "WOD";
+    String category = 'WOD';
     final titleUpper = mainBlock.title.toUpperCase();
-    if (titleUpper.contains("LPO")) category = "LPO";
-    if (titleUpper.contains("GYM")) category = "GYMNASTICS";
-    if (titleUpper.contains("ENDURANCE")) category = "ENDURANCE";
+    if (titleUpper.contains('LPO')) category = 'LPO';
+    if (titleUpper.contains('GYM')) category = 'GYMNASTICS';
+    if (titleUpper.contains('ENDURANCE')) category = 'ENDURANCE';
 
-    List<String> stimuli = [];
-    final fullText = mainBlock.items.join(' ').toUpperCase();
+    final List<String> stimuli = [];
+    final String fullText = mainBlock.items.join(' ').toUpperCase();
+    final String subtitleUpper = mainBlock.subtitle.toUpperCase();
 
-    if (fullText.contains("KG") || fullText.contains("MAX"))
-      stimuli.add("Força");
-    if (fullText.contains("AMRAP")) stimuli.add("Resistência");
-    if (fullText.contains("RUN")) stimuli.add("Cardio");
-    if (stimuli.isEmpty) stimuli.add("Geral");
+    // Detecta força por Kg nos items ou na modalidade do subtitle
+    if (fullText.contains('KG') ||
+        subtitleUpper.contains('KG') ||
+        fullText.contains('MAX')) {
+      stimuli.add('Força');
+    }
+    // Detecta resistência por AMRAP (subtitle ou items)
+    if (subtitleUpper.contains('AMRAP') || fullText.contains('AMRAP')) {
+      stimuli.add('Resistência');
+    }
+    // Detecta cardio por corrida/remo/bike
+    if (fullText.contains('RUN') ||
+        fullText.contains('ROW') ||
+        fullText.contains('BIKE')) {
+      stimuli.add('Cardio');
+    }
+    if (stimuli.isEmpty) stimuli.add('Geral');
 
-    String obj = mainBlock.subtitle;
-    if (obj.isEmpty) obj = mainBlock.title;
+    final String obj =
+        mainBlock.subtitle.isNotEmpty ? mainBlock.subtitle : mainBlock.title;
 
     return DailyWorkoutSummary(
       category: category,
       stimuli: stimuli.take(2).toList(),
       objectiveShort: obj,
-      quote: "Killing the Gods",
+      quote: 'Killing the Gods',
     );
   }
 
   // ===========================================================================
-  // 4. MÉTODOS LEGADOS (COMPATIBILIDADE)
+  // 5. MÉTODOS LEGADOS (COMPATIBILIDADE)
   // ===========================================================================
 
   static Future<List<dynamic>> fetchWorkoutsForDate(DateTime date) async {
@@ -423,7 +470,7 @@ class TrainingService {
       final collection = FirebaseFirestore.instance.collection('exercises');
       final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
 
-      print("🔍 [SERVICE] Listando todos os documentos do dia: $dataFormatada");
+      print('🔍 [SERVICE] Listando documentos do dia: $dataFormatada');
 
       final snapshot =
           await collection
@@ -432,40 +479,59 @@ class TrainingService {
 
       if (snapshot.docs.isEmpty) return {};
 
-      Map<String, TrainingBlock?> result = {};
+      final Map<String, TrainingBlock?> result = {};
 
-      // Para cada DOCUMENTO encontrado (ex: Documento A, Documento B)
       for (var doc in snapshot.docs) {
         final docData = doc.data();
-        final docId = doc.id; // ESSE É O ID QUE IMPORTA (ex: igTZ...)
+        final docId = doc.id;
 
-        // Vamos tentar encontrar a parte principal (WOD) para ser o título do Card
-        // Se não tiver WOD, pegamos a primeira parte que tiver.
         if (docData['partes'] != null && docData['partes'] is Map) {
           final Map<String, dynamic> partes = Map<String, dynamic>.from(
             docData['partes'],
           );
 
-          // Tenta achar o WOD ou usa a primeira chave
-          String mainKey = partes.keys.firstWhere(
+          final String mainKey = partes.keys.firstWhere(
             (k) => k.contains('WOD'),
             orElse: () => partes.keys.first,
           );
 
           final mainPart = Map<String, dynamic>.from(partes[mainKey]);
 
-          String title =
-              mainPart['nomeWod'] ?? mainKey; // Ex: "INFINITY" ou "WOD"
-          String subtitle = mainPart['tipo'] ?? mainKey; // Ex: "WOD"
+          // Suporta schema antigo ('nomeWod') e novo ('nomeWod') — mesma chave
+          final String title = mainPart['nomeWod']?.toString() ?? mainKey;
 
-          List<String> items = [];
+          // Subtitle precisa conter a SEÇÃO (ex: "WOD") para o filtro da
+          // CoachRegisteredTrainingsSection funcionar — ela usa
+          // block.subtitle.contains("WOD") para categorizar os cards.
+          //
+          // Schema novo: 'secao' = "WOD", 'modalidade' = "3 ROUNDS FOR TIME"
+          //   → subtitle = "WOD • 3 ROUNDS FOR TIME"
+          // Schema antigo: 'tipo' = "WOD" (já continha a seção)
+          //   → subtitle = "WOD"
+          final String secao = mainPart['secao']?.toString() ?? mainKey;
+          final String? modalidade =
+              mainPart['modalidade']?.toString() ??
+              mainPart['tipo']?.toString();
+          final String subtitle =
+              (modalidade != null && modalidade.isNotEmpty)
+                  ? '$secao • $modalidade'
+                  : secao;
+
+          // Exercícios: extrai 'raw' se for Map, usa direto se for String
+          final List<String> items = [];
           if (mainPart['exercicios'] != null) {
-            items = List<String>.from(mainPart['exercicios']);
+            for (final e in mainPart['exercicios']) {
+              if (e is String) {
+                items.add(e);
+              } else if (e is Map) {
+                final raw = e['raw']?.toString() ?? e['nome']?.toString() ?? '';
+                if (raw.isNotEmpty) items.add(raw);
+              }
+            }
           }
 
-          // CRIAMOS O BLOCO REPRESENTANDO O DOCUMENTO INTEIRO
           result[docId] = TrainingBlock(
-            id: docId, // <--- ID PURO DO DOCUMENTO
+            id: docId,
             title: title,
             subtitle: subtitle,
             items: items,
@@ -473,43 +539,51 @@ class TrainingService {
         }
       }
 
-      print("✅ [SERVICE] Cards gerados: ${result.length}");
+      print('✅ [SERVICE] Cards gerados: ${result.length}');
       return result;
     } catch (e) {
-      print("❌ [SERVICE ERROR]: $e");
+      print('❌ [SERVICE ERROR]: $e');
       return {};
     }
   }
 
-  // Helper ajustado para receber o docId original
   static TrainingBlock _mapPartToTrainingBlock(
-    String keyId, // Ex: "WOD"
+    String keyId,
     Map<String, dynamic> data,
-    String originalDocId, // Novo parâmetro: ID do documento pai
+    String originalDocId,
   ) {
-    List<String> items = [];
+    // Exercícios: suporta schema antigo (String) e novo (Map)
+    final List<String> items = [];
     if (data['exercicios'] != null) {
-      items = List<String>.from(data['exercicios']);
+      for (final e in data['exercicios']) {
+        if (e is String) {
+          items.add(e);
+        } else if (e is Map) {
+          final raw = e['raw']?.toString() ?? e['nome']?.toString() ?? '';
+          if (raw.isNotEmpty) items.add(raw);
+        }
+      }
     }
 
-    String tipoRaw =
-        data['tipo']?.toString().toUpperCase() ?? keyId.toUpperCase();
+    // Subtitle: schema novo usa 'modalidade', antigo usa 'tipo'
+    final String tipoRaw =
+        data['modalidade']?.toString().toUpperCase() ??
+        data['tipo']?.toString().toUpperCase() ??
+        keyId.toUpperCase();
 
     String subtitle = tipoRaw;
     if (data['duracaoMinutos'] != null) {
-      subtitle += " • ${data['duracaoMinutos']} min";
+      subtitle += ' • ${data['duracaoMinutos']} min';
     }
 
-    String title = keyId;
-    if (data['nomeWod'] != null &&
-        data['nomeWod'].toString().trim().isNotEmpty) {
-      title = data['nomeWod'];
-    }
+    final String title =
+        (data['nomeWod'] != null &&
+                data['nomeWod'].toString().trim().isNotEmpty)
+            ? data['nomeWod'].toString()
+            : keyId;
 
     return TrainingBlock(
-      // DICA: Aqui no ID do bloco, guardamos o ID do Doc + a chave interna
-      // Isso vai facilitar muito quando você clicar em "Editar" ou "Apagar" depois.
-      id: "${originalDocId}__${keyId}",
+      id: '${originalDocId}__${keyId}',
       title: title,
       subtitle: subtitle,
       items: items,
@@ -529,8 +603,6 @@ class TrainingService {
     final Map<String, TrainingBlock?> resultMap = {};
 
     for (var block in blocks) {
-      // Se houver múltiplos WODs, isso vai pegar o último ou sobrescrever,
-      // mas é um método legado que retorna Map, então é o comportamento esperado.
       if (block.id.contains('WOD'))
         resultMap['WOD'] = block;
       else if (block.id.contains('LPO'))
@@ -539,7 +611,6 @@ class TrainingService {
         resultMap[block.title] = block;
     }
 
-    // Se achou blocos mas nenhum caiu nas categorias acima, força o primeiro como WOD
     if (blocks.isNotEmpty && resultMap.isEmpty) resultMap['WOD'] = blocks.first;
 
     return resultMap;
@@ -575,15 +646,14 @@ class TrainingService {
   }
 
   // ===========================================================================
-  // 5. MOCKS E AUXILIARES
+  // 6. MOCKS E AUXILIARES
   // ===========================================================================
 
   static Future<List<Box>> fetchUserBoxes() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return [
-      Box(id: '1', name: 'Olympus Crossfit'),
-      Box(id: '2', name: 'Spartan Gym'),
-    ];
+    // App testado com um único box por enquanto.
+    // Quando o vínculo atleta↔box for implementado no Firestore,
+    // este método lerá users/{uid}/boxId ou equivalente.
+    return [Box(id: 'BOX_PRINCIPAL', name: 'CrossFit Box')];
   }
 
   static Future<Box> registerBox(String boxName) async {
@@ -599,7 +669,7 @@ class TrainingService {
 }
 
 // =============================================================================
-// EXTENSIONS (Mantidas inalteradas)
+// EXTENSIONS (mantidas inalteradas)
 // =============================================================================
 
 extension DailySummaries on TrainingService {
@@ -654,13 +724,9 @@ extension DayClasses on TrainingService {
 }
 
 extension DailyStats on TrainingService {
-  static Future<int> fetchResultsCountForDate(DateTime date) async {
-    return 15;
-  }
+  static Future<int> fetchResultsCountForDate(DateTime date) async => 15;
 
-  static Future<double> fetchDailyAttendanceRate(DateTime date) async {
-    return 83.0;
-  }
+  static Future<double> fetchDailyAttendanceRate(DateTime date) async => 83.0;
 }
 
 class ClassInterestService {
@@ -730,29 +796,68 @@ extension CycleAll on TrainingService {
     required String boxId,
     required int year,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    final mock = <int, List<int>>{
-      2025: [1, 2, 3],
-      2026: [1],
-    };
-    final months = mock[year] ?? const <int>[];
-    final sorted = [...months]..sort();
-    return sorted;
+    try {
+      final querySnapshot =
+          await FirebaseFirestore.instance.collection('cycles').get();
+
+      final String targetYear = year.toString();
+      final List<int> months = [];
+
+      for (var doc in querySnapshot.docs) {
+        final docId = doc.id;
+        if (docId.endsWith(targetYear)) {
+          final parts = docId.split('-');
+          if (parts.isNotEmpty) {
+            final monthInt = int.tryParse(parts[0]);
+            if (monthInt != null) months.add(monthInt);
+          }
+        }
+      }
+
+      months.sort();
+      return months.toSet().toList();
+    } catch (e) {
+      print('Erro ao buscar meses do ciclo: $e');
+      return [];
+    }
   }
 
   static Future<DateTime?> fetchCurrentCycleMonth({
     required String boxId,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    final all = <DateTime>[
-      DateTime(2025, 1),
-      DateTime(2025, 2),
-      DateTime(2025, 3),
-      DateTime(2026, 1),
-    ];
-    if (all.isEmpty) return null;
-    all.sort((a, b) => a.compareTo(b));
-    return all.last;
+    try {
+      final now = DateTime.now();
+      final currentDocId =
+          '${now.month.toString().padLeft(2, '0')}-${now.year}';
+
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('cycles')
+              .doc(currentDocId)
+              .get();
+      if (doc.exists) return DateTime(now.year, now.month);
+
+      final querySnapshot =
+          await FirebaseFirestore.instance.collection('cycles').get();
+      if (querySnapshot.docs.isEmpty) return null;
+
+      final List<DateTime> dates = [];
+      for (var doc in querySnapshot.docs) {
+        final parts = doc.id.split('-');
+        if (parts.length == 2) {
+          final m = int.tryParse(parts[0]);
+          final y = int.tryParse(parts[1]);
+          if (m != null && y != null) dates.add(DateTime(y, m));
+        }
+      }
+
+      if (dates.isEmpty) return null;
+      dates.sort((a, b) => a.compareTo(b));
+      return dates.last;
+    } catch (e) {
+      print('Erro ao buscar ciclo atual: $e');
+      return null;
+    }
   }
 
   static Future<bool> isCycleRegistered({
@@ -760,11 +865,17 @@ extension CycleAll on TrainingService {
     required int year,
     required int month,
   }) async {
-    final months = await fetchRegisteredCycleMonthsForYear(
-      boxId: boxId,
-      year: year,
-    );
-    return months.contains(month);
+    try {
+      final docId = '${month.toString().padLeft(2, '0')}-$year';
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('cycles')
+              .doc(docId)
+              .get();
+      return doc.exists;
+    } catch (e) {
+      return false;
+    }
   }
 }
 

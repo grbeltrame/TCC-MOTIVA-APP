@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_class_registration_section.dart';
-import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_insights_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_registered_trainings_section.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
@@ -21,16 +20,59 @@ class CoachRegisteredTrainingScreen extends StatefulWidget {
 
 class _CoachRegisteredTrainingScreenState
     extends State<CoachRegisteredTrainingScreen> {
-  DateTime _selectedDate = DateTime.now();
+  bool _didInit = false;
+  late DateTime _selectedDate;
   String? _selectedCategory; // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
-  String? _selectedTrainingId; // id do bloco/treino exibido no card
+  String? _selectedTrainingId;
   final String _boxId = 'DEFAULT_BOX';
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInit) return;
+    _didInit = true;
+
+    final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
+
+    if (args.containsKey('year') && args.containsKey('month')) {
+      final year = args['year'] as int;
+      final month = args['month'] as int;
+      final now = DateTime.now();
+      _selectedDate =
+          (now.year == year && now.month == month)
+              ? DateTime(now.year, now.month, now.day)
+              : DateTime(year, month, 1);
+    } else {
+      _selectedDate = DateTime.now();
+    }
+
+    if (args.containsKey('typeLabel')) {
+      _selectedCategory = _mapTypeLabelToCategory(args['typeLabel'] as String);
+    }
+  }
+
+  String _mapTypeLabelToCategory(String typeLabel) {
+    final l = typeLabel.toLowerCase().trim();
+    if (l.contains('wod')) return 'WOD';
+    if (l.contains('lpo')) return 'LPO';
+    if (l.contains('endurance')) return 'Endurance';
+    if (l.contains('gin') || l.contains('gym')) return 'Ginastica';
+    return typeLabel.trim();
+  }
+
+  // Fix Bug 4: assinatura alinhada com a section.
+  // trainingBlockId é String? (nullable) — igual à declaração na section.
+  // Antes estava "required String" causando erro de tipo na compilação.
   void _onSelectionChanged({
     required DateTime date,
     required String category,
-    required String trainingBlockId,
+    String? trainingBlockId,
   }) {
+    if (_selectedDate == date &&
+        _selectedCategory == category &&
+        _selectedTrainingId == trainingBlockId)
+      return;
+
     setState(() {
       _selectedDate = date;
       _selectedCategory = category;
@@ -44,7 +86,6 @@ class _CoachRegisteredTrainingScreenState
 
     return Scaffold(
       appBar: const TopNavbar(),
-
       bottomNavigationBar: const BottomNavBar(),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
@@ -56,43 +97,17 @@ class _CoachRegisteredTrainingScreenState
           children: [
             const AppBackButton(),
 
-            // Passe o callback para receber alterações de data/tipo/treino
+            // A section já gerencia o reload internamente via
+            // _onTapEditarTreino → .then((saved) { if (saved==true) _reload(); })
+            // Não precisamos de refreshKey nem onEditCompleted aqui.
             CoachRegisteredTrainingsSection(
-              // Adicione este parâmetro na section:
-              // final void Function({required DateTime date, required String category, required String trainingBlockId})?
-              //     onSelectionChanged;
-              // E dispare sempre que mudar a data, o tipo, ou carregar o bloco.
-              // Exemplo de chamada interna:
-              // widget.onSelectionChanged?.call(
-              //   date: _date,
-              //   category: _category,
-              //   trainingBlockId: block.id,
-              // );
               key: const ValueKey('registered_trainings'),
-              // ignore: avoid_types_on_closure_parameters
-              // onSelectionChanged: _onSelectionChanged,  // ← descomente quando implementar na section
+              initialDate: _selectedDate,
+              initialCategory: _selectedCategory,
+              onSelectionChanged: _onSelectionChanged,
             ),
 
             SizedBox(height: 16 * scale),
-
-            // Insights do treino selecionado (cai para "do dia" se faltarem params)
-            CoachDailyInsightsSection(
-              date: _selectedDate,
-              boxId: 'DEFAULT_BOX',
-              selectedCategory: _selectedCategory, // opcional
-              trainingId: _selectedTrainingId, // opcional
-              title: 'Insights do Treino',
-              showSeeAllButton: true,
-              showWeeklyAnalysisButton: false,
-              showCycleProjectionButton: false,
-            ),
-            SizedBox(height: 16 * scale),
-
-            // CoachClassRegistrationsSection(
-            //   date:
-            //       DateTime.now(), // ou a mesma data da section acima, se elevar o estado
-            //   boxId: _boxId, // opcional: nº de barras por página
-            // ),
           ],
         ),
       ),

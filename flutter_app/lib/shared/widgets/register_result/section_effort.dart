@@ -67,7 +67,7 @@ class _SectionEffortState extends State<SectionEffort> {
         thumb: blue,
         overlay: blue.withValues(alpha: 0.15),
       );
-    } else if (_effort == 5) {
+    } else if (_effort <= 6) {
       return _EffortPalette(
         active: neutral,
         inactive: inactive,
@@ -114,29 +114,53 @@ class _SectionEffortState extends State<SectionEffort> {
 
         SizedBox(height: 6 * scale),
 
-        // Slider 1..10 com cores dinâmicas (azul <5, cinza =5, vermelho >5)
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: palette.active,
-            inactiveTrackColor: palette.inactive,
-            thumbColor: palette.thumb,
-            overlayColor: palette.overlay,
-            trackHeight: 4 * scale,
-          ),
-          child: Slider(
-            value: _effort.toDouble(),
-            min: 1,
-            max: 10,
-            divisions: 9,
-            label: '$_effort', // exibe 1,2,3… (sem "/10")
-            onChanged: (v) {
-              setState(() => _effort = v.round());
-              widget.onEffortChanged?.call(_effort);
-            },
-          ),
+        // Slider com labels de escala (1 à esquerda, 10 à direita)
+        Row(
+          children: [
+            Text(
+              '1',
+              style: TextStyle(
+                fontFamily: AppFonts.roboto,
+                fontSize: 12 * scale,
+                color: AppColors.mediumGray,
+                fontWeight: AppFontWeight.bold,
+              ),
+            ),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: palette.active,
+                  inactiveTrackColor: palette.inactive,
+                  thumbColor: palette.thumb,
+                  overlayColor: palette.overlay,
+                  trackHeight: 4 * scale,
+                ),
+                child: Slider(
+                  value: _effort.toDouble(),
+                  min: 1,
+                  max: 10,
+                  divisions: 9,
+                  label: '$_effort',
+                  onChanged: (v) {
+                    setState(() => _effort = v.round());
+                    widget.onEffortChanged?.call(_effort);
+                  },
+                ),
+              ),
+            ),
+            Text(
+              '10',
+              style: TextStyle(
+                fontFamily: AppFonts.roboto,
+                fontSize: 12 * scale,
+                color: AppColors.mediumGray,
+                fontWeight: AppFontWeight.bold,
+              ),
+            ),
+          ],
         ),
 
-        // Labels (esquerda, centro, direita)
+        // Labels descritivos (esquerda, centro, direita)
         Padding(
           padding: EdgeInsets.only(top: 2 * scale),
           child: Row(
@@ -148,8 +172,8 @@ class _SectionEffortState extends State<SectionEffort> {
                   textAlign: TextAlign.left,
                   style: TextStyle(
                     fontFamily: AppFonts.roboto,
-                    fontSize: 12 * scale,
-                    color: AppColors.darkText.withValues(alpha: 0.9),
+                    fontSize: 11 * scale,
+                    color: AppColors.darkText.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -159,8 +183,8 @@ class _SectionEffortState extends State<SectionEffort> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: AppFonts.roboto,
-                    fontSize: 12 * scale,
-                    color: AppColors.darkText.withValues(alpha: 0.9),
+                    fontSize: 11 * scale,
+                    color: AppColors.darkText.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -170,8 +194,8 @@ class _SectionEffortState extends State<SectionEffort> {
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     fontFamily: AppFonts.roboto,
-                    fontSize: 12 * scale,
-                    color: AppColors.darkText.withValues(alpha: 0.9),
+                    fontSize: 11 * scale,
+                    color: AppColors.darkText.withValues(alpha: 0.7),
                   ),
                 ),
               ),

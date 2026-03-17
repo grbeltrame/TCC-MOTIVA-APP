@@ -152,6 +152,13 @@ def create_cycle_prompt(
         "**5. Resumo Executivo (Campo `overview`)**\n"
         "> Um parágrafo resumindo a 'identidade' deste ciclo até agora.\n\n"
         
+        "**6. Alertas Rápidos (Campo `quick_alerts`)**\n"
+        "> Crie de 3 a 5 alertas curtos, diretos e chamativos (máximo de 20 palavras cada).\n"
+        "> Eles devem resumir os pontos mais críticos do mês (riscos iminentes, falta de algum estímulo, sucesso do volume, etc).\n"
+        "> Eles aparecerão em um carrossel na tela do professor.\n"
+        "> Exemplo 1: 'Cuidado: Volume de perna muito alto nas últimas 2 semanas.'\n"
+        "> Exemplo 2: 'Excelente: Equilíbrio perfeito entre força e cardio neste mês.'\n\n"
+
         "**FORMATO DE RESPOSTA:**\n"
         f"{json_instructions}\n"
     )
