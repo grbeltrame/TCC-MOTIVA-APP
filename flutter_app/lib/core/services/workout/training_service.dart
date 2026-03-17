@@ -650,11 +650,10 @@ class TrainingService {
   // ===========================================================================
 
   static Future<List<Box>> fetchUserBoxes() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return [
-      Box(id: '1', name: 'Olympus Crossfit'),
-      Box(id: '2', name: 'Spartan Gym'),
-    ];
+    // App testado com um único box por enquanto.
+    // Quando o vínculo atleta↔box for implementado no Firestore,
+    // este método lerá users/{uid}/boxId ou equivalente.
+    return [Box(id: 'BOX_PRINCIPAL', name: 'CrossFit Box')];
   }
 
   static Future<Box> registerBox(String boxName) async {
