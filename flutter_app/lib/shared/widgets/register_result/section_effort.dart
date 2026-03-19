@@ -18,13 +18,18 @@ class _EffortPalette {
 }
 
 class SectionEffort extends StatefulWidget {
-  const SectionEffort({super.key, required this.classId, this.onEffortChanged});
+  const SectionEffort({
+    super.key,
+    required this.classId,
+    this.onEffortChanged,
+    this.initialEffort,
+  });
 
-  /// Turma selecionada (pode ser null).
   final String? classId;
-
-  /// Notifica o orquestrador do valor (1..10).
   final ValueChanged<int>? onEffortChanged;
+
+  /// Se fornecido, o slider começa neste valor em vez de buscar o default.
+  final int? initialEffort;
 
   @override
   State<SectionEffort> createState() => _SectionEffortState();
@@ -42,12 +47,21 @@ class _SectionEffortState extends State<SectionEffort> {
   }
 
   Future<void> _loadDefault() async {
+    // Se já veio um valor inicial (modo edição), usa ele direto
+    if (widget.initialEffort != null) {
+      _effort = widget.initialEffort!.clamp(1, 10);
+      // Adia a notificação para após o build — evita setState no pai durante build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onEffortChanged?.call(_effort);
+      });
+      return;
+    }
     setState(() => _loading = true);
     try {
       final def = await _service.fetchDefaultEffort();
       final clamped = def.clamp(1, 10);
       _effort = clamped is int ? clamped : (clamped as num).toInt();
-      widget.onEffortChanged?.call(_effort);
+      if (mounted) widget.onEffortChanged?.call(_effort);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

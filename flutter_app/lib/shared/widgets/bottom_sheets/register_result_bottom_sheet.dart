@@ -21,7 +21,11 @@ import 'package:intl/intl.dart';
 // Função pública de abertura
 // =============================================================================
 
-Future<void> showRegisterResultBottomSheet(BuildContext context) {
+Future<void> showRegisterResultBottomSheet(
+  BuildContext context, {
+  AthleteResultRecord? existingRecord,
+  DateTime? initialDate,
+}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -29,7 +33,11 @@ Future<void> showRegisterResultBottomSheet(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder: (_) => const _RegisterResultSheetContent(),
+    builder:
+        (_) => _RegisterResultSheetContent(
+          existingRecord: existingRecord,
+          initialDate: initialDate,
+        ),
   );
 }
 
@@ -58,7 +66,17 @@ enum _SheetStep { selectTraining, fillForm }
 // =============================================================================
 
 class _RegisterResultSheetContent extends StatefulWidget {
-  const _RegisterResultSheetContent({Key? key}) : super(key: key);
+  const _RegisterResultSheetContent({
+    Key? key,
+    this.existingRecord,
+    this.initialDate,
+  }) : super(key: key);
+
+  final AthleteResultRecord? existingRecord;
+
+  /// Data pré-selecionada ao abrir o sheet (ex: data do seletor da tela).
+  /// Se null, usa DateTime.now().
+  final DateTime? initialDate;
 
   @override
   State<_RegisterResultSheetContent> createState() =>
@@ -70,8 +88,8 @@ class _RegisterResultSheetContentState
   // ── Etapa atual ─────────────────────────────────────────────────────────────
   _SheetStep _step = _SheetStep.selectTraining;
 
-  // ── Data selecionada ─────────────────────────────────────────────────────────
-  DateTime _selectedDate = DateTime.now();
+  // ── Data selecionada — usa initialDate se fornecido, senão hoje ─────────────
+  late DateTime _selectedDate;
 
   // ── Treinos disponíveis para a data ──────────────────────────────────────────
   bool _loadingTrainings = false;
@@ -79,22 +97,22 @@ class _RegisterResultSheetContentState
 
   // ── Treino selecionado ───────────────────────────────────────────────────────
   Training? _selectedTraining;
-  String? _wodType; // "WOD" | "LPO" | "Ginástica" | "Endurance"
-  String? _wodName; // "HEAVEN IN HELL"
-  String? _modalidade; // "FOR TIME" | "AMRAP" | "EMOM"
+  String? _wodType;
+  String? _wodName;
+  String? _modalidade;
   List<String> _keyMetrics = [];
   String? _trainingDocId;
   String? _dayOfWeek;
 
   // ── Campos do formulário ─────────────────────────────────────────────────────
   String? _selectedCategory;
-  String? _selectedAdapted; // 'Sim' | 'Não'
-  String? _selectedCompleted; // 'Sim' | 'Não'
+  String? _selectedAdapted;
+  String? _selectedCompleted;
   TimeOfDay? _trainingTime;
 
   // Resultado condicional
   int? _forTimeSeconds;
-  int? _maxForTimeSeconds; // cap do FOR TIME — vem de duracaoMinutos do treino
+  int? _maxForTimeSeconds;
   int? _amrapRounds;
   int? _amrapReps;
   bool _emomCompleted = true;
@@ -111,8 +129,51 @@ class _RegisterResultSheetContentState
   @override
   void initState() {
     super.initState();
-    _loadTrainings();
-    _loadCategories();
+    // Inicializa a data — usa initialDate se fornecido, senão hoje
+    _selectedDate = widget.initialDate ?? DateTime.now();
+
+    final rec = widget.existingRecord;
+    if (rec != null) {
+      // ── Modo edição: pré-popula todos os campos e vai direto ao formulário
+      _step = _SheetStep.fillForm;
+      _wodType = rec.wodType;
+      _wodName = rec.wodName;
+      _modalidade = rec.modalidade;
+      _keyMetrics = rec.keyMetrics;
+      _trainingDocId = rec.trainingDocId;
+      _dayOfWeek = rec.dayOfWeek;
+      _selectedCategory = rec.category;
+      _selectedAdapted = rec.adapted ? 'Sim' : 'Não';
+      _selectedCompleted = rec.completed ? 'Sim' : 'Não';
+      _effortValue = rec.effort;
+      _forTimeSeconds = rec.forTimeSec;
+      _amrapRounds = rec.amrapRounds;
+      _amrapReps = rec.amrapReps;
+      _emomCompleted = rec.emomCompletedRounds == null;
+      _emomCompletedRounds = rec.emomCompletedRounds;
+
+      // Parseia trainingTime "06:30" → TimeOfDay
+      if (rec.trainingTime.isNotEmpty && rec.trainingTime.contains(':')) {
+        final parts = rec.trainingTime.split(':');
+        final h = int.tryParse(parts[0]);
+        final m = int.tryParse(parts[1]);
+        if (h != null && m != null) {
+          _trainingTime = TimeOfDay(hour: h, minute: m);
+        }
+      }
+
+      // Parseia a data do registro
+      try {
+        _selectedDate = DateTime.parse(rec.date);
+      } catch (_) {}
+    }
+    // Adia os loads para após o primeiro build — evita setState durante build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadTrainings();
+        _loadCategories();
+      }
+    });
   }
 
   @override
@@ -124,7 +185,7 @@ class _RegisterResultSheetContentState
   // ── Carregamentos ────────────────────────────────────────────────────────────
 
   Future<void> _loadTrainings() async {
-    setState(() => _loadingTrainings = true);
+    _loadingTrainings = true;
     try {
       final list = await TrainingService.fetchTrainingsListForDate(
         boxId: 'BOX_PRINCIPAL',
@@ -137,10 +198,13 @@ class _RegisterResultSheetContentState
   }
 
   Future<void> _loadCategories() async {
-    setState(() => _loadingCategories = true);
+    _loadingCategories = true;
     try {
       final cats = await WorkoutResultService.fetchUserCategories();
-      final defCat = await WorkoutResultService.fetchDefaultUserCategory();
+      // Só sobrescreve a categoria se não estiver em modo edição
+      final defCat =
+          _selectedCategory ??
+          await WorkoutResultService.fetchDefaultUserCategory();
       if (mounted) {
         setState(() {
           _categories = cats;
@@ -235,6 +299,7 @@ class _RegisterResultSheetContentState
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
+      initialEntryMode: TimePickerEntryMode.input,
       builder:
           (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
@@ -246,6 +311,19 @@ class _RegisterResultSheetContentState
 
   String _formatTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  // ── Monta lista de categorias garantindo que o valor atual está presente ──────
+  // Evita crash do DropdownButton quando _selectedCategory não está em _categories
+  List<String> _buildCategoryItems() {
+    final base =
+        _categories.isNotEmpty
+            ? _categories
+            : ['Iniciante', 'Scale', 'Intermediário', 'RX'];
+    if (_selectedCategory != null && !base.contains(_selectedCategory)) {
+      return [...base, _selectedCategory!];
+    }
+    return base;
+  }
 
   // ── InputDecoration padrão ───────────────────────────────────────────────────
 
@@ -579,7 +657,10 @@ class _RegisterResultSheetContentState
             _LabeledDropdown(
               label: 'Categoria:',
               value: _selectedCategory,
-              items: _loadingCategories ? ['Intermediário'] : _categories,
+              // Garante que o valor selecionado sempre está na lista —
+              // evita crash quando categories ainda carregando mas
+              // _selectedCategory já tem valor do registro salvo
+              items: _buildCategoryItems(),
               onChanged: (v) => setState(() => _selectedCategory = v),
               scale: scale,
             ),
@@ -615,6 +696,7 @@ class _RegisterResultSheetContentState
         // Esforço
         SectionEffort(
           classId: null,
+          initialEffort: _effortValue,
           onEffortChanged: (val) => setState(() => _effortValue = val),
         ),
 
@@ -761,7 +843,12 @@ class _RegisterResultSheetContentState
           SizedBox(width: 8 * scale),
           GestureDetector(
             onTap: _pickTrainingTime,
-            child: DecoratedBox(
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              padding: EdgeInsets.symmetric(
+                horizontal: 8 * scale,
+                vertical: 6 * scale,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.baseBlue.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(6 * scale),
@@ -770,35 +857,16 @@ class _RegisterResultSheetContentState
                   width: 1,
                 ),
               ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 8 * scale,
-                  vertical: 4 * scale,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
+              child: Text(
+                _trainingTime != null ? _formatTime(_trainingTime!) : '--:--',
+                style: TextStyle(
+                  fontFamily: AppFonts.roboto,
+                  fontSize: 13 * scale,
+                  fontWeight: AppFontWeight.medium,
+                  color:
                       _trainingTime != null
-                          ? _formatTime(_trainingTime!)
-                          : '--:--',
-                      style: TextStyle(
-                        fontFamily: AppFonts.roboto,
-                        fontSize: 13 * scale,
-                        fontWeight: AppFontWeight.medium,
-                        color:
-                            _trainingTime != null
-                                ? AppColors.darkText
-                                : AppColors.mediumGray,
-                      ),
-                    ),
-                    SizedBox(width: 4 * scale),
-                    Icon(
-                      Icons.access_time_rounded,
-                      size: 14 * scale,
-                      color: AppColors.baseBlue,
-                    ),
-                  ],
+                          ? AppColors.darkText
+                          : AppColors.mediumGray,
                 ),
               ),
             ),
@@ -980,11 +1048,12 @@ class _LabeledInputInt extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = TextEditingController(text: value?.toString() ?? '');
     return Padding(
-      padding: EdgeInsets.only(bottom: 10 * scale),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: EdgeInsets.only(bottom: 8 * scale),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Label à esquerda — igual ao _LabeledDropdown
           Text(
             label,
             style: TextStyle(
@@ -994,32 +1063,38 @@ class _LabeledInputInt extends StatelessWidget {
               color: AppColors.mediumGray,
             ),
           ),
-          SizedBox(height: 4 * scale),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.baseBlue.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(8 * scale),
-              border: Border.all(
-                color: AppColors.baseBlue.withOpacity(0.3),
-                width: 1,
+          SizedBox(width: 8 * scale),
+          // Campo com largura fixa — sem isso expande e sobrepõe tudo no Wrap
+          SizedBox(
+            width: 72 * scale,
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: AppColors.baseBlue.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(6 * scale),
+                border: Border.all(
+                  color: AppColors.baseBlue.withOpacity(0.3),
+                  width: 1,
+                ),
               ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12 * scale),
+              padding: EdgeInsets.symmetric(horizontal: 8 * scale),
               child: TextField(
                 controller: controller,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                   isDense: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 12 * scale),
+                  filled: false,
+                  contentPadding: EdgeInsets.symmetric(vertical: 8),
                 ),
                 onChanged:
                     (t) => onChanged?.call(t.isEmpty ? null : int.parse(t)),
                 style: TextStyle(
                   fontFamily: AppFonts.roboto,
-                  fontSize: 14 * scale,
+                  fontSize: 13 * scale,
                   fontWeight: AppFontWeight.medium,
                   color: AppColors.darkText,
                 ),

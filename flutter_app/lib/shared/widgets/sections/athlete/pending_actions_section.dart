@@ -4,6 +4,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/effort_service.dart';
 import 'package:flutter_app/core/services/pending_actions_service.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 
 /// Banner de resultado/pendência do treino.
 ///
@@ -42,7 +43,9 @@ class _PendingActionsSectionState extends State<PendingActionsSection> {
   /// Recarrega após o atleta registrar — chamado pelo CTA
   void _reload() {
     final newFuture = _load();
-    setState(() => _future = newFuture);
+    setState(() {
+      _future = newFuture;
+    });
   }
 
   @override
@@ -65,7 +68,20 @@ class _PendingActionsSectionState extends State<PendingActionsSection> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _RegisteredCard(record: data.record!, scale: scale),
+              _RegisteredCard(
+                record: data.record!,
+                scale: scale,
+                onEdit: () async {
+                  await showRegisterResultBottomSheet(
+                    context,
+                    existingRecord: data.record,
+                  );
+                  // Adia o reload para fora do contexto de build atual
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _reload();
+                  });
+                },
+              ),
               SizedBox(height: spacing),
             ],
           );
@@ -149,8 +165,9 @@ class _PendingCard extends StatelessWidget {
             onPressed: () async {
               if (action.onTap != null) {
                 await action.onTap!(context);
-                // Recarrega para verificar se o atleta registrou
-                onRegistered();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (onRegistered is Function) onRegistered();
+                });
               } else if (action.route.isNotEmpty) {
                 Navigator.of(context).pushNamed(action.route);
               }
@@ -188,8 +205,13 @@ class _PendingCard extends StatelessWidget {
 class _RegisteredCard extends StatelessWidget {
   final AthleteResultRecord record;
   final double scale;
+  final VoidCallback onEdit;
 
-  const _RegisteredCard({required this.record, required this.scale});
+  const _RegisteredCard({
+    required this.record,
+    required this.scale,
+    required this.onEdit,
+  });
 
   // Formata mm:ss a partir de segundos
   String _fmtTime(int sec) {
@@ -300,6 +322,35 @@ class _RegisteredCard extends StatelessWidget {
 
           // Barra de esforço
           _EffortBar(effort: record.effort, scale: scale),
+
+          SizedBox(height: 8 * scale),
+          Divider(color: AppColors.mediumGray.withOpacity(0.15), height: 1),
+          SizedBox(height: 6 * scale),
+
+          // Botão editar — alinhado à direita, padrão dos outros CTAs
+          GestureDetector(
+            onTap: onEdit,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  'Editar registro',
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontSize: 11 * scale,
+                    color: AppColors.baseBlue,
+                    fontWeight: AppFontWeight.bold,
+                  ),
+                ),
+                SizedBox(width: 3 * scale),
+                Icon(
+                  Icons.edit_outlined,
+                  size: 12 * scale,
+                  color: AppColors.baseBlue,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -11,6 +11,8 @@ import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/shared/widgets/utils/date_selector.dart';
 import 'package:flutter_app/shared/widgets/cards/interested_class_card.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
+import 'package:flutter_app/core/services/effort_service.dart';
+import 'package:flutter_app/core/services/activity_log_services.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/rate_coach_bottom_sheet.dart';
 import 'package:flutter_app/core/services/users/coach/coach_service.dart';
 
@@ -30,6 +32,9 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
   // Interesses do dia
   List<InterestedClass> _interests = [];
 
+  // Controla visibilidade do botão "Não treinei"
+  bool _hasActivityToday = false;
+
   @override
   void initState() {
     super.initState();
@@ -38,7 +43,16 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onDateChanged(_selectedDate);
       _reloadInterests();
+      _checkActivityToday();
     });
+  }
+
+  Future<void> _checkActivityToday() async {
+    final hasRecord = await ActivityLogService.hasAnyRecordForDate(
+      _selectedDate,
+    );
+    if (!mounted) return;
+    setState(() => _hasActivityToday = hasRecord);
   }
 
   Future<void> _reloadInterests() async {
@@ -52,9 +66,11 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
   void _onDateChanged(DateTime newDate) {
     setState(() {
       _selectedDate = newDate;
+      _hasActivityToday = false; // reset enquanto recarrega
     });
     widget.onDateChanged(newDate);
     _reloadInterests();
+    _checkActivityToday();
   }
 
   @override
@@ -101,7 +117,26 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
                           await _reloadInterests();
                         },
                         onRegisterResult: () async {
-                          await showRegisterResultBottomSheet(context);
+                          // DEBUG — remover depois de confirmar os valores
+                          print(
+                            '🔍 [REGISTRO] category: "${it.category}" | date: $_selectedDate',
+                          );
+
+                          final existing = await EffortService.fetchTodayResult(
+                            date: _selectedDate,
+                            wodType:
+                                it.category.isNotEmpty ? it.category : 'WOD',
+                          );
+
+                          print(
+                            '🔍 [REGISTRO] existing: ${existing?.wodType} | ${existing?.date}',
+                          );
+
+                          if (!mounted) return;
+                          await showRegisterResultBottomSheet(
+                            context,
+                            existingRecord: existing,
+                          );
                         },
                         onRateCoach: () async {
                           try {
@@ -152,43 +187,44 @@ class _TrainingInfoSectionState extends State<TrainingInfoSection> {
         // SizedBox(height: 12 * scale),
 
         // ===== Status do dia =====
+        // "Não treinei" só aparece se não há registro de atividade hoje
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            OutlinedButton(
-              onPressed: () {
-                showDidNotTrainDialog(context, date: _selectedDate);
-              },
-              style: OutlinedButton.styleFrom(
-                backgroundColor: AppColors.lightMagenta.withAlpha(50),
-                side: BorderSide(color: AppColors.baseMagenta),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8 * scale),
+            if (!_hasActivityToday) ...[
+              OutlinedButton(
+                onPressed: () async {
+                  await showDidNotTrainDialog(context, date: _selectedDate);
+                  _checkActivityToday();
+                },
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: AppColors.lightMagenta.withAlpha(50),
+                  side: BorderSide(color: AppColors.baseMagenta),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8 * scale),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16 * scale,
+                    vertical: 8 * scale,
+                  ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16 * scale,
-                  vertical: 8 * scale,
+                child: Text(
+                  'Não treinei hoje',
+                  style: TextStyle(
+                    fontSize: 14 * scale,
+                    fontFamily: AppFonts.roboto,
+                    fontWeight: AppFontWeight.bold,
+                    color: AppColors.baseMagenta,
+                  ),
                 ),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text(
-                'Não treinei hoje',
-                style: TextStyle(
-                  fontSize: 14 * scale,
-                  fontFamily: AppFonts.roboto,
-                  fontWeight: AppFontWeight.bold,
-                  color: AppColors.baseMagenta,
-                ),
-              ),
-            ),
-            SizedBox(width: 16 * scale),
+              SizedBox(width: 16 * scale),
+            ],
             OutlinedButton(
-              onPressed: () {
-                showOtherActivityDialog(
-                  context,
-                  date: _selectedDate,
-                  description: 'Caminhada leve',
-                );
+              onPressed: () async {
+                await showOtherActivityDialog(context, date: _selectedDate);
+                _checkActivityToday();
               },
               style: OutlinedButton.styleFrom(
                 backgroundColor: AppColors.baseBlue.withAlpha(50),

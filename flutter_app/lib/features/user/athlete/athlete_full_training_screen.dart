@@ -8,6 +8,7 @@ import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
+import 'package:flutter_app/core/services/effort_service.dart';
 
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
@@ -73,7 +74,16 @@ class _FullTrainingScreenState extends State<FullTrainingScreen> {
   }
 
   Future<void> _onTapRegisterResult() async {
-    await showRegisterResultBottomSheet(context);
+    final existing = await EffortService.fetchTodayResult(
+      date: _date,
+      wodType: _category,
+    );
+    if (!mounted) return;
+    await showRegisterResultBottomSheet(
+      context,
+      existingRecord: existing,
+      initialDate: _date,
+    );
     if (!mounted) return;
     setState(() {
       _blocksFut = TrainingService.fetchFullTrainingBlocks(

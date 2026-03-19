@@ -11,7 +11,7 @@ import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 
-import 'package:flutter_app/core/services/workout/workout_result_service.dart';
+import 'package:flutter_app/core/services/effort_service.dart';
 
 import 'package:flutter_app/shared/widgets/bottom_sheets/similar_profile_bottom_sheets.dart';
 
@@ -60,16 +60,44 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
     if (mounted) setState(() {});
   }
 
+  // Partes internas que não são tipos de treino — ignoradas nas tabs
+  static const _kSupportParts = {
+    'WARM UP',
+    'WARMUP',
+    'EXTRA TRAINING',
+    'EXTRA',
+    'MOBILIDADE',
+    'MOBILITY',
+    'SKILL',
+  };
+
   Future<_CategoryData> _loadAll() async {
-    final rawCats = await WorkoutResultService.fetchCategoriesForDate(
-      widget.date,
+    // Busca os treinos reais do Firestore — mesma fonte que o coach usa
+    final trainings = await TrainingService.fetchTrainingsListForDate(
+      boxId: widget.boxId.isNotEmpty ? widget.boxId : 'BOX_PRINCIPAL',
+      date: widget.date,
     );
 
-    final orderedCats = _orderCategories(rawCats);
+    if (trainings.isEmpty) {
+      return _CategoryData(categories: [], blocksByCategory: {});
+    }
 
+    // Deriva categorias das chaves de partes, ignorando partes de suporte
+    final rawCats = <String>[];
+    for (final t in trainings) {
+      for (final key in t.partes.keys) {
+        if (!_kSupportParts.contains(key.toUpperCase())) {
+          rawCats.add(key);
+        }
+      }
+    }
+
+    final orderedCats = _orderCategories(rawCats.toSet().toList());
+
+    // Busca os blocos para exibição (título, itens, etc.)
     final blocksMap =
         await TrainingService.fetchTrainingBlocksByCategoryForDate(
-          boxId: widget.boxId,
+          boxId: widget.boxId.isNotEmpty ? widget.boxId : 'BOX_PRINCIPAL',
           date: widget.date,
         );
 
@@ -166,7 +194,16 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
       category: category,
       wodName: wodName,
       onTapRegister: () async {
-        await showRegisterResultBottomSheet(context);
+        final existing = await EffortService.fetchTodayResult(
+          date: widget.date,
+          wodType: category,
+        );
+        if (!mounted) return;
+        await showRegisterResultBottomSheet(
+          context,
+          existingRecord: existing,
+          initialDate: widget.date,
+        );
       },
     );
   }
@@ -236,7 +273,16 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
       benchmarkName: benchmarkName,
       movementName: movementName,
       onTapRegister: () async {
-        await showRegisterResultBottomSheet(context);
+        final existing = await EffortService.fetchTodayResult(
+          date: widget.date,
+          wodType: category,
+        );
+        if (!mounted) return;
+        await showRegisterResultBottomSheet(
+          context,
+          existingRecord: existing,
+          initialDate: widget.date,
+        );
       },
     );
   }
@@ -396,7 +442,17 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
                             text: 'Registrar Resultado',
                             svgAsset: 'assets/icons/rewards.svg',
                             onPressed: () async {
-                              await showRegisterResultBottomSheet(context);
+                              final existing =
+                                  await EffortService.fetchTodayResult(
+                                    date: widget.date,
+                                    wodType: cat,
+                                  );
+                              if (!mounted) return;
+                              await showRegisterResultBottomSheet(
+                                context,
+                                existingRecord: existing,
+                                initialDate: widget.date,
+                              );
                             },
                           ),
                         ],

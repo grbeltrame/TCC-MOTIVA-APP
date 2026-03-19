@@ -78,27 +78,27 @@ class AppDialog extends StatelessWidget {
               ),
             ),
             SizedBox(height: 24 * scale),
-            // Botões centrais: secundário e primário
+            // Botões — Column quando há dois (evita overflow), Row quando há um
             TextButtonTheme(
               data: TextButtonThemeData(
                 style: TextButton.styleFrom(
                   textStyle: TextStyle(
                     fontFamily: AppFonts.montserrat,
                     fontWeight: AppFontWeight.bold,
-                    fontSize: 18 * scale,
+                    fontSize: 16 * scale,
                   ),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (secondaryAction != null) ...[
-                    secondaryAction!,
-                    SizedBox(width: 16 * scale),
-                  ],
-                  primaryAction,
-                ],
-              ),
+              child:
+                  secondaryAction != null
+                      ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [primaryAction, secondaryAction!],
+                      )
+                      : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [primaryAction],
+                      ),
             ),
           ],
         ),
