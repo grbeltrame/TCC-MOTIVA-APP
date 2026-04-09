@@ -44,6 +44,11 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
 
         final summary = snap.data!;
 
+        final total = summary.distribution.fold<int>(
+          0,
+          (sum, d) => sum + d.count,
+        );
+
         return Padding(
           padding: EdgeInsets.symmetric(vertical: 2 * scale),
           child: Container(
@@ -166,7 +171,7 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                             ),
                             SizedBox(width: 4 * scale),
                             Text(
-                              e.value.name,
+                              '${e.value.name}  ${e.value.count}x (${total > 0 ? ((e.value.count / total) * 100).round() : 0}%)',
                               style: TextStyle(
                                 fontFamily: AppFonts.roboto,
                                 fontWeight: AppFontWeight.regular,

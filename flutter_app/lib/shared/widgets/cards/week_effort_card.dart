@@ -67,7 +67,7 @@ class WeekEffortCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.montserrat,
                     fontWeight: FontWeight.bold,
-                    fontSize: 44 * scale,
+                    fontSize: 36 * scale,
                     color: barColor,
                     height: 1,
                   ),

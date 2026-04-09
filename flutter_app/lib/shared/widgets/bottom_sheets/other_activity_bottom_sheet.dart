@@ -31,6 +31,8 @@ const _kActivities = [
 Future<void> showOtherActivityBottomSheet(
   BuildContext context, {
   required DateTime date,
+  String? existingDocId,
+  Map<String, dynamic>? existingData,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -39,7 +41,11 @@ Future<void> showOtherActivityBottomSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder: (_) => _OtherActivityContent(date: date),
+    builder: (_) => _OtherActivityContent(
+      date: date,
+      existingDocId: existingDocId,
+      existingData: existingData,
+    ),
   );
 }
 
@@ -48,8 +54,14 @@ Future<void> showOtherActivityBottomSheet(
 // =============================================================================
 
 class _OtherActivityContent extends StatefulWidget {
-  const _OtherActivityContent({required this.date});
+  const _OtherActivityContent({
+    required this.date,
+    this.existingDocId,
+    this.existingData,
+  });
   final DateTime date;
+  final String? existingDocId;
+  final Map<String, dynamic>? existingData;
 
   @override
   State<_OtherActivityContent> createState() => _OtherActivityContentState();
@@ -62,6 +74,34 @@ class _OtherActivityContentState extends State<_OtherActivityContent> {
   final _otherActivityController = TextEditingController();
   int _effortValue = 5;
   bool _submitting = false;
+
+  bool get _isEditing => widget.existingDocId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final d = widget.existingData;
+    if (d != null) {
+      final activity = d['activity']?.toString() ?? '';
+      if (_kActivities.contains(activity)) {
+        _selectedActivity = activity;
+      } else if (activity.isNotEmpty) {
+        _selectedActivity = 'Outro';
+        _otherActivityController.text = activity;
+      }
+      final timeStr = d['trainingTime']?.toString() ?? '';
+      if (timeStr.length == 5) {
+        final parts = timeStr.split(':');
+        _trainingTime = TimeOfDay(
+          hour: int.tryParse(parts[0]) ?? 0,
+          minute: int.tryParse(parts[1]) ?? 0,
+        );
+      }
+      final dur = d['durationMinutes'];
+      if (dur != null) _durationController.text = dur.toString();
+      _effortValue = (d['effort'] as num?)?.toInt() ?? 5;
+    }
+  }
 
   @override
   void dispose() {
@@ -119,13 +159,23 @@ class _OtherActivityContentState extends State<_OtherActivityContent> {
 
     setState(() => _submitting = true);
     try {
-      await ActivityLogService.logOtherActivity(
-        date: widget.date,
-        activity: activityName,
-        trainingTime: _formatTime(_trainingTime!),
-        durationMinutes: duration,
-        effort: _effortValue,
-      );
+      if (_isEditing) {
+        await ActivityLogService.updateOtherActivity(
+          docId: widget.existingDocId!,
+          activity: activityName,
+          trainingTime: _formatTime(_trainingTime!),
+          durationMinutes: duration,
+          effort: _effortValue,
+        );
+      } else {
+        await ActivityLogService.logOtherActivity(
+          date: widget.date,
+          activity: activityName,
+          trainingTime: _formatTime(_trainingTime!),
+          durationMinutes: duration,
+          effort: _effortValue,
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -193,7 +243,7 @@ class _OtherActivityContentState extends State<_OtherActivityContent> {
             SizedBox(height: 12 * scale),
 
             Text(
-              'Que atividade você fez?',
+              _isEditing ? 'Editar atividade' : 'Que atividade você fez?',
               style: TextStyle(
                 fontFamily: AppFonts.montserrat,
                 fontWeight: AppFontWeight.bold,
@@ -385,7 +435,7 @@ class _OtherActivityContentState extends State<_OtherActivityContent> {
                         )
                         : Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: const Text('Registrar atividade'),
+                          child: Text(_isEditing ? 'Salvar alterações' : 'Registrar atividade'),
                         ),
               ),
             ),

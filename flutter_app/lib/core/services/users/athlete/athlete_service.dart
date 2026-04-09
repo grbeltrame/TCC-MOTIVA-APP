@@ -48,9 +48,9 @@ class AthleteService {
     return AthleteProfileReference(
       gender: '',
       ageRange: '',
-      weightRange: '',
+      weight: '',
       practiceYears: '',
-      heightRange: '',
+      height: '',
     );
   }
 }

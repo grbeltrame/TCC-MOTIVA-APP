@@ -15,6 +15,7 @@ import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 import 'package:flutter_app/shared/widgets/register_result/section_adaptations.dart';
 import 'package:flutter_app/shared/widgets/register_result/section_effort.dart';
 import 'package:flutter_app/shared/widgets/register_result/movements.dart';
+import 'package:flutter_app/shared/widgets/dialogs/activity_status_dialogs.dart';
 import 'package:intl/intl.dart';
 
 // =============================================================================
@@ -25,6 +26,8 @@ Future<void> showRegisterResultBottomSheet(
   BuildContext context, {
   AthleteResultRecord? existingRecord,
   DateTime? initialDate,
+  bool hasExistingRecords = false,
+  BuildContext? parentContext,
 }) {
   return showModalBottomSheet(
     context: context,
@@ -33,11 +36,12 @@ Future<void> showRegisterResultBottomSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder:
-        (_) => _RegisterResultSheetContent(
-          existingRecord: existingRecord,
-          initialDate: initialDate,
-        ),
+    builder: (sheetCtx) => _RegisterResultSheetContent(
+      existingRecord: existingRecord,
+      initialDate: initialDate,
+      hasExistingRecords: hasExistingRecords,
+      parentContext: parentContext ?? context,
+    ),
   );
 }
 
@@ -70,6 +74,8 @@ class _RegisterResultSheetContent extends StatefulWidget {
     Key? key,
     this.existingRecord,
     this.initialDate,
+    this.hasExistingRecords = false,
+    this.parentContext,
   }) : super(key: key);
 
   final AthleteResultRecord? existingRecord;
@@ -77,6 +83,12 @@ class _RegisterResultSheetContent extends StatefulWidget {
   /// Data pré-selecionada ao abrir o sheet (ex: data do seletor da tela).
   /// Se null, usa DateTime.now().
   final DateTime? initialDate;
+
+  /// Indica se já existem registros hoje (esconde "Não treinei" se true).
+  final bool hasExistingRecords;
+
+  /// Contexto da tela pai — usado para abrir dialogs fora do sheet.
+  final BuildContext? parentContext;
 
   @override
   State<_RegisterResultSheetContent> createState() =>
@@ -600,6 +612,75 @@ class _RegisterResultSheetContentState
               ),
             ),
           ),
+        ),
+
+        Divider(
+          color: AppColors.mediumGray.withValues(alpha: 0.2),
+          height: 1,
+        ),
+        SizedBox(height: 12 * scale),
+
+        // Botões: Não treinei (só se não há registros) + Outra atividade
+        Row(
+          children: [
+            if (!widget.hasExistingRecords) ...[
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final ctx = widget.parentContext ?? context;
+                    Navigator.of(context).pop();
+                    await showDidNotTrainDialog(ctx, date: _selectedDate);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: AppColors.lightMagenta.withAlpha(50),
+                    side: BorderSide(color: AppColors.baseMagenta),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8 * scale),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 8 * scale),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    'Não treinei hoje',
+                    style: TextStyle(
+                      fontSize: 12 * scale,
+                      fontFamily: AppFonts.roboto,
+                      fontWeight: AppFontWeight.bold,
+                      color: AppColors.baseMagenta,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 10 * scale),
+            ],
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () async {
+                  final ctx = widget.parentContext ?? context;
+                  Navigator.of(context).pop();
+                  await showOtherActivityDialog(ctx, date: _selectedDate);
+                },
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: AppColors.baseBlue.withAlpha(50),
+                  side: BorderSide(color: AppColors.baseBlue),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8 * scale),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 8 * scale),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  'Outra atividade',
+                  style: TextStyle(
+                    fontSize: 12 * scale,
+                    fontFamily: AppFonts.roboto,
+                    fontWeight: AppFontWeight.bold,
+                    color: AppColors.baseBlue,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         SizedBox(height: 8 * scale),
       ],

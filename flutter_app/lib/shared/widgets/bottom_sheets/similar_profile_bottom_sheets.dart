@@ -157,7 +157,7 @@ class _SimilarProfilesSheetState extends State<_SimilarProfilesSheet> {
                                     ),
                                   ),
                                   Text(
-                                    reference.weightRange,
+                                    reference.weight,
                                     style: TextStyle(
                                       color: AppColors.darkText,
                                       fontSize: 12 * scale,
@@ -171,7 +171,7 @@ class _SimilarProfilesSheetState extends State<_SimilarProfilesSheet> {
                                     ),
                                   ),
                                   Text(
-                                    reference.heightRange,
+                                    reference.height,
                                     style: TextStyle(
                                       color: AppColors.darkText,
                                       fontSize: 12 * scale,

@@ -25,17 +25,18 @@ class CoachProfile {
 // 2. MODELO EDITÁVEL (Gerencia Estado da Tela de Edição)
 // =============================================================================
 class CoachProfileEditable {
+  // ── Campos compartilhados (salvos em users/{uid}) ─────────────────────────
   final String name;
   final String? photoUrl;
-  final String? localPhotoPath; // Apenas UI (não salva no banco)
-  final String? cref;
+  final String? localPhotoPath; // somente UI, não salva no banco
   final DateTime? birthday;
 
-  /// ✅ APENAS selecionadas (Salvas no Banco)
+  // ── Campos específicos do coach (salvos em users/{uid}/profiles/coach) ────
+  final String? cref;
   final List<String> certifications;
   final List<String> specialties;
 
-  /// ✅ Catálogo (Opções disponíveis para marcar)
+  /// Catálogo de opções disponíveis (somente UI)
   final List<String> availableCertifications;
   final Map<String, List<String>> specialtiesByCategory;
 
@@ -43,59 +44,62 @@ class CoachProfileEditable {
     required this.name,
     this.photoUrl,
     this.localPhotoPath,
-    this.cref,
     this.birthday,
+    this.cref,
     required this.certifications,
     required this.specialties,
     required this.availableCertifications,
     required this.specialtiesByCategory,
   });
 
-  // --- MÉTODOS DE CONVERSÃO FIREBASE ---
+  // ── Desserialização ────────────────────────────────────────────────────────
 
-  /// Converte o documento do Firestore para o Objeto
-  factory CoachProfileEditable.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>? ?? {};
+  /// Constrói a partir de dois documentos Firestore:
+  /// [sharedData] → users/{uid}           (name, photoURL, birthDate)
+  /// [coachData]  → users/{uid}/profiles/coach  (cref, certifications, specialties)
+  factory CoachProfileEditable.fromFirestore({
+    required Map<String, dynamic> sharedData,
+    required Map<String, dynamic> coachData,
+  }) {
+    DateTime? birthday;
+    final raw = sharedData['birthDate'];
+    if (raw is Timestamp) birthday = raw.toDate();
 
     return CoachProfileEditable(
-      name: data['name'] ?? '',
-      photoUrl: data['photoURL'], // Padrão Firebase Auth
-      cref: data['cref'],
-      birthday: data['birthDate'] != null 
-          ? (data['birthDate'] as Timestamp).toDate() 
-          : null,
-      
-      // Listas salvas no banco
-      certifications: List<String>.from(data['certifications'] ?? []),
-      specialties: List<String>.from(data['specialties'] ?? []),
-
-      // 👇 INJETAMOS AS OPÇÕES PADRÃO AQUI
-      // (Mantive suas listas originais hardcoded para alimentar a UI)
+      name: sharedData['name']?.toString().trim() ?? '',
+      photoUrl: sharedData['photoURL']?.toString(),
+      birthday: birthday,
+      cref: coachData['cref']?.toString(),
+      certifications: List<String>.from(coachData['certifications'] ?? []),
+      specialties: List<String>.from(coachData['specialties'] ?? []),
       availableCertifications: _defaultAvailableCertifications,
       specialtiesByCategory: _defaultSpecialtiesByCategory,
     );
   }
 
-  /// Converte o Objeto para Map (para salvar no Firestore)
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'cref': cref,
-      'birthDate': birthday != null ? Timestamp.fromDate(birthday!) : null,
-      'certifications': certifications,
-      'specialties': specialties,
-      // Nota: photoURL e localPhotoPath são tratados separadamente 
-      // ou via Auth update, não necessariamente aqui.
-    };
-  }
+  // ── Serialização ───────────────────────────────────────────────────────────
 
-  // --- COPY WITH ---
+  /// Campos a salvar em users/{uid} (compartilhados com atleta).
+  Map<String, dynamic> toSharedMap() => {
+    'name': name,
+    'birthDate': birthday != null ? Timestamp.fromDate(birthday!) : null,
+  };
+
+  /// Campos a salvar em users/{uid}/profiles/coach.
+  Map<String, dynamic> toCoachMap() => {
+    'cref': cref,
+    'certifications': certifications,
+    'specialties': specialties,
+  };
+
+  // ── CopyWith ───────────────────────────────────────────────────────────────
+
   CoachProfileEditable copyWith({
     String? name,
     String? photoUrl,
     String? localPhotoPath,
-    String? cref,
     DateTime? birthday,
+    String? cref,
     List<String>? certifications,
     List<String>? specialties,
     List<String>? availableCertifications,
@@ -105,8 +109,8 @@ class CoachProfileEditable {
       name: name ?? this.name,
       photoUrl: photoUrl ?? this.photoUrl,
       localPhotoPath: localPhotoPath ?? this.localPhotoPath,
-      cref: cref ?? this.cref,
       birthday: birthday ?? this.birthday,
+      cref: cref ?? this.cref,
       certifications: certifications ?? this.certifications,
       specialties: specialties ?? this.specialties,
       availableCertifications:
@@ -118,7 +122,7 @@ class CoachProfileEditable {
 }
 
 // =============================================================================
-// 3. CONSTANTES DE CATÁLOGO (Mantidas do seu código original)
+// 3. CONSTANTES DE CATÁLOGO
 // =============================================================================
 const List<String> _defaultAvailableCertifications = [
   'Bacharel em Educação Física',
@@ -160,82 +164,93 @@ const Map<String, List<String>> _defaultSpecialtiesByCategory = {
 };
 
 // =============================================================================
-// 4. SERVICE (CONECTADO AO FIREBASE)
+// 4. SERVICE
 // =============================================================================
 class CoachProfileService {
   CoachProfileService._();
   static final CoachProfileService instance = CoachProfileService._();
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
+  final _db = FirebaseFirestore.instance;
 
-  /// Busca o perfil do usuário logado no Firestore
+  DocumentReference _userDoc(String uid) =>
+      _db.collection('users').doc(uid);
+
+  DocumentReference _coachDoc(String uid) =>
+      _db.collection('users').doc(uid).collection('profiles').doc('coach');
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+
   Future<CoachProfileEditable> fetchCoachProfileEditable() async {
     final user = _auth.currentUser;
-    
-    if (user == null) {
-      // Retorna um perfil vazio/padrão se não estiver logado (modo fallback)
-      return _createEmptyProfile();
-    }
+    if (user == null) return _empty();
 
     try {
-      final docSnapshot = await _firestore.collection('users').doc(user.uid).get();
+      final results = await Future.wait([
+        _userDoc(user.uid).get(),
+        _coachDoc(user.uid).get(),
+      ]);
 
-      if (!docSnapshot.exists) {
-        // Se o usuário existe no Auth mas não tem doc no banco, cria um básico visual
-        return CoachProfileEditable(
-          name: user.displayName ?? '',
-          photoUrl: user.photoURL,
-          certifications: [],
-          specialties: [],
-          availableCertifications: _defaultAvailableCertifications,
-          specialtiesByCategory: _defaultSpecialtiesByCategory,
-        );
+      final sharedSnap = results[0];
+      final coachSnap = results[1];
+
+      final sharedData = sharedSnap.exists
+          ? (sharedSnap.data() as Map<String, dynamic>)
+          : <String, dynamic>{};
+      final coachData = coachSnap.exists
+          ? (coachSnap.data() as Map<String, dynamic>)
+          : <String, dynamic>{};
+
+      // Fallback para displayName do Auth se o doc não tiver nome
+      if ((sharedData['name'] ?? '').toString().trim().isEmpty) {
+        sharedData['name'] = user.displayName ?? '';
+      }
+      if ((sharedData['photoURL'] ?? '').toString().trim().isEmpty) {
+        sharedData['photoURL'] = user.photoURL ?? '';
       }
 
-      return CoachProfileEditable.fromFirestore(docSnapshot);
+      return CoachProfileEditable.fromFirestore(
+        sharedData: sharedData,
+        coachData: coachData,
+      );
     } catch (e) {
-      print('Erro ao buscar perfil: $e');
-      return _createEmptyProfile();
+      print('ERRO fetchCoachProfileEditable: $e');
+      return _empty();
     }
   }
 
-  /// Salva as alterações no Firestore
+  // ── Save ───────────────────────────────────────────────────────────────────
+
   Future<void> updateCoachProfileEditable(CoachProfileEditable updated) async {
     final user = _auth.currentUser;
     if (user == null) return;
 
     try {
-      // 1. Converte para Map
-      final dataToSave = updated.toMap();
+      // 1. Campos compartilhados → users/{uid} (merge para não apagar email, profile, etc.)
+      await _userDoc(user.uid)
+          .set(updated.toSharedMap(), SetOptions(merge: true));
 
-      // 2. Atualiza no Firestore (merge true para não apagar outros campos como email)
-      await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .set(dataToSave, SetOptions(merge: true));
+      // 2. Campos do coach → users/{uid}/profiles/coach
+      await _coachDoc(user.uid)
+          .set(updated.toCoachMap(), SetOptions(merge: true));
 
-      // 3. Atualiza DisplayName no Auth (opcional, mas recomendado)
+      // 3. Atualiza displayName no Auth se mudou
       if (updated.name.isNotEmpty && updated.name != user.displayName) {
         await user.updateDisplayName(updated.name);
       }
-      
-      // 4. Se tiver Upload de foto (lógica futura), seria aqui.
-      // O campo localPhotoPath é ignorado no save do banco.
-      
+
+      // 4. Upload de foto (futuro) — localPhotoPath ignorado aqui
     } catch (e) {
-      print('Erro ao atualizar perfil: $e');
+      print('ERRO updateCoachProfileEditable: $e');
       rethrow;
     }
   }
 
-  CoachProfileEditable _createEmptyProfile() {
-    return CoachProfileEditable(
-      name: '',
-      certifications: [],
-      specialties: [],
-      availableCertifications: _defaultAvailableCertifications,
-      specialtiesByCategory: _defaultSpecialtiesByCategory,
-    );
-  }
+  CoachProfileEditable _empty() => CoachProfileEditable(
+    name: '',
+    certifications: [],
+    specialties: [],
+    availableCertifications: _defaultAvailableCertifications,
+    specialtiesByCategory: _defaultSpecialtiesByCategory,
+  );
 }

@@ -102,7 +102,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     showAppBottomSheet(context, const BoxSignupCoach());
   }
 
-  void _refresh() => setState(() => _futureData = _loadHomeData());
+  void _refresh() => setState(() { _futureData = _loadHomeData(); });
 
   // ── Texto de saudação pelo horário ──────────────────────────────────────────
   String get _greeting {

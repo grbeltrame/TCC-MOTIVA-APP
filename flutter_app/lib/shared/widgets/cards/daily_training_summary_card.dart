@@ -5,8 +5,6 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/training.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 
 /*
   Card "Treino de hoje" (atleta)
@@ -471,35 +469,7 @@ class _DailyTrainingSummaryCardState extends State<DailyTrainingSummaryCard> {
   // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildEmptyState(double scale) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        border: Border.all(color: AppColors.baseBlue),
-        borderRadius: BorderRadius.circular(_kRadius * scale),
-      ),
-      padding: EdgeInsets.all(12 * scale),
-      child: OutlinedButton.icon(
-        onPressed: () => showAppBottomSheet(context, const BoxSignupCoach()),
-        icon: Icon(Icons.add, color: AppColors.baseBlue, size: 16 * scale),
-        label: Text(
-          'Cadastrar box',
-          style: TextStyle(
-            fontFamily: AppFonts.roboto,
-            fontWeight: AppFontWeight.medium,
-            fontSize: 14 * scale,
-            color: AppColors.baseBlue,
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppColors.baseBlue),
-          padding: EdgeInsets.symmetric(
-            horizontal: 8 * scale,
-            vertical: 4 * scale,
-          ),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-      ),
-    );
+    return const SizedBox.shrink();
   }
 }
 

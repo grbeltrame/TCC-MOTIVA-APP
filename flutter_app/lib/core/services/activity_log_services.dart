@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_app/core/services/effort_service.dart';
 
 /// Registra no Firestore atividades do dia do atleta.
 /// Schema: users/{uid}/results/{date}_{type}[_{ms}]
@@ -49,15 +50,18 @@ class ActivityLogService {
     try {
       final ms = DateTime.now().millisecondsSinceEpoch;
       final docId = '${_dateKey(date)}_OTHER_$ms';
-      await _resultsRef.doc(docId).set({
-        'date': _dateKey(date),
-        'type': 'other_activity',
-        'activity': activity,
-        'trainingTime': trainingTime,
-        'durationMinutes': durationMinutes,
-        'effort': effort,
-        'registeredAt': FieldValue.serverTimestamp(),
-      });
+      await Future.wait([
+        _resultsRef.doc(docId).set({
+          'date': _dateKey(date),
+          'type': 'other_activity',
+          'activity': activity,
+          'trainingTime': trainingTime,
+          'durationMinutes': durationMinutes,
+          'effort': effort,
+          'registeredAt': FieldValue.serverTimestamp(),
+        }),
+        EffortService.deleteRestIfExists(date),
+      ]);
       print('✅ Outra atividade salva: $docId');
     } catch (e) {
       print('ERRO logOtherActivity: $e');
@@ -82,6 +86,29 @@ class ActivityLogService {
     } catch (e) {
       print('ERRO hasAnyRecordForDate: $e');
       return false;
+    }
+  }
+
+  /// Atualiza uma atividade "outro" já existente pelo docId.
+  static Future<void> updateOtherActivity({
+    required String docId,
+    required String activity,
+    required String trainingTime,
+    required int durationMinutes,
+    required int effort,
+  }) async {
+    try {
+      await _resultsRef.doc(docId).update({
+        'activity': activity,
+        'trainingTime': trainingTime,
+        'durationMinutes': durationMinutes,
+        'effort': effort,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      print('✅ Outra atividade atualizada: $docId');
+    } catch (e) {
+      print('ERRO updateOtherActivity: $e');
+      rethrow;
     }
   }
 

@@ -12,7 +12,6 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:flutter_app/core/services/weekly_summary_service.dart';
 import 'package:flutter_app/shared/widgets/register_pr/register_pr_bottom_sheet.dart';
 
-/// O widget principal de Resumo Semanal, agora incluindo o título da seção.
 class WeeklySummaryWidget extends StatefulWidget {
   const WeeklySummaryWidget({Key? key}) : super(key: key);
 
@@ -87,7 +86,7 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                 child: Card(
                   margin: EdgeInsets.symmetric(vertical: 8 * scale),
                   shape: RoundedRectangleBorder(
-                    side: BorderSide(color: AppColors.mediumGray),
+                    side: const BorderSide(color: AppColors.mediumGray),
                     borderRadius: BorderRadius.circular(24 * scale),
                   ),
                   elevation: 0,
@@ -134,14 +133,14 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                           future: _daysTrainedFut,
                           builder: (c, snap) {
                             final trained = snap.data ?? {};
-                            final start = week.start;
                             return Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: List.generate(7, (i) {
-                                final day = start.add(Duration(days: i));
-                                final label = DateFormat.E(
-                                  'pt_BR',
-                                ).format(day).substring(0, 1);
+                                final day =
+                                    week.start.add(Duration(days: i));
+                                final label = DateFormat.E('pt_BR')
+                                    .format(day)
+                                    .substring(0, 1);
                                 final filled = trained.any(
                                   (d) =>
                                       d.year == day.year &&
@@ -155,10 +154,9 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                       height: 20 * scale,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color:
-                                            filled
-                                                ? AppColors.baseBlue
-                                                : Colors.transparent,
+                                        color: filled
+                                            ? AppColors.baseBlue
+                                            : Colors.transparent,
                                         border: Border.all(
                                           color: AppColors.mediumGray,
                                         ),
@@ -193,6 +191,19 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                               );
                             }
                             final data = snapStimuli.data!;
+                            if (data.isEmpty) {
+                              return Padding(
+                                padding:
+                                    EdgeInsets.symmetric(vertical: 4 * scale),
+                                child: Text(
+                                  'Nenhum estímulo registrado esta semana.',
+                                  style: TextStyle(
+                                    fontSize: 13 * scale,
+                                    color: AppColors.mediumGray,
+                                  ),
+                                ),
+                              );
+                            }
                             return SizedBox(
                               height: 140 * scale,
                               child: Row(
@@ -205,31 +216,30 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                       child: SfCircularChart(
                                         palette: stimuliColors,
                                         margin: EdgeInsets.zero,
-                                        series:
-                                            <PieSeries<StimulusCount, String>>[
-                                              PieSeries<StimulusCount, String>(
-                                                dataSource: data,
-                                                xValueMapper: (d, _) => d.name,
-                                                yValueMapper: (d, _) => d.count,
-                                                dataLabelMapper:
-                                                    (d, _) =>
-                                                        d.name.substring(0, 1),
-                                                dataLabelSettings:
-                                                    DataLabelSettings(
-                                                      isVisible: true,
-                                                      labelPosition:
-                                                          ChartDataLabelPosition
-                                                              .inside,
-                                                      textStyle: TextStyle(
-                                                        fontSize: 12 * scale,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                                radius: '90%',
+                                        series: <
+                                            PieSeries<StimulusCount,
+                                                String>>[
+                                          PieSeries<StimulusCount, String>(
+                                            dataSource: data,
+                                            xValueMapper: (d, _) => d.name,
+                                            yValueMapper: (d, _) => d.count,
+                                            dataLabelMapper: (d, _) =>
+                                                d.name.substring(0, 1),
+                                            dataLabelSettings:
+                                                DataLabelSettings(
+                                              isVisible: true,
+                                              labelPosition:
+                                                  ChartDataLabelPosition
+                                                      .inside,
+                                              textStyle: TextStyle(
+                                                fontSize: 12 * scale,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
                                               ),
-                                            ],
+                                            ),
+                                            radius: '90%',
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -257,30 +267,26 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                                   .withOpacity(0.2),
                                             ),
                                           ),
-                                          children:
-                                              data.map((d) {
-                                                final id = d.name.substring(
-                                                  0,
-                                                  1,
-                                                );
-                                                return TableRow(
-                                                  children: [
-                                                    Padding(
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                            vertical: 4 * scale,
-                                                          ),
-                                                      child: Text(
-                                                        '$id • ${d.name} – ${d.count} vezes',
-                                                        style: TextStyle(
-                                                          fontSize: 12 * scale,
-                                                          color: Colors.black,
-                                                        ),
-                                                      ),
+                                          children: data.map((d) {
+                                            final id =
+                                                d.name.substring(0, 1);
+                                            return TableRow(
+                                              children: [
+                                                Padding(
+                                                  padding: EdgeInsets.symmetric(
+                                                    vertical: 4 * scale,
+                                                  ),
+                                                  child: Text(
+                                                    '$id • ${d.name} – ${d.count} vezes',
+                                                    style: TextStyle(
+                                                      fontSize: 12 * scale,
+                                                      color: Colors.black,
                                                     ),
-                                                  ],
-                                                );
-                                              }).toList(),
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          }).toList(),
                                         ),
                                       ],
                                     ),
@@ -300,12 +306,15 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                             if (!snapLoad.hasData) {
                               return SizedBox(
                                 height: 40 * scale,
-                                child: Center(
+                                child: const Center(
                                   child: CircularProgressIndicator(),
                                 ),
                               );
                             }
                             final load = snapLoad.data!;
+                            final loadText = load.totalKg > 0
+                                ? '${load.totalKg.toStringAsFixed(1)} kg - ${load.changeComment}'
+                                : '–';
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -319,7 +328,7 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                 ),
                                 SizedBox(height: 4 * scale),
                                 Text(
-                                  '${load.totalKg.toStringAsFixed(1)} kg - ${load.changeComment}',
+                                  loadText,
                                   style: TextStyle(
                                     fontSize: 14 * scale,
                                     fontWeight: FontWeight.bold,
@@ -362,11 +371,9 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                         text: 'Registrar PR',
                                         onPressed: () async {
                                           await showRegisterPrBottomSheet(
-                                            context,
-                                          );
+                                              context);
                                           if (!mounted) return;
                                           setState(() {
-                                            // reconsulta os PRs pra refletir o que acabou de ser registrado
                                             _prsFut = _service.fetchPRs();
                                           });
                                         },
@@ -376,8 +383,12 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                 ),
                                 SizedBox(height: 1 * scale),
                                 if (prs.isEmpty)
-                                  const Text(
+                                  Text(
                                     'Essa semana você não atualizou PRs.',
+                                    style: TextStyle(
+                                      fontSize: 13 * scale,
+                                      color: AppColors.darkText,
+                                    ),
                                   )
                                 else
                                   TextCarousel(
@@ -417,21 +428,21 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                       scale: 0.9,
                                       alignment: Alignment.centerRight,
                                       child: TextActionButton(
-                                        icon: Icons.add,
+                                        icon: Icons.show_chart,
                                         text: 'Ver gráfico de Esforço',
-                                        onPressed:
-                                            () => showAppBottomSheet(
-                                              context,
-                                              const EffortBottomSheet(),
-                                            ),
+                                        onPressed: () => showAppBottomSheet(
+                                          context,
+                                          const EffortBottomSheet(),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-
                                 SizedBox(height: 2 * scale),
                                 Text(
-                                  '${ef.score.toStringAsFixed(1)} de 10 - ${ef.comment}',
+                                  ef.score > 0
+                                      ? '${ef.score.toStringAsFixed(1)} de 10 - ${ef.comment}'
+                                      : ef.comment,
                                   style: TextStyle(
                                     fontSize: 14 * scale,
                                     fontWeight: FontWeight.bold,
@@ -463,11 +474,24 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                                   ),
                                 ),
                                 SizedBox(height: 8 * scale),
-                                TextCarousel(
-                                  items: ins.map((i) => i.message).toList(),
-                                  fontWeight: FontWeight.w300,
-                                  fontStyle: FontStyle.italic,
-                                ),
+                                if (ins.isEmpty)
+                                  Text(
+                                    'Em breve',
+                                    style: TextStyle(
+                                      fontFamily: AppFonts.roboto,
+                                      fontWeight: FontWeight.w300,
+                                      fontStyle: FontStyle.italic,
+                                      fontSize: 13 * scale,
+                                      color: AppColors.mediumGray,
+                                    ),
+                                  )
+                                else
+                                  TextCarousel(
+                                    items:
+                                        ins.map((i) => i.message).toList(),
+                                    fontWeight: FontWeight.w300,
+                                    fontStyle: FontStyle.italic,
+                                  ),
                               ],
                             );
                           },

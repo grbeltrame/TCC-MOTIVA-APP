@@ -6,7 +6,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/athlete_stats_service.dart';
 
-/// Card de calendário semanal (seg → dom).
+/// Card de calendário semanal (dom → sáb).
 /// Exibe um ícone por tipo de atividade em cada dia.
 class WeekCalendarCard extends StatelessWidget {
   final AthleteStatsSummary summary;

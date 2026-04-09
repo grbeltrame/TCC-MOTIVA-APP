@@ -10,7 +10,6 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 
-import 'package:flutter_app/core/services/users/athlete/athlete_service.dart';
 import 'package:flutter_app/shared/models/athlete_profile.dart';
 
 import 'package:image_picker/image_picker.dart';
@@ -32,11 +31,13 @@ class EditProfileAthleteScreen extends StatefulWidget {
 
 class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
   final _nameCtrl = TextEditingController();
+  final _weightCtrl = TextEditingController();
+  final _heightCtrl = TextEditingController();
   final _dateFmt = DateFormat('dd/MM/yyyy');
   final _picker = ImagePicker();
 
-  late Future<AthleteProfile> _future;
-  AthleteProfile? _profile;
+  late Future<AthleteProfileEditable> _future;
+  AthleteProfileEditable? _editable;
 
   DateTime? _birthday;
   String? _localPhotoPath;
@@ -47,10 +48,8 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
   String? _category; // Iniciante | Scaled | Intermediário | RX | Elite
   String? _gender; // Homem | Mulher | Outro
 
-  // dropdowns
-  String? _weightRange;
+  // dropdown
   String? _practiceYears;
-  String? _heightRange;
 
   // fatores (checkbox)
   late Map<String, List<String>> _factorOptions;
@@ -59,7 +58,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
   @override
   void initState() {
     super.initState();
-    _future = AthleteService.fetchAthleteProfile();
+    _future = AthleteProfileService.instance.fetchAthleteProfileEditable();
 
     _factorOptions = {
       'respiratorias': ['Asma', 'Bronquite Crônica', 'Apneia do Sono'],
@@ -119,6 +118,8 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _weightCtrl.dispose();
+    _heightCtrl.dispose();
     super.dispose();
   }
 
@@ -291,10 +292,26 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
   }
 
   Future<void> _saveAndClose() async {
+    if (_editable == null) return;
     setState(() => _saving = true);
 
     try {
-      // TODO(BACKEND): salvar no service
+      final updated = _editable!.copyWith(
+        name: _nameCtrl.text.trim(),
+        birthday: _birthday,
+        localPhotoPath: _localPhotoPath,
+        category: _category,
+        gender: _gender,
+        weight: _weightCtrl.text.trim().isEmpty ? null : _weightCtrl.text.trim(),
+        practiceYears: _practiceYears,
+        height: _heightCtrl.text.trim().isEmpty ? null : _heightCtrl.text.trim(),
+        healthFactors: _selectedFactors.map(
+          (k, v) => MapEntry(k, v.toList()),
+        ),
+      );
+
+      await AthleteProfileService.instance.updateAthleteProfileEditable(updated);
+
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -314,15 +331,6 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
-    final weightItems = _uniqueItems(const [
-      'Menos de 40kg',
-      'Entre 40kg e 50kg',
-      'Entre 50kg e 60kg',
-      'Entre 60kg e 70kg',
-      'Entre 70kg e 80kg',
-      'Mais de 80kg',
-    ]);
-
     final practiceItems = _uniqueItems(const [
       'Menos de 1 ano',
       'Entre 1 e 3 anos',
@@ -330,18 +338,10 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
       'Mais de 5 anos',
     ]);
 
-    final heightItems = _uniqueItems(const [
-      'Menos de 150cm',
-      'Entre 150cm e 160cm',
-      'Entre 160cm e 170cm',
-      'Entre 170cm e 180cm',
-      'Mais de 180cm',
-    ]);
-
     return Scaffold(
       appBar: const TopNavbar(),
       body: SafeArea(
-        child: FutureBuilder<AthleteProfile>(
+        child: FutureBuilder<AthleteProfileEditable>(
           future: _future,
           builder: (ctx, snap) {
             if (snap.connectionState != ConnectionState.done) {
@@ -351,30 +351,35 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
               return const Center(child: Text('Falha ao carregar perfil.'));
             }
 
-            _profile ??= snap.data!;
-            final profile = _profile!;
+            _editable ??= snap.data!;
+            final profile = _editable!;
 
+            // bootstrap controllers uma vez
             if (_nameCtrl.text.isEmpty) _nameCtrl.text = profile.name;
+            _birthday ??= profile.birthday;
             _category ??= profile.category;
-
-            if (profile.reference != null) {
-              _gender ??= profile.reference!.gender;
-              _weightRange ??= profile.reference!.weightRange;
-              _practiceYears ??= profile.reference!.practiceYears;
-              _heightRange ??= profile.reference!.heightRange;
+            _gender ??= profile.gender;
+            _practiceYears ??= profile.practiceYears;
+            if (_weightCtrl.text.isEmpty && (profile.weight ?? '').isNotEmpty) {
+              _weightCtrl.text = profile.weight!;
+            }
+            if (_heightCtrl.text.isEmpty && (profile.height ?? '').isNotEmpty) {
+              _heightCtrl.text = profile.height!;
             }
 
-            final safeWeight = _sanitizeDropdownValue(
-              _weightRange,
-              weightItems,
-            );
+            // bootstrap fatores de saúde uma vez
+            if (profile.healthFactors.isNotEmpty) {
+              for (final entry in profile.healthFactors.entries) {
+                if (_selectedFactors.containsKey(entry.key) &&
+                    (_selectedFactors[entry.key]?.isEmpty ?? true)) {
+                  _selectedFactors[entry.key] = entry.value.toSet();
+                }
+              }
+            }
+
             final safePractice = _sanitizeDropdownValue(
               _practiceYears,
               practiceItems,
-            );
-            final safeHeight = _sanitizeDropdownValue(
-              _heightRange,
-              heightItems,
             );
 
             final birthdayLabel =
@@ -627,13 +632,37 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
 
                   SizedBox(height: 12 * scale),
 
-                  _DropdownField(
-                    label: 'Peso',
-                    value: safeWeight,
-                    items: weightItems,
-                    onChanged: (v) => setState(() => _weightRange = v),
-                    onClear: () => setState(() => _weightRange = null),
-                    scale: scale,
+                  TextFormField(
+                    controller: _weightCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: _inputDec(
+                      label: 'Peso (kg)',
+                      hint: 'Ex: 70',
+                      suffixIcon: _weightCtrl.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: () => setState(() => _weightCtrl.clear()),
+                              icon: Icon(Icons.close, size: 18 * scale, color: AppColors.mediumGray),
+                            )
+                          : null,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  SizedBox(height: 12 * scale),
+
+                  TextFormField(
+                    controller: _heightCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: _inputDec(
+                      label: 'Altura (cm)',
+                      hint: 'Ex: 170',
+                      suffixIcon: _heightCtrl.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: () => setState(() => _heightCtrl.clear()),
+                              icon: Icon(Icons.close, size: 18 * scale, color: AppColors.mediumGray),
+                            )
+                          : null,
+                    ),
+                    onChanged: (_) => setState(() {}),
                   ),
                   SizedBox(height: 12 * scale),
 
@@ -643,16 +672,6 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
                     items: practiceItems,
                     onChanged: (v) => setState(() => _practiceYears = v),
                     onClear: () => setState(() => _practiceYears = null),
-                    scale: scale,
-                  ),
-                  SizedBox(height: 12 * scale),
-
-                  _DropdownField(
-                    label: 'Altura',
-                    value: safeHeight,
-                    items: heightItems,
-                    onChanged: (v) => setState(() => _heightRange = v),
-                    onClear: () => setState(() => _heightRange = null),
                     scale: scale,
                   ),
 
@@ -671,6 +690,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
 
                   _FactorSection(
                     title: 'Respiratórias',
+                    noneLabel: 'Não possuo problemas respiratórios',
                     scale: scale,
                     items: _factorOptions['respiratorias'] ?? const [],
                     selected: _selectedFactors['respiratorias'] ?? const {},
@@ -685,6 +705,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
                   ),
                   _FactorSection(
                     title: 'Cardiovasculares',
+                    noneLabel: 'Não possuo problemas cardiovasculares',
                     scale: scale,
                     items: _factorOptions['cardiovasculares'] ?? const [],
                     selected: _selectedFactors['cardiovasculares'] ?? const {},
@@ -699,6 +720,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
                   ),
                   _FactorSection(
                     title: 'Ortopédicas',
+                    noneLabel: 'Não possuo problemas ortopédicos',
                     scale: scale,
                     items: _factorOptions['ortopedicas'] ?? const [],
                     selected: _selectedFactors['ortopedicas'] ?? const {},
@@ -713,6 +735,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
                   ),
                   _FactorSection(
                     title: 'Neurológicas',
+                    noneLabel: 'Não possuo problemas neurológicos',
                     scale: scale,
                     items: _factorOptions['neurologicas'] ?? const [],
                     selected: _selectedFactors['neurologicas'] ?? const {},
@@ -727,6 +750,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
                   ),
                   _FactorSection(
                     title: 'Metabólicas',
+                    noneLabel: 'Não possuo problemas metabólicos',
                     scale: scale,
                     items: _factorOptions['metabolicas'] ?? const [],
                     selected: _selectedFactors['metabolicas'] ?? const {},
@@ -741,6 +765,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
                   ),
                   _FactorSection(
                     title: 'Outros Quadros Clínicos',
+                    noneLabel: 'Não possuo outros quadros clínicos',
                     scale: scale,
                     items: _factorOptions['outros'] ?? const [],
                     selected: _selectedFactors['outros'] ?? const {},
@@ -755,6 +780,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
                   ),
                   _FactorSection(
                     title: 'Hábitos de Risco',
+                    noneLabel: 'Não possuo hábitos de risco',
                     scale: scale,
                     items: _factorOptions['habitos'] ?? const [],
                     selected: _selectedFactors['habitos'] ?? const {},
@@ -946,6 +972,7 @@ class _DropdownField extends StatelessWidget {
 
 class _FactorSection extends StatelessWidget {
   final String title;
+  final String? noneLabel;
   final double scale;
   final List<String> items;
   final Set<String> selected;
@@ -954,6 +981,7 @@ class _FactorSection extends StatelessWidget {
 
   const _FactorSection({
     required this.title,
+    this.noneLabel,
     required this.scale,
     required this.items,
     required this.selected,
@@ -961,9 +989,11 @@ class _FactorSection extends StatelessWidget {
     required this.onAddNew,
   });
 
+  /// Rótulo fixo que representa "sem problemas nessa categoria".
+  String get _noneLabel => noneLabel ?? 'Não possuo problemas $title';
+
   @override
   Widget build(BuildContext context) {
-    // ✅ 1 coluna (full width) — texto vai até o fim
     return Padding(
       padding: EdgeInsets.only(bottom: 14 * scale),
       child: Column(
@@ -1012,45 +1042,94 @@ class _FactorSection extends StatelessWidget {
           SizedBox(height: 6 * scale),
 
           Column(
-            children:
-                items.map((label) {
+            children: [
+              // ── Opção fixa "Não possuo problemas X" ──
+              _FactorItem(
+                label: _noneLabel,
+                checked: selected.contains(_noneLabel),
+                scale: scale,
+                onToggle: (checked) {
+                  // Ao marcar "nenhum", desmarca todos os outros
+                  if (checked) {
+                    for (final item in items) {
+                      onToggle(item, false);
+                    }
+                  }
+                  onToggle(_noneLabel, checked);
+                },
+              ),
+              // ── Itens da categoria ──
+              ...items.map((label) {
                   final checked = selected.contains(label);
 
-                  return InkWell(
-                    onTap: () => onToggle(label, !checked),
-                    child: Padding(
-                      padding: EdgeInsets.only(bottom: 4 * scale),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Checkbox(
-                            value: checked,
-                            onChanged: (v) => onToggle(label, v ?? false),
-                            activeColor: AppColors.baseBlue,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(top: 8 * scale),
-                              child: Text(
-                                label,
-                                softWrap: true,
-                                style: TextStyle(
-                                  fontFamily: AppFonts.roboto,
-                                  fontSize: 12 * scale,
-                                  color: AppColors.darkText,
-                                  height: 1.25,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  return _FactorItem(
+                    label: label,
+                    checked: checked,
+                    scale: scale,
+                    onToggle: (v) {
+                      // Ao marcar qualquer item, desmarca "nenhum"
+                      if (v) onToggle(_noneLabel, false);
+                      onToggle(label, v);
+                    },
                   );
                 }).toList(),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Item individual de fator (checkbox + label)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FactorItem extends StatelessWidget {
+  final String label;
+  final bool checked;
+  final double scale;
+  final void Function(bool checked) onToggle;
+
+  const _FactorItem({
+    required this.label,
+    required this.checked,
+    required this.scale,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onToggle(!checked),
+      child: Padding(
+        padding: EdgeInsets.only(bottom: 4 * scale),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: checked,
+              onChanged: (v) => onToggle(v ?? false),
+              activeColor: AppColors.baseBlue,
+              visualDensity: VisualDensity.compact,
+            ),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(top: 8 * scale),
+                child: Text(
+                  label,
+                  softWrap: true,
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontSize: 12 * scale,
+                    color: AppColors.darkText,
+                    height: 1.25,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

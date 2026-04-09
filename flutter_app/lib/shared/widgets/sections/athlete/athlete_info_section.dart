@@ -1,21 +1,14 @@
 // lib/shared/widgets/athlete_info_section.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/services/users/athlete/athlete_service.dart';
 import 'package:flutter_app/shared/models/athlete_profile.dart';
 import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_svg/svg.dart';
 
-import 'package:flutter_app/features/user/athlete/athlete_edit_profile_screen.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 
-/// Seção de informações do perfil do atleta:
-/// • Container com borda arredondada
-/// • Foto, nome, categoria e botão Editar Perfil (posicionado)
-/// • Bloco: Perfil Referência
-/// • Barra de progresso e botões de ação
 class AthleteInfoSection extends StatefulWidget {
   final VoidCallback? onRefreshRequest;
 
@@ -26,38 +19,62 @@ class AthleteInfoSection extends StatefulWidget {
 }
 
 class _AthleteInfoSectionState extends State<AthleteInfoSection> {
-  late Future<AthleteProfile> _futProfile;
+  late Future<AthleteProfileEditable> _futProfile;
 
   @override
   void initState() {
     super.initState();
-    _futProfile = AthleteService.fetchAthleteProfile(); // TODO(back): real
+    _futProfile = AthleteProfileService.instance.fetchAthleteProfileEditable();
   }
 
   void _reloadProfile() {
     setState(() {
-      _futProfile = AthleteService.fetchAthleteProfile(); // TODO(back): real
+      _futProfile =
+          AthleteProfileService.instance.fetchAthleteProfileEditable();
     });
   }
 
   Future<void> _goToEditProfile(BuildContext context) async {
-    // Mantém o mesmo padrão do coach: abre tela e, se voltar "true", recarrega
     final changed = await Navigator.pushNamed(
       context,
       AppRoutes.athleteProfileEdit,
     );
-
     if (changed == true) {
       _reloadProfile();
       widget.onRefreshRequest?.call();
     }
   }
 
+  /// Calcula a % de completude do perfil.
+  /// Campos verificados (8 no total):
+  ///   1. nome
+  ///   2. aniversário
+  ///   3. categoria
+  ///   4. gênero
+  ///   5. peso
+  ///   6. altura
+  ///   7. tempo de prática
+  ///   8. fatores de atenção (pelo menos 1 categoria respondida — pode ser "nenhum")
+  double _completeness(AthleteProfileEditable p) {
+    int filled = 0;
+    if (p.name.trim().isNotEmpty) filled++;
+    if (p.birthday != null) filled++;
+    if ((p.category ?? '').trim().isNotEmpty) filled++;
+    if ((p.gender ?? '').trim().isNotEmpty) filled++;
+    if ((p.weight ?? '').trim().isNotEmpty) filled++;
+    if ((p.height ?? '').trim().isNotEmpty) filled++;
+    if ((p.practiceYears ?? '').trim().isNotEmpty) filled++;
+    // fatores: basta ter pelo menos 1 categoria com alguma seleção
+    final hasFactors = p.healthFactors.values.any((list) => list.isNotEmpty);
+    if (hasFactors) filled++;
+    return filled / 8;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
-    return FutureBuilder<AthleteProfile>(
+    return FutureBuilder<AthleteProfileEditable>(
       future: _futProfile,
       builder: (ctx, snap) {
         if (snap.connectionState != ConnectionState.done) {
@@ -68,19 +85,20 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
         }
 
         final profile = snap.data!;
-
-        // calcula % de perfil completo (sem box)
-        int filled = 0;
-        if ((profile.category ?? '').trim().isNotEmpty) filled++;
-        if (profile.reference != null) filled++;
-        const total = 2;
-        final pct = filled / total;
-
+        final pct = _completeness(profile);
+        final pctLabel = '${(pct * 100).round()}%';
         final btnReserve = 128 * scale;
-
-        // proteção (igual coach): não nulo e não vazio
         final hasValidPhoto =
-            profile.photoUrl != null && profile.photoUrl!.isNotEmpty;
+            (profile.photoUrl ?? '').trim().isNotEmpty;
+
+        // ── Bloco "Perfil Referência" — campos preenchidos ──────────────────
+        final refLines = <String>[
+          if ((profile.gender ?? '').trim().isNotEmpty) profile.gender!,
+          if ((profile.weight ?? '').trim().isNotEmpty) 'Peso: ${profile.weight} kg',
+          if ((profile.height ?? '').trim().isNotEmpty) 'Altura: ${profile.height} cm',
+          if ((profile.practiceYears ?? '').trim().isNotEmpty)
+            profile.practiceYears!,
+        ];
 
         final editBtn = OutlinedButton.icon(
           onPressed: () => _goToEditProfile(context),
@@ -118,32 +136,25 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ─── Cabeçalho em Stack ───
+              // ─── Cabeçalho: foto + nome + categoria ───
               Stack(
                 children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Foto do atleta (com proteção)
                       CircleAvatar(
                         radius: 28 * scale,
                         backgroundColor: AppColors.lightGray,
-                        backgroundImage:
-                            hasValidPhoto
-                                ? NetworkImage(profile.photoUrl!)
-                                : null,
-                        child:
-                            !hasValidPhoto
-                                ? Icon(
-                                  Icons.person,
-                                  size: 28 * scale,
-                                  color: AppColors.mediumGray,
-                                )
-                                : null,
+                        backgroundImage: hasValidPhoto
+                            ? NetworkImage(profile.photoUrl!)
+                            : null,
+                        child: !hasValidPhoto
+                            ? Icon(Icons.person,
+                                size: 28 * scale,
+                                color: AppColors.mediumGray)
+                            : null,
                       ),
                       SizedBox(width: 6 * scale),
-
-                      // Nome e Categoria
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,9 +162,7 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                             Padding(
                               padding: EdgeInsets.only(right: btnReserve),
                               child: Text(
-                                (profile.name).isEmpty
-                                    ? 'Atleta'
-                                    : profile.name,
+                                profile.name.isEmpty ? 'Atleta' : profile.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -165,8 +174,6 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                               ),
                             ),
                             SizedBox(height: 4 * scale),
-
-                            // Categoria: label decorado + valor/CTA fora
                             Row(
                               children: [
                                 Container(
@@ -176,9 +183,8 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: AppColors.lightBlue.withAlpha(50),
-                                    borderRadius: BorderRadius.circular(
-                                      8 * scale,
-                                    ),
+                                    borderRadius:
+                                        BorderRadius.circular(8 * scale),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -187,7 +193,10 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                                         'assets/icons/rewards.svg',
                                         width: 16 * scale,
                                         height: 16 * scale,
-                                        color: AppColors.darkBlue,
+                                        colorFilter: ColorFilter.mode(
+                                          AppColors.darkBlue,
+                                          BlendMode.srcIn,
+                                        ),
                                       ),
                                       SizedBox(width: 4 * scale),
                                       Text(
@@ -203,7 +212,6 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                                   ),
                                 ),
                                 SizedBox(width: 6 * scale),
-
                                 if ((profile.category ?? '').trim().isNotEmpty)
                                   Expanded(
                                     child: Text(
@@ -223,8 +231,8 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                                         text: 'Complete seu perfil',
                                         iconData: Icons.add,
                                         fontSize: 12 * scale,
-                                        onPressed:
-                                            () => _goToEditProfile(context),
+                                        onPressed: () =>
+                                            _goToEditProfile(context),
                                       ),
                                     ),
                                   ),
@@ -235,7 +243,6 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                       ),
                     ],
                   ),
-
                   Positioned(top: 0, right: 0, child: editBtn),
                 ],
               ),
@@ -262,11 +269,9 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.search,
-                                size: 16 * scale,
-                                color: AppColors.darkBlue,
-                              ),
+                              Icon(Icons.search,
+                                  size: 16 * scale,
+                                  color: AppColors.darkBlue),
                               SizedBox(width: 4 * scale),
                               Text(
                                 'Perfil Referência:',
@@ -281,28 +286,15 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                           ),
                         ),
                         SizedBox(height: 4 * scale),
-                        if (profile.reference != null) ...[
-                          Text(
-                            profile.reference!.gender,
-                            style: TextStyle(color: AppColors.darkText),
-                          ),
-                          Text(
-                            profile.reference!.ageRange,
-                            style: TextStyle(color: AppColors.darkText),
-                          ),
-                          Text(
-                            profile.reference!.weightRange,
-                            style: TextStyle(color: AppColors.darkText),
-                          ),
-                          Text(
-                            profile.reference!.practiceYears,
-                            style: TextStyle(color: AppColors.darkText),
-                          ),
-                          Text(
-                            profile.reference!.heightRange,
-                            style: TextStyle(color: AppColors.darkText),
-                          ),
-                        ] else
+                        if (refLines.isNotEmpty)
+                          ...refLines.map((line) => Text(
+                                line,
+                                style: TextStyle(
+                                  fontSize: 12 * scale,
+                                  color: AppColors.darkText,
+                                ),
+                              ))
+                        else
                           IconTextActionButton(
                             text: 'Complete seu perfil',
                             iconData: Icons.add,
@@ -332,7 +324,7 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                         ),
                       ),
                       TextSpan(
-                        text: '${(pct * 100).round()}% completo',
+                        text: '$pctLabel completo',
                         style: TextStyle(
                           fontFamily: AppFonts.roboto,
                           fontWeight: AppFontWeight.regular,
@@ -354,14 +346,13 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                           minHeight: 6 * scale,
                           backgroundColor: AppColors.lightGray,
                           valueColor: const AlwaysStoppedAnimation(
-                            AppColors.baseBlue,
-                          ),
+                              AppColors.baseBlue),
                         ),
                       ),
                     ),
                     SizedBox(width: 8 * scale),
                     Text(
-                      '${(pct * 100).round()}%',
+                      pctLabel,
                       style: TextStyle(
                         fontSize: 12 * scale,
                         color: AppColors.darkText,
@@ -380,17 +371,12 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                   if (pct < 1.0) ...[
                     OutlinedButton.icon(
                       onPressed: () => _goToEditProfile(context),
-                      icon: Icon(
-                        Icons.edit,
-                        size: 14 * scale,
-                        color: AppColors.baseBlue,
-                      ),
+                      icon: Icon(Icons.edit,
+                          size: 14 * scale, color: AppColors.baseBlue),
                       label: Text(
                         'Completar Perfil',
                         style: TextStyle(
-                          fontSize: 11 * scale,
-                          color: AppColors.baseBlue,
-                        ),
+                            fontSize: 11 * scale, color: AppColors.baseBlue),
                       ),
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.symmetric(
@@ -408,20 +394,14 @@ class _AthleteInfoSectionState extends State<AthleteInfoSection> {
                     SizedBox(width: 6 * scale),
                   ],
                   OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pushNamed(context, AppRoutes.athleteSettings);
-                    },
-                    icon: Icon(
-                      Icons.settings,
-                      size: 14 * scale,
-                      color: AppColors.baseBlue,
-                    ),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, AppRoutes.athleteSettings),
+                    icon: Icon(Icons.settings,
+                        size: 14 * scale, color: AppColors.baseBlue),
                     label: Text(
                       'Configurações',
                       style: TextStyle(
-                        fontSize: 11 * scale,
-                        color: AppColors.baseBlue,
-                      ),
+                          fontSize: 11 * scale, color: AppColors.baseBlue),
                     ),
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.symmetric(

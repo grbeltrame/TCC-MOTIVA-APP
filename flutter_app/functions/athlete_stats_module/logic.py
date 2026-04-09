@@ -15,8 +15,8 @@ _TZ_BRAZIL = ZoneInfo('America/Sao_Paulo')
 _REST_PREFIX   = '_REST'
 _OTHER_PREFIX  = '_OTHER'
 
-# Dia de início da semana: segunda-feira (0 = segunda, 6 = domingo)
-_WEEK_START_WEEKDAY = 0  # segunda-feira
+# Dia de início da semana: domingo (0 = segunda, 6 = domingo em Python weekday())
+_WEEK_START_WEEKDAY = 6  # domingo
 
 
 # ==============================================================================
@@ -30,10 +30,16 @@ def _date_key(dt: datetime) -> str:
 def _week_bounds(ref: datetime) -> tuple:
     """
     Retorna (start, end) da semana que contém `ref`.
-    Semana: segunda-feira → domingo.
+    Semana: domingo → sábado.
+
+    Python weekday(): seg=0, ter=1, qua=2, qui=3, sex=4, sáb=5, dom=6
+    Fórmula: (weekday() + 1) % 7
+      dom(6) → (6+1)%7 = 0  → 0 dias antes do início  ✓
+      seg(0) → (0+1)%7 = 1  → 1 dia  antes do início  ✓
+      sáb(5) → (5+1)%7 = 6  → 6 dias antes do início  ✓
     """
-    days_since_monday = ref.weekday()  # 0=seg, 6=dom
-    start = ref - timedelta(days=days_since_monday)
+    days_since_sunday = (ref.weekday() + 1) % 7
+    start = ref - timedelta(days=days_since_sunday)
     end   = start + timedelta(days=6)
     return (
         start.replace(hour=0,  minute=0,  second=0,  microsecond=0),

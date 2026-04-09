@@ -108,6 +108,44 @@ class AthleteResultRecord {
 }
 
 // =============================================================================
+// TodayRecord — registro genérico de qualquer atividade do dia
+// =============================================================================
+
+class TodayRecord {
+  final String docId;
+  final Map<String, dynamic> raw;
+
+  const TodayRecord({required this.docId, required this.raw});
+
+  /// Tipo do registro: 'rest', 'other_activity', 'WOD', 'LPO', etc.
+  String get type {
+    final t = raw['type']?.toString();
+    if (t != null && t.isNotEmpty) return t;
+    return raw['wodType']?.toString() ?? 'WOD';
+  }
+
+  bool get isRest => type == 'rest';
+  bool get isOtherActivity => type == 'other_activity';
+  bool get isWod => !isRest && !isOtherActivity;
+
+  String get displayName {
+    if (isRest) return 'Descanso';
+    if (isOtherActivity) return raw['activity']?.toString() ?? 'Outra atividade';
+    final name = raw['wodName']?.toString() ?? '';
+    return name.isNotEmpty ? name : (raw['wodType']?.toString() ?? 'Treino');
+  }
+
+  String get trainingTime => raw['trainingTime']?.toString() ?? '';
+
+  int get effort => (raw['effort'] as num?)?.toInt() ?? 5;
+
+  AthleteResultRecord? toAthleteResultRecord() {
+    if (!isWod) return null;
+    return AthleteResultRecord.fromFirestore(raw);
+  }
+}
+
+// =============================================================================
 // EffortService
 // =============================================================================
 
@@ -154,11 +192,55 @@ class EffortService {
     try {
       final date = DateTime.parse(record.date);
       final docId = _docId(date, record.wodType);
-      await _resultsRef.doc(docId).set(record.toFirestore());
+      await Future.wait([
+        _resultsRef.doc(docId).set(record.toFirestore()),
+        deleteRestIfExists(date),
+      ]);
       print('✅ Resultado salvo: \$docId');
     } catch (e) {
       print('ERRO submitResult: \$e');
       rethrow;
+    }
+  }
+
+  /// Retorna todos os registros de uma data (WOD, REST, OTHER, etc.)
+  static Future<List<TodayRecord>> fetchAllRecordsForDate(DateTime date) async {
+    try {
+      final snap = await _resultsRef
+          .where('date', isEqualTo: _dateKey(date))
+          .get();
+      return snap.docs
+          .map((doc) => TodayRecord(docId: doc.id, raw: doc.data()))
+          .toList();
+    } catch (e) {
+      print('ERRO fetchAllRecordsForDate: \$e');
+      return [];
+    }
+  }
+
+  /// Apaga um registro pelo ID do documento.
+  static Future<void> deleteRecord(String docId) async {
+    try {
+      await _resultsRef.doc(docId).delete();
+    } catch (e) {
+      print('ERRO deleteRecord: \$e');
+      rethrow;
+    }
+  }
+
+  /// Remove o registro de descanso (_REST) de uma data, se existir.
+  /// Deve ser chamado sempre que um treino real for registrado.
+  static Future<void> deleteRestIfExists(DateTime date) async {
+    try {
+      final dateKey = _dateKey(date);
+      final doc = await _resultsRef.doc('${dateKey}_REST').get();
+      if (doc.exists) {
+        await _resultsRef.doc('${dateKey}_REST').delete();
+        print('🗑️ REST removido para $dateKey');
+      }
+    } catch (e) {
+      print('ERRO deleteRestIfExists: \$e');
+      // Não relança — falha silenciosa para não bloquear o registro
     }
   }
 

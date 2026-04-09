@@ -50,7 +50,7 @@ class WeekFrequencyCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.montserrat,
                     fontWeight: FontWeight.bold,
-                    fontSize: 44 * scale,
+                    fontSize: 36 * scale,
                     color: AppColors.darkBlue,
                     height: 1,
                   ),

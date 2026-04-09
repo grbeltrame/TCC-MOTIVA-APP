@@ -12,7 +12,7 @@ class InsightModel {
   InsightModel({required this.type, required this.message});
 }
 
-/// Intervalo da semana (seg → dom).
+/// Intervalo da semana (dom → sáb).
 class WeekRange {
   final DateTime start;
   final DateTime end;
@@ -59,16 +59,21 @@ class EffortModel {
 // =============================================================================
 
 class WeeklySummaryService {
-  /// Semana atual (seg → dom) calculada localmente — sem Firestore.
+  /// Semana atual (dom → sáb) calculada localmente — sem Firestore.
+  ///
+  /// Dart weekday: seg=1, ter=2, qua=3, qui=4, sex=5, sáb=6, dom=7
+  /// Fórmula: now.weekday % 7
+  ///   dom(7) → 7%7 = 0 → 0 dias antes do domingo  ✓
+  ///   seg(1) → 1%7 = 1 → 1 dia  antes do domingo  ✓
+  ///   sáb(6) → 6%7 = 6 → 6 dias antes do domingo  ✓ (último dia da semana)
   WeekRange fetchCurrentWeekRange() {
     final now = DateTime.now();
-    // weekday: 1=seg, 7=dom
-    final daysFromMonday = now.weekday - 1;
-    final monday = now.subtract(Duration(days: daysFromMonday));
-    final sunday = monday.add(const Duration(days: 6));
+    final daysFromSunday = now.weekday % 7;
+    final sunday = now.subtract(Duration(days: daysFromSunday));
+    final saturday = sunday.add(const Duration(days: 6));
     return WeekRange(
-      monday.copyWith(hour: 0, minute: 0, second: 0, microsecond: 0),
-      sunday.copyWith(hour: 23, minute: 59, second: 59, microsecond: 0),
+      sunday.copyWith(hour: 0, minute: 0, second: 0, microsecond: 0),
+      saturday.copyWith(hour: 23, minute: 59, second: 59, microsecond: 0),
     );
   }
 

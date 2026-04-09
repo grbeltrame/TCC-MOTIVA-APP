@@ -5,11 +5,12 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/effort_service.dart';
 import 'package:flutter_app/core/services/pending_actions_service.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/today_records_bottom_sheet.dart';
 
 /// Banner de resultado/pendência do treino.
 ///
-/// Estado 1 — não registrou → card magenta com CTA "Registrar agora"
-/// Estado 2 — já registrou  → card azul mostrando resumo do esforço
+/// Estado 1 — sem registros → card magenta com CTA "Registrar agora"
+/// Estado 2 — tem registros → card azul "X treinos cadastrados hoje" + ver tudo
 class PendingActionsSection extends StatefulWidget {
   final double? bottomSpacing;
 
@@ -20,7 +21,6 @@ class PendingActionsSection extends StatefulWidget {
 }
 
 class _PendingActionsSectionState extends State<PendingActionsSection> {
-  // Carrega as duas fontes em paralelo
   late Future<_SectionData> _future;
 
   @override
@@ -32,15 +32,14 @@ class _PendingActionsSectionState extends State<PendingActionsSection> {
   Future<_SectionData> _load() async {
     final results = await Future.wait([
       PendingActionsService.fetchTopPendingForToday(),
-      EffortService.fetchTodayResult(wodType: 'WOD'),
+      EffortService.fetchAllRecordsForDate(DateTime.now()),
     ]);
     return _SectionData(
       pending: results[0] as PendingAction?,
-      record: results[1] as AthleteResultRecord?,
+      records: results[1] as List<TodayRecord>,
     );
   }
 
-  /// Recarrega após o atleta registrar — chamado pelo CTA
   void _reload() {
     final newFuture = _load();
     setState(() {
@@ -63,20 +62,34 @@ class _PendingActionsSectionState extends State<PendingActionsSection> {
         final data = snap.data;
         if (data == null) return const SizedBox.shrink();
 
-        // ── Estado 2: já registrou ──────────────────────────────────────────
-        if (data.record != null) {
+        // ── Estado 2: tem registros ─────────────────────────────────────────
+        if (data.records.isNotEmpty) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _RegisteredCard(
-                record: data.record!,
+                records: data.records,
                 scale: scale,
-                onEdit: () async {
+                onViewAll: () async {
+                  await showTodayRecordsBottomSheet(
+                    context,
+                    initialRecords: data.records,
+                    onChanged: () {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _reload();
+                      });
+                    },
+                  );
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _reload();
+                  });
+                },
+                onRegisterNew: () async {
                   await showRegisterResultBottomSheet(
                     context,
-                    existingRecord: data.record,
+                    hasExistingRecords: true,
+                    parentContext: context,
                   );
-                  // Adia o reload para fora do contexto de build atual
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted) _reload();
                   });
@@ -87,7 +100,7 @@ class _PendingActionsSectionState extends State<PendingActionsSection> {
           );
         }
 
-        // ── Estado 1: não registrou ─────────────────────────────────────────
+        // ── Estado 1: sem registros ─────────────────────────────────────────
         if (data.pending != null) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -95,14 +108,25 @@ class _PendingActionsSectionState extends State<PendingActionsSection> {
               _PendingCard(
                 action: data.pending!,
                 scale: scale,
-                onRegistered: _reload,
+                // Abre o sheet usando o context estável do State (não do card),
+                // e aguarda TODO o fluxo (incluindo dialogs subsequentes) antes
+                // de recarregar — evita desmontar o card enquanto dialogs estão abertos.
+                onTapCta: () async {
+                  await showRegisterResultBottomSheet(
+                    context,
+                    hasExistingRecords: false,
+                    parentContext: context,
+                  );
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _reload();
+                  });
+                },
               ),
               SizedBox(height: spacing),
             ],
           );
         }
 
-        // Nenhum treino hoje — some
         return const SizedBox.shrink();
       },
     );
@@ -115,8 +139,8 @@ class _PendingActionsSectionState extends State<PendingActionsSection> {
 
 class _SectionData {
   final PendingAction? pending;
-  final AthleteResultRecord? record;
-  const _SectionData({this.pending, this.record});
+  final List<TodayRecord> records;
+  const _SectionData({this.pending, required this.records});
 }
 
 // =============================================================================
@@ -126,12 +150,12 @@ class _SectionData {
 class _PendingCard extends StatelessWidget {
   final PendingAction action;
   final double scale;
-  final VoidCallback onRegistered;
+  final VoidCallback onTapCta;
 
   const _PendingCard({
     required this.action,
     required this.scale,
-    required this.onRegistered,
+    required this.onTapCta,
   });
 
   @override
@@ -162,16 +186,7 @@ class _PendingCard extends StatelessWidget {
           ),
           SizedBox(height: 6 * scale),
           TextButton.icon(
-            onPressed: () async {
-              if (action.onTap != null) {
-                await action.onTap!(context);
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (onRegistered is Function) onRegistered();
-                });
-              } else if (action.route.isNotEmpty) {
-                Navigator.of(context).pushNamed(action.route);
-              }
-            },
+            onPressed: onTapCta,
             icon: Icon(
               action.ctaIcon,
               color: AppColors.baseBlue,
@@ -199,51 +214,27 @@ class _PendingCard extends StatelessWidget {
 }
 
 // =============================================================================
-// Card — Estado 2: registrado (azul)
+// Card — Estado 2: tem registros (azul)
 // =============================================================================
 
 class _RegisteredCard extends StatelessWidget {
-  final AthleteResultRecord record;
+  final List<TodayRecord> records;
   final double scale;
-  final VoidCallback onEdit;
+  final VoidCallback onViewAll;
+  final VoidCallback onRegisterNew;
 
   const _RegisteredCard({
-    required this.record,
+    required this.records,
     required this.scale,
-    required this.onEdit,
+    required this.onViewAll,
+    required this.onRegisterNew,
   });
-
-  // Formata mm:ss a partir de segundos
-  String _fmtTime(int sec) {
-    final m = (sec ~/ 60).toString().padLeft(2, '0');
-    final s = (sec % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
-  // Linha de resultado condicional por modalidade
-  String? _resultLine() {
-    if (record.modalidade == 'FOR TIME' && record.forTimeSec != null) {
-      return 'Tempo: ${_fmtTime(record.forTimeSec!)}';
-    }
-    if (record.modalidade == 'AMRAP') {
-      final r = record.amrapRounds;
-      final rp = record.amrapReps;
-      if (r != null && rp != null) return '$r rounds + $rp reps';
-      if (r != null) return '$r rounds';
-    }
-    if (record.modalidade == 'EMOM') {
-      final completed = record.emomCompletedRounds == null;
-      return completed
-          ? 'Completou todos os rounds'
-          : '${record.emomCompletedRounds} min completados';
-    }
-    return null;
-  }
 
   @override
   Widget build(BuildContext context) {
-    final kBlue = const Color(0xFF224DFF);
-    final resultLine = _resultLine();
+    const kBlue = Color(0xFF224DFF);
+    final count = records.length;
+    final isRestOnly = records.length == 1 && records.first.isRest;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -258,7 +249,7 @@ class _RegisteredCard extends StatelessWidget {
         border: Border.all(color: kBlue, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: kBlue.withOpacity(0.06),
+            color: kBlue.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -267,9 +258,9 @@ class _RegisteredCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label "Seu esforço de hoje"
+          // Label
           Text(
-            'Seu esforço de hoje',
+            'Atividades de hoje',
             style: TextStyle(
               fontFamily: AppFonts.roboto,
               fontSize: 11 * scale,
@@ -280,76 +271,82 @@ class _RegisteredCard extends StatelessWidget {
           ),
           SizedBox(height: 6 * scale),
 
-          // Nome do WOD + categoria + horário
+          // Texto principal
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  record.wodName ?? record.wodType,
-                  style: TextStyle(
-                    fontFamily: AppFonts.roboto,
-                    fontWeight: AppFontWeight.bold,
-                    fontSize: 15 * scale,
-                    color: AppColors.darkText,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              if (isRestOnly) ...[
+                Icon(
+                  Icons.bedtime_outlined,
+                  size: 16 * scale,
+                  color: AppColors.darkText,
                 ),
-              ),
+                SizedBox(width: 6 * scale),
+              ],
               Text(
-                record.trainingTime,
+                isRestOnly
+                    ? 'Dia de descanso'
+                    : 'Você tem $count registro${count > 1 ? 's' : ''} hoje',
                 style: TextStyle(
                   fontFamily: AppFonts.roboto,
-                  fontSize: 12 * scale,
-                  color: AppColors.mediumGray,
+                  fontWeight: AppFontWeight.bold,
+                  fontSize: 15 * scale,
+                  color: AppColors.darkText,
                 ),
               ),
             ],
           ),
 
-          // Categoria + resultado
-          SizedBox(height: 4 * scale),
-          Wrap(
-            spacing: 6 * scale,
-            children: [
-              _SmallChip(label: record.category, scale: scale),
-              if (record.adapted) _SmallChip(label: 'Adaptado', scale: scale),
-              if (resultLine != null)
-                _SmallChip(label: resultLine, scale: scale),
-            ],
-          ),
-
-          SizedBox(height: 10 * scale),
-
-          // Barra de esforço
-          _EffortBar(effort: record.effort, scale: scale),
-
           SizedBox(height: 8 * scale),
-          Divider(color: AppColors.mediumGray.withOpacity(0.15), height: 1),
+          Divider(color: AppColors.mediumGray.withValues(alpha: 0.15), height: 1),
           SizedBox(height: 6 * scale),
 
-          // Botão editar — alinhado à direita, padrão dos outros CTAs
-          GestureDetector(
-            onTap: onEdit,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  'Editar registro',
-                  style: TextStyle(
-                    fontFamily: AppFonts.roboto,
-                    fontSize: 11 * scale,
-                    color: AppColors.baseBlue,
-                    fontWeight: AppFontWeight.bold,
-                  ),
+          // Botões de ação
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: onRegisterNew,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, size: 12 * scale, color: AppColors.baseBlue),
+                    SizedBox(width: 3 * scale),
+                    Text(
+                      'Registrar novo',
+                      style: TextStyle(
+                        fontFamily: AppFonts.roboto,
+                        fontSize: 11 * scale,
+                        color: AppColors.baseBlue,
+                        fontWeight: AppFontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 3 * scale),
-                Icon(
-                  Icons.edit_outlined,
-                  size: 12 * scale,
-                  color: AppColors.baseBlue,
+              ),
+              GestureDetector(
+                onTap: onViewAll,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Ver registros',
+                      style: TextStyle(
+                        fontFamily: AppFonts.roboto,
+                        fontSize: 11 * scale,
+                        color: AppColors.baseBlue,
+                        fontWeight: AppFontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(width: 3 * scale),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 14 * scale,
+                      color: AppColors.baseBlue,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -357,83 +354,4 @@ class _RegisteredCard extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// Barra de esforço visual
-// =============================================================================
 
-class _EffortBar extends StatelessWidget {
-  final int effort; // 1-10
-  final double scale;
-
-  const _EffortBar({required this.effort, required this.scale});
-
-  Color get _color {
-    if (effort < 5) return const Color(0xFF224DFF);
-    if (effort == 5) return AppColors.mediumGray;
-    return Colors.red;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4 * scale),
-            child: LinearProgressIndicator(
-              value: effort / 10,
-              minHeight: 6 * scale,
-              backgroundColor: AppColors.mediumGray.withOpacity(0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(_color),
-            ),
-          ),
-        ),
-        SizedBox(width: 8 * scale),
-        Text(
-          '$effort/10',
-          style: TextStyle(
-            fontFamily: AppFonts.roboto,
-            fontWeight: AppFontWeight.bold,
-            fontSize: 12 * scale,
-            color: _color,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// =============================================================================
-// Chip pequeno de info
-// =============================================================================
-
-class _SmallChip extends StatelessWidget {
-  final String label;
-  final double scale;
-
-  const _SmallChip({required this.label, required this.scale});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 7 * scale, vertical: 3 * scale),
-      decoration: BoxDecoration(
-        color: AppColors.baseBlue.withOpacity(0.07),
-        borderRadius: BorderRadius.circular(20 * scale),
-        border: Border.all(
-          color: AppColors.baseBlue.withOpacity(0.2),
-          width: 0.8,
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontFamily: AppFonts.roboto,
-          fontSize: 11 * scale,
-          color: AppColors.baseBlue,
-          fontWeight: AppFontWeight.medium,
-        ),
-      ),
-    );
-  }
-}
