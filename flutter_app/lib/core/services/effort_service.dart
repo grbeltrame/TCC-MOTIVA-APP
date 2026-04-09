@@ -2,6 +2,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_app/core/services/athlete_stats_service.dart';
 import 'package:flutter_app/core/services/weekly_summary_service.dart';
 
 /// Um ponto por dia, com valor de esforço (1–10)
@@ -16,34 +17,28 @@ class DailyEffort {
 // =============================================================================
 
 class AthleteResultRecord {
-  // Referência ao treino
-  final String date; // "2026-03-16"
-  final String wodType; // "WOD" | "LPO" | "Ginástica" | "Endurance"
-  final String? wodName; // "HEAVEN IN HELL"
-  final String? modalidade; // "FOR TIME" | "AMRAP" | "EMOM"
-  final List<String> keyMetrics; // ["Força", "Potência"]
-  final String? trainingDocId; // ID do doc em exercises/
+  final String date;
+  final String wodType;
+  final String? wodName;
+  final String? modalidade;
+  final List<String> keyMetrics;
+  final String? trainingDocId;
 
-  // Registro do atleta
-  final String trainingTime; // "06:30"
-  final String category; // "Iniciante" | "Scale" | "Intermediário" | "RX"
+  final String trainingTime;
+  final String category;
   final bool adapted;
   final bool completed;
 
-  // Resultado condicional por modalidade
   final int? forTimeSec;
   final int? amrapRounds;
   final int? amrapReps;
   final int? emomCompletedRounds;
 
-  // Esforço
-  final int effort; // 1-10
+  final int effort;
 
-  // Adaptações
   final List<Map<String, dynamic>> adaptations;
 
-  // Metadados
-  final String? dayOfWeek; // "QUARTA FEIRA"
+  final String? dayOfWeek;
 
   const AthleteResultRecord({
     required this.date,
@@ -66,38 +61,26 @@ class AthleteResultRecord {
   });
 
   Map<String, dynamic> toFirestore() => {
-    // Referência ao treino
     'date': date,
     'wodType': wodType,
     'wodName': wodName,
     'modalidade': modalidade,
     'keyMetrics': keyMetrics,
     'trainingDocId': trainingDocId,
-
-    // Registro do atleta
     'trainingTime': trainingTime,
     'category': category,
     'adapted': adapted,
     'completed': completed,
-
-    // Resultado condicional
     'forTimeSec': forTimeSec,
     'amrapRounds': amrapRounds,
     'amrapReps': amrapReps,
     'emomCompletedRounds': emomCompletedRounds,
-
-    // Esforço
     'effort': effort,
-
-    // Adaptações
     'adaptations': adaptations,
-
-    // Metadados para IA
     'dayOfWeek': dayOfWeek,
     'registeredAt': FieldValue.serverTimestamp(),
   };
 
-  /// Reconstrói o model a partir de um documento do Firestore.
   factory AthleteResultRecord.fromFirestore(Map<String, dynamic> data) {
     return AthleteResultRecord(
       date: data['date'] ?? '',
@@ -129,36 +112,27 @@ class AthleteResultRecord {
 // =============================================================================
 
 class EffortService {
-  // ── Helpers internos ────────────────────────────────────────────────────────
-
-  /// UID do usuário logado. Lança se não estiver logado.
   static String get _uid {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw Exception('Usuário não logado');
     return uid;
   }
 
-  /// Referência à subcoleção results do atleta logado.
   static CollectionReference<Map<String, dynamic>> get _resultsRef =>
       FirebaseFirestore.instance
           .collection('users')
           .doc(_uid)
           .collection('results');
 
-  /// Formata a data como "yyyy-MM-dd" para uso como chave.
   static String _dateKey(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
+      "${date.year}-${date.month.toString().padLeft(2, '0')}-"
+      "${date.day.toString().padLeft(2, '0')}";
 
-  /// ID do documento: "{date}_{wodType}" — ex: "2026-03-16_WOD"
   static String _docId(DateTime date, String wodType) =>
-      '${_dateKey(date)}_$wodType';
+      "${_dateKey(date)}_$wodType";
 
-  // ── Métodos de leitura ──────────────────────────────────────────────────────
+  // ── Leitura ─────────────────────────────────────────────────────────────────
 
-  /// Verifica se o atleta já registrou o resultado do WOD de hoje.
-  /// Retorna o registro se existir, null se não existir.
-  /// Usado pelo PendingActionsService para decidir o estado do card.
   static Future<AthleteResultRecord?> fetchTodayResult({
     DateTime? date,
     String wodType = 'WOD',
@@ -169,58 +143,64 @@ class EffortService {
       if (!doc.exists || doc.data() == null) return null;
       return AthleteResultRecord.fromFirestore(doc.data()!);
     } catch (e) {
-      print('ERRO fetchTodayResult: $e');
+      print('ERRO fetchTodayResult: \$e');
       return null;
     }
   }
 
-  // ── Métodos de escrita ──────────────────────────────────────────────────────
+  // ── Escrita ──────────────────────────────────────────────────────────────────
 
-  /// Salva o resultado completo do atleta em users/{uid}/results/{date}_{wodType}.
-  /// Sobrescreve se já existir (atleta pode editar o registro do dia).
   static Future<void> submitResult(AthleteResultRecord record) async {
     try {
       final date = DateTime.parse(record.date);
       final docId = _docId(date, record.wodType);
       await _resultsRef.doc(docId).set(record.toFirestore());
-      print('✅ Resultado salvo: $docId');
+      print('✅ Resultado salvo: \$docId');
     } catch (e) {
-      print('ERRO submitResult: $e');
-      rethrow; // propaga para o UI tratar
+      print('ERRO submitResult: \$e');
+      rethrow;
     }
   }
 
-  // ── Métodos existentes mantidos ─────────────────────────────────────────────
+  // ── Série semanal de esforço — agora usa dados reais ────────────────────────
 
-  /// Retorna 7 pontos (domingo→sábado) com valores hard‑coded por enquanto.
-  /// TODO: trocar por leitura real de users/{uid}/results/ quando fase 2 chegar.
+  /// Retorna os pontos de esforço da semana informada.
+  /// Substitui o mock hard-coded anterior.
   Future<List<DailyEffort>> fetchWeeklyEffortSeries(WeekRange week) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    final start = week.start;
-    return List.generate(7, (i) {
-      final dia = start.add(Duration(days: i));
-      final raw = 50 + i * 5;
-      final scaled = raw / 10;
-      return DailyEffort(dia, scaled.clamp(1.0, 10.0));
-    });
+    return AthleteStatsService.fetchEffortSeries(
+      from: week.start,
+      to: week.end,
+    );
   }
 
-  /// Valor padrão do esforço (1..10).
-  /// TODO: buscar último registro do atleta quando fase 2 chegar.
+  // ── Esforço padrão para o slider ────────────────────────────────────────────
+
+  /// Retorna o esforço do último treino registrado como valor inicial do slider.
   Future<int> fetchDefaultEffort() async {
-    await Future.delayed(const Duration(milliseconds: 120));
-    return 5;
+    try {
+      final snap =
+          await _resultsRef
+              .orderBy('registeredAt', descending: true)
+              .limit(1)
+              .get();
+      if (snap.docs.isEmpty) return 5;
+      final effort = snap.docs.first.data()['effort'];
+      if (effort == null) return 5;
+      return (effort as num).toInt().clamp(1, 10);
+    } catch (e) {
+      print('ERRO fetchDefaultEffort: \$e');
+      return 5;
+    }
   }
 
-  /// Mantido por compatibilidade — redireciona para submitResult.
+  // ── Mantido por compatibilidade ──────────────────────────────────────────────
+
   /// @deprecated Use submitResult() diretamente.
   Future<void> submitEffort({
     required int effort,
     String? classId,
     required DateTime date,
   }) async {
-    // Mantido para não quebrar referências existentes enquanto
-    // o register_result_bottom_sheet não for refatorado (passo 3).
     await Future.delayed(const Duration(milliseconds: 240));
   }
 }

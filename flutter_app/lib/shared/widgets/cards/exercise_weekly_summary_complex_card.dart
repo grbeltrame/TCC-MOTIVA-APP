@@ -9,7 +9,16 @@ import 'package:flutter_app/core/services/weekly_summary_service.dart'
     show StimulusCount;
 
 class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
-  const ExerciseWeeklySummaryComplexCard({Key? key}) : super(key: key);
+  final DateTime? from;
+  final DateTime? to;
+  const ExerciseWeeklySummaryComplexCard({Key? key, this.from, this.to})
+      : super(key: key);
+
+  static const _pieColors = [
+    AppColors.baseMagenta,
+    AppColors.baseBlue,
+    AppColors.darkBlue,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +30,10 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
     final gap = screenW * 0.06;
 
     return FutureBuilder<ComplexExerciseSummary>(
-      future: ExerciseWeeklySummaryService.fetchComplexSummary(),
+      future: ExerciseWeeklySummaryService.fetchComplexSummary(
+        from: from,
+        to: to,
+      ),
       builder: (ctx, snap) {
         if (snap.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
@@ -48,89 +60,126 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                 horizontal: 16 * scale,
                 vertical: 4 * scale,
               ),
-              child: SizedBox(
-                height: indicatorW,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Coluna 1: gráfico de pizza dos estímulos
-                    SizedBox(
-                      width: indicatorW,
-                      height: indicatorW,
-                      child: SfCircularChart(
-                        palette: [
-                          AppColors.baseMagenta,
-                          AppColors.baseBlue,
-                          AppColors.darkBlue,
-                        ],
-                        series: <PieSeries<StimulusCount, String>>[
-                          PieSeries<StimulusCount, String>(
-                            dataSource: summary.distribution,
-                            xValueMapper: (d, _) => d.name,
-                            yValueMapper: (d, _) => d.count,
-                            dataLabelMapper: (d, _) => d.name.substring(0, 1),
-                            dataLabelSettings: DataLabelSettings(
-                              isVisible: true,
-                              labelPosition: ChartDataLabelPosition.inside,
-                              textStyle: TextStyle(
-                                fontSize: 12 * scale,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    height: indicatorW,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Coluna 1: gráfico de pizza dos estímulos
+                        SizedBox(
+                          width: indicatorW,
+                          height: indicatorW,
+                          child: SfCircularChart(
+                            palette: _pieColors,
+                            series: <PieSeries<StimulusCount, String>>[
+                              PieSeries<StimulusCount, String>(
+                                dataSource: summary.distribution,
+                                xValueMapper: (d, _) => d.name,
+                                yValueMapper: (d, _) => d.count,
+                                dataLabelMapper: (d, _) => d.name.substring(0, 1),
+                                dataLabelSettings: DataLabelSettings(
+                                  isVisible: true,
+                                  labelPosition: ChartDataLabelPosition.inside,
+                                  textStyle: TextStyle(
+                                    fontSize: 12 * scale,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                radius: '100%',
                               ),
-                            ),
-                            radius: '100%',
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+
+                        SizedBox(width: gap),
+
+                        // Coluna 2: textos alinhados verticalmente ao centro
+                        Expanded(
+                          child: SizedBox(
+                            height: indicatorW,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Olá, ${summary.userName}!',
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.roboto,
+                                    fontWeight: AppFontWeight.bold,
+                                    fontSize: 14 * scale,
+                                    color: AppColors.darkText,
+                                  ),
+                                ),
+                                SizedBox(height: 4 * scale),
+
+                                Text(
+                                  'Essa é a sua distribuição de estímulos da semana',
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.roboto,
+                                    fontWeight: AppFontWeight.regular,
+                                    fontSize: 12 * scale,
+                                    color: AppColors.darkText,
+                                  ),
+                                ),
+                                SizedBox(height: 4 * scale),
+
+                                Text(
+                                  '${summary.predominantStimulus} – ${summary.shortInsight}',
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.roboto,
+                                    fontWeight: AppFontWeight.medium,
+                                    fontSize: 12 * scale,
+                                    color: AppColors.darkText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
 
-                    SizedBox(width: gap),
-
-                    // Coluna 2: textos alinhados verticalmente ao centro
-                    Expanded(
-                      child: SizedBox(
-                        height: indicatorW,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  // Legenda das cores do gráfico
+                  if (summary.distribution.isNotEmpty) ...[
+                    SizedBox(height: 8 * scale),
+                    Wrap(
+                      spacing: 10 * scale,
+                      runSpacing: 4 * scale,
+                      children: summary.distribution.asMap().entries.map((e) {
+                        final color = _pieColors[e.key % _pieColors.length];
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'Olá, ${summary.userName}!',
-                              style: TextStyle(
-                                fontFamily: AppFonts.roboto,
-                                fontWeight: AppFontWeight.bold,
-                                fontSize: 14 * scale,
-                                color: AppColors.darkText,
+                            Container(
+                              width: 8 * scale,
+                              height: 8 * scale,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
                               ),
                             ),
-                            SizedBox(height: 4 * scale),
-
+                            SizedBox(width: 4 * scale),
                             Text(
-                              'Essa é a sua distribuição de estímulos da semana',
+                              e.value.name,
                               style: TextStyle(
                                 fontFamily: AppFonts.roboto,
                                 fontWeight: AppFontWeight.regular,
-                                fontSize: 12 * scale,
-                                color: AppColors.darkText,
-                              ),
-                            ),
-                            SizedBox(height: 4 * scale),
-
-                            Text(
-                              '${summary.predominantStimulus} – ${summary.shortInsight}',
-                              style: TextStyle(
-                                fontFamily: AppFonts.roboto,
-                                fontWeight: AppFontWeight.medium,
-                                fontSize: 12 * scale,
+                                fontSize: 11 * scale,
                                 color: AppColors.darkText,
                               ),
                             ),
                           ],
-                        ),
-                      ),
+                        );
+                      }).toList(),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
           ),

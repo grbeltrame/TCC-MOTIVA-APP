@@ -15,7 +15,6 @@ if not firebase_admin._apps:
 def process_workout_pdf(event):
     logging.info("process_workout_pdf triggered")
     try:
-        # import lazy da lógica de parsing — evita crash na inicialização
         from pdf_module import run_pdf_parser_logic
     except Exception:
         logging.exception("Falha ao importar pdf_module")
@@ -27,6 +26,7 @@ def process_workout_pdf(event):
         logging.exception("Erro ao executar run_pdf_parser_logic")
         raise
 
+
 @firestore_fn.on_document_written(
     document="exercises/{workoutId}",
     region="us-central1",
@@ -35,7 +35,6 @@ def process_workout_pdf(event):
 def analyze_workout_with_ai(event):
     logging.info("analyze_workout_with_ai triggered")
     try:
-        # import lazy do módulo de IA — pode falhar sem quebrar outras funções
         from ia_module import run_ai_analysis_logic
     except Exception:
         logging.exception("Falha ao importar ia_module; pulando análise de IA")
@@ -45,4 +44,30 @@ def analyze_workout_with_ai(event):
         run_ai_analysis_logic(event)
     except Exception:
         logging.exception("Erro ao executar run_ai_analysis_logic")
+        raise
+
+
+@firestore_fn.on_document_written(
+    document="users/{uid}/results/{resultId}",
+    region="us-central1",
+    memory=options.MemoryOption.MB_256,
+    timeout_sec=60
+)
+def update_athlete_stats(event):
+    """
+    Dispara sempre que um resultado de atleta é criado ou atualizado.
+    Recalcula users/{uid}/stats/summary com frequência, esforço médio,
+    estímulos e calendário da semana — sem LLM, só matemática.
+    """
+    logging.info("update_athlete_stats triggered")
+    try:
+        from athlete_stats_module import update_athlete_stats_logic
+    except Exception:
+        logging.exception("Falha ao importar athlete_stats_module")
+        return
+
+    try:
+        update_athlete_stats_logic(event)
+    except Exception:
+        logging.exception("Erro ao executar update_athlete_stats_logic")
         raise

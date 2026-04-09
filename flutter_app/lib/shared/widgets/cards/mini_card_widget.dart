@@ -12,8 +12,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 class MiniCardWidget extends StatelessWidget {
   final Widget iconWidget;
   final String title;
-  final String? tipo; // 1. MUDOU AQUI: Agora é opcional (String?)
-  final String? customValue; // 2. MUDOU AQUI: Nova variável de bypass
+  final String? tipo;
+  final String? customValue;
+  final DateTime? from;
+  final DateTime? to;
+  final String? trainingType;
   final Color backgroundColor;
   final Color borderColor;
   final Color iconColor;
@@ -26,8 +29,11 @@ class MiniCardWidget extends StatelessWidget {
     Key? key,
     required this.iconWidget,
     required this.title,
-    this.tipo, // 3. MUDOU AQUI: Tirou o required
-    this.customValue, // 4. MUDOU AQUI: Adicionado no construtor
+    this.tipo,
+    this.customValue,
+    this.from,
+    this.to,
+    this.trainingType,
     required this.backgroundColor,
     required this.borderColor,
     required this.iconColor,
@@ -42,10 +48,16 @@ class MiniCardWidget extends StatelessWidget {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return FutureBuilder<String>(
-      // 5. MUDOU AQUI: Se tem customValue, pula o serviço (fica null). Se não, chama normal.
       future:
           customValue != null
               ? null
+              : (from != null && to != null)
+              ? WeeklyStatsService.getStatForPeriod(
+                tipo: tipo!,
+                from: from!,
+                to: to!,
+                trainingType: trainingType,
+              )
               : (tipo == WeeklyStatsType.cargas ||
                   tipo == WeeklyStatsType.frequencia ||
                   tipo == WeeklyStatsType.esforco)

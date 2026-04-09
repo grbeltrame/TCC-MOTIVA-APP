@@ -1,24 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/sections/athlete/alerts_section.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/carousels/highlights_carousel.dart';
-import 'package:flutter_app/shared/widgets/sections/athlete/highlights_section.dart';
-import 'package:flutter_app/shared/widgets/monthly_summary_widget.dart';
-import 'package:flutter_app/shared/widgets/carousels/recomendations_carousel.dart';
-import 'package:flutter_app/core/services/recomendations_service.dart';
-import 'package:flutter_app/shared/widgets/sections/athlete/recomendations_section.dart';
-import 'package:flutter_app/shared/widgets/sections/athlete/suggested_goal_section.dart';
-import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
-import 'package:flutter_app/shared/widgets/carousels/alerts_carousel.dart';
-import 'package:flutter_app/core/services/alerts_service.dart';
-import 'package:flutter_app/core/services/highlights_service.dart';
-import 'package:flutter_app/shared/widgets/weekly_summary_widget.dart';
+// lib/features/user/athlete/athlete_insights_screen.dart
 
-final _alertsService = AlertsService();
-final _highlightsService = HighlightsService();
-final _recomendationsService = RecomendationsService();
+import 'package:flutter/material.dart';
+import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/services/athlete_stats_service.dart';
+import 'package:flutter_app/shared/widgets/cards/week_calendar_card.dart';
+import 'package:flutter_app/shared/widgets/cards/week_effort_card.dart';
+import 'package:flutter_app/shared/widgets/cards/week_frequency_card.dart';
+import 'package:flutter_app/shared/widgets/cards/week_stimuli_card.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/alerts_section.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/highlights_section.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/recomendations_section.dart';
+import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
+import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 
 class AthleteInsightScreen extends StatefulWidget {
   static const routeName = '/athlete_insight';
@@ -29,40 +23,21 @@ class AthleteInsightScreen extends StatefulWidget {
 }
 
 class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
-  late Future<List<AlertModel>> _futureAlerts;
-  late Future<Set<String>> _futureEnabledTypes;
-
-  late Future<List<HighlightModel>> _futureHighlights;
-  late Future<Set<String>> _fetchEnabledHighlightsTypes;
-
-  late Future<List<RecomendationModel>> _futureRecomendations;
-  late Future<Set<String>> _fetchEnabledRecomendationsTypes;
-
-  final ScrollController _scrollController = ScrollController();
+  late Future<AthleteStatsSummary?> _futureSummary;
 
   @override
   void initState() {
     super.initState();
-    _futureAlerts = _alertsService.fetchAlerts();
-    _futureEnabledTypes = _alertsService.fetchEnabledTypes();
-
-    _futureHighlights = _highlightsService.fetchHighlights();
-    _fetchEnabledHighlightsTypes =
-        _highlightsService.fetchEnabledHighlightsTypes();
-
-    _futureRecomendations = _recomendationsService.fetchRecomendations();
-    _fetchEnabledRecomendationsTypes =
-        _recomendationsService.fetchEnabledRecomendationsTypes();
+    _futureSummary = AthleteStatsService.fetchSummary();
   }
 
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
+  /// Dias restantes até domingo (fim da semana).
+  String _weekCountdownText() {
+    final now = DateTime.now();
+    final daysUntilSunday = 7 - now.weekday; // weekday: 1=seg, 7=dom
+    if (daysUntilSunday == 0) return 'A semana acaba hoje';
+    if (daysUntilSunday == 1) return 'A semana acaba amanhã';
+    return 'A semana acaba em $daysUntilSunday dias';
   }
 
   @override
@@ -71,34 +46,140 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
 
     return Scaffold(
       appBar: const TopNavbar(),
-
       bottomNavigationBar: const BottomNavBar(),
-
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        padding: EdgeInsets.symmetric(
+          vertical: 16 * scale,
+          horizontal: 12 * scale,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ----- Seção de Resumo Mensal -----
-            // const MonthlySummaryWidget(),
-            // SizedBox(height: 24 * scale),
+            // ── Título da seção ──────────────────────────────────────────────
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6 * scale),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Insights da Semana',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  SizedBox(height: 2 * scale),
+                  Text(
+                    _weekCountdownText(),
+                    style: TextStyle(
+                      fontSize: 11 * scale,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 8 * scale),
 
-            // ----- Seção de Highlights -----
+            // ── Cards A3 — carregados de uma só leitura ──────────────────────
+            FutureBuilder<AthleteStatsSummary?>(
+              future: _futureSummary,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final summary = snap.data;
+                if (summary == null) {
+                  return _EmptyState(scale: scale);
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Calendário semanal — largura total
+                    WeekCalendarCard(summary: summary),
+
+                    SizedBox(height: 4 * scale),
+
+                    // Frequência + Esforço lado a lado
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: WeekFrequencyCard(summary: summary),
+                          ),
+                          SizedBox(width: 8 * scale),
+                          Expanded(
+                            child: WeekEffortCard(summary: summary),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 4 * scale),
+
+                    // Estímulos — largura total
+                    WeekStimuliCard(summary: summary),
+                  ],
+                );
+              },
+            ),
+
+            SizedBox(height: 24 * scale),
+
+            // ── Seções legadas (highlights, alertas, recomendações) ──────────
             const HighlightsSection(),
-
-            // ----- Seção de Alertas -----
             const AlertsSection(),
-
-            // // -----  Seção de Sugestão de Objetivos -----
-            // const SuggestedGoalsSection(),
-
-            // ----- Título da seção de Recomendations -----
             const RecomendationsSection(),
-
-            // ----- Seção de Resumo Semanal -----
-            const WeeklySummaryWidget(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Estado vazio — atleta ainda não registrou nenhum treino
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  final double scale;
+  const _EmptyState({required this.scale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        vertical: 32 * scale,
+        horizontal: 16 * scale,
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.bar_chart_outlined,
+            size: 48 * scale,
+            color: AppColors.lightGray,
+          ),
+          SizedBox(height: 12 * scale),
+          Text(
+            'Nenhum dado disponível',
+            style: TextStyle(
+              fontFamily: AppFonts.roboto,
+              fontSize: 15 * scale,
+              fontWeight: FontWeight.bold,
+              color: AppColors.mediumGray,
+            ),
+          ),
+          SizedBox(height: 6 * scale),
+          Text(
+            'Registre seu primeiro treino para ver os insights da semana.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppFonts.roboto,
+              fontSize: 13 * scale,
+              color: AppColors.mediumGray,
+            ),
+          ),
+        ],
       ),
     );
   }

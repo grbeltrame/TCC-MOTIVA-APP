@@ -6,8 +6,12 @@ import 'cards/exercise_weekly_summary_simple_card.dart';
 import 'cards/exercise_weekly_summary_complex_card.dart';
 
 /// Mostra **ou** o Simple **ou** o Complex, conforme preferência do usuário.
+/// [from]/[to] são repassados ao ComplexCard para filtrar estímulos por período.
 class ExerciseWeeklySummaryWidget extends StatelessWidget {
-  const ExerciseWeeklySummaryWidget({Key? key}) : super(key: key);
+  final DateTime? from;
+  final DateTime? to;
+  const ExerciseWeeklySummaryWidget({Key? key, this.from, this.to})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -15,14 +19,12 @@ class ExerciseWeeklySummaryWidget extends StatelessWidget {
       future: UserPreferencesService.fetchSummaryType(),
       builder: (context, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          // Enquanto carrega preferência, mostra loading alinhado
           return const SizedBox(
-            height: 150, // altura aproximada dos cards
+            height: 150,
             child: Center(child: CircularProgressIndicator()),
           );
         }
         if (snap.hasError || snap.data == null) {
-          // Se der erro, nem um nem outro
           return const SizedBox.shrink();
         }
 
@@ -30,7 +32,7 @@ class ExerciseWeeklySummaryWidget extends StatelessWidget {
           case SummaryType.simple:
             return const ExerciseWeeklySummarySimpleCard();
           case SummaryType.complex:
-            return const ExerciseWeeklySummaryComplexCard();
+            return ExerciseWeeklySummaryComplexCard(from: from, to: to);
         }
       },
     );

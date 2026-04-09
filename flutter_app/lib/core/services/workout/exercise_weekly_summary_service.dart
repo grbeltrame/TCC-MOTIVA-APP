@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_app/core/services/weekly_summary_service.dart';
 
 /// Modelo que representa o resumo simples semanal de exercícios.
@@ -47,9 +48,9 @@ class ExerciseWeeklySummaryService {
     // Simula atraso de rede
     await Future.delayed(const Duration(milliseconds: 300));
 
-    // TODO: chamar API REST ou SharedPreferences para valores reais
+    final userName = FirebaseAuth.instance.currentUser?.displayName ?? 'Atleta';
     return SimpleExerciseSummary(
-      userName: 'Giovana',
+      userName: userName,
       goalName: 'Treinar 3 vezes por semana',
       targetValue: 3,
       completedValue: 2,
@@ -57,13 +58,21 @@ class ExerciseWeeklySummaryService {
   }
 
   ///  Retorna dados para o card complexo.
-  static Future<ComplexExerciseSummary> fetchComplexSummary() async {
+  /// Se [from]/[to] forem fornecidos, usa estímulos do período; caso contrário,
+  /// usa a semana atual do summary pré-calculado.
+  static Future<ComplexExerciseSummary> fetchComplexSummary({
+    DateTime? from,
+    DateTime? to,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 300));
-    // === MOCK HARD‑CODED ===
-    final userName = 'Giovana'; // TODO: buscar nome real do usuário
+    final userName = FirebaseAuth.instance.currentUser?.displayName ?? 'Atleta';
 
-    // Reutiliza o WeeklySummaryService para obter distribuição
-    final dist = await WeeklySummaryService().fetchStimuliCounts();
+    final List<StimulusCount> dist;
+    if (from != null && to != null) {
+      dist = await WeeklySummaryService().fetchStimuliCountsForPeriod(from, to);
+    } else {
+      dist = await WeeklySummaryService().fetchStimuliCounts();
+    }
 
     // Determina o estímulo predominante (maior count)
     final sorted = List<StimulusCount>.from(dist)
