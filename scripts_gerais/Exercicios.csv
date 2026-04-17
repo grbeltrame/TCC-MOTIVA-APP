@@ -1,0 +1,65 @@
+ID,Nome,Categorias,Músculos primários,Equipamento,Tipo de PR,Tipos suportados,Unidade PR,Adaptações
+ring_row,Ring Row,ginástica,"latíssimo do dorso, bíceps",argolas,reps,"reps, weight",reps,
+knee_push_up,Knee Push-Up,ginástica,"peitoral, tríceps, deltoides",nenhum,reps,"reps, weight",reps,
+push_up,Push-Up,ginástica,"peitoral, tríceps, deltoides",nenhum,reps,"reps, weight",reps,knee_push_up
+abmat_sit_up,AbMat Sit-Up,ginástica,"abdominais",abmat,reps,"reps, weight",reps,
+air_squat,Air Squat,ginástica,"quadríceps, glúteos",nenhum,reps,"reps, weight",reps,
+deadlift,Deadlift,levantamento de peso,"isquiotibiais, glúteos, lombar",barra,weight,"reps, weight",kg,
+shoulder_press,Shoulder Press,levantamento de peso,"deltoides, tríceps",barra,weight,"reps, weight",kg,
+single_unders,Single-Unders,metcon,"panturrilhas, core",corda de pular,reps,"reps",reps,
+sprawl,Sprawl,metcon,"core, quadríceps, peitoral",nenhum,reps,"reps",reps,
+box_step_up,Box Step-Up,metcon,"quadríceps, glúteos",caixa pliométrica,reps,"reps, weight",reps,air_squat
+kettlebell_swing,Kettlebell Swing,levantamento de peso,"isquiotibiais, glúteos, core",kettlebell,reps,"reps, weight",reps,
+rowing,Rowing (Erg),metcon,"pernas, costas, core",máquina de remo,distance,"distance, time",m,
+running,Running,metcon,"pernas, core",nenhum,distance,"distance, time",m,
+assault_bike,Assault Bike,metcon,"pernas, core",assault_bike,distance,"distance, time",m,
+farmers_carry,Farmers Carry,metcon,"antebraços, trapézio, pernas","halteres, kettlebell",distance,"distance, weight",m,
+lunges,Lunges,metcon,"quadríceps, glúteos",nenhum,reps,"reps, weight",reps,
+jumping_pull_up,Jumping Pull-Up,ginástica,"latíssimo do dorso, bíceps","caixa pliométrica, barra para pull-up",reps,"reps",reps,ring_row
+pull_up,Pull-Up,ginástica,"latíssimo do dorso, bíceps",barra para pull-up,reps,"reps, weight",reps,"jumping_pull_up, ring_row"
+chest_to_bar_pull_up,Chest-to-Bar Pull-Up,ginástica,"latíssimo do dorso, bíceps",barra para pull-up,reps,"reps, weight",reps,"pull_up, jumping_pull_up, ring_row"
+bar_muscle_up,Bar Muscle-Up,ginástica,"peitoral, latíssimo do dorso, tríceps",barra para pull-up,reps,"reps, weight",reps,"chest_to_bar_pull_up, pull_up, jumping_pull_up, ring_row"
+ring_muscle_up,Ring Muscle-Up,ginástica,"peitoral, latíssimo do dorso, tríceps",argolas,reps,"reps, weight",reps,"bar_muscle_up, chest_to_bar_pull_up, pull_up, jumping_pull_up, ring_row"
+pike_push_up,Pike Push-Up,ginástica,"deltoides, tríceps",nenhum,reps,"reps",reps,"push_up, knee_push_up"
+kipping_handstand_push_up,Kipping Handstand Push-Up,ginástica,"deltoides, tríceps, core",parede,reps,"reps",reps,"pike_push_up, push_up, knee_push_up"
+strict_handstand_push_up,Strict Handstand Push-Up,ginástica,"deltoides, tríceps, core",parede,reps,"reps",reps,"kipping_handstand_push_up, pike_push_up, push_up, knee_push_up"
+handstand_walk,Handstand Walk,ginástica,"deltoides, core, trapézio",nenhum,distance,"distance",m,"strict_handstand_push_up, kipping_handstand_push_up, pike_push_up, push_up, knee_push_up"
+knees_to_elbows,Knees-to-Elbows,ginástica,"abdominais, flexores do quadril",barra para pull-up,reps,"reps",reps,abmat_sit_up
+toes_to_bar,Toes-to-Bar,ginástica,"abdominais, flexores do quadril",barra para pull-up,reps,"reps",reps,"knees_to_elbows, abmat_sit_up"
+ghd_sit_up,GHD Sit-Up,ginástica,"abdominais, flexores do quadril",GHD,reps,"reps, weight",reps,abmat_sit_up
+pistol_squat,Pistol Squat,ginástica,"quadríceps, glúteos, core",nenhum,reps,"reps, weight",reps,air_squat
+front_squat,Front Squat,levantamento de peso,"quadríceps, core",barra,weight,"reps, weight",kg,air_squat
+overhead_squat,Overhead Squat,levantamento de peso,"deltoides, core, glúteos",barra,weight,"reps, weight",kg,"front_squat, air_squat"
+hang_power_snatch,Hang Power Snatch,levantamento de peso,"costas, ombros, core",barra,weight,"reps, weight",kg,kettlebell_swing
+hang_squat_snatch,Hang Squat Snatch,levantamento de peso,"costas, ombros, core, glúteos",barra,weight,"reps, weight",kg,"hang_power_snatch, overhead_squat, front_squat, air_squat, kettlebell_swing"
+power_snatch,Power Snatch,levantamento de peso,"costas, ombros, core",barra,weight,"reps, weight",kg,"hang_power_snatch, kettlebell_swing"
+snatch,Snatch,levantamento de peso,"costas, ombros, core, glúteos",barra,weight,"reps, weight",kg,"power_snatch, hang_squat_snatch, hang_power_snatch, overhead_squat, front_squat, air_squat, kettlebell_swing"
+muscle_snatch,Muscle Snatch,levantamento de peso,"ombros, costas",barra,weight,"reps, weight",kg,"hang_power_snatch, kettlebell_swing"
+dumbbell_hang_power_snatch,Dumbbell Hang Power Snatch,levantamento de peso,"costas, ombros, core",halteres,weight,"reps, weight",kg,kettlebell_swing
+dumbbell_power_snatch,Dumbbell Power Snatch,levantamento de peso,"costas, ombros, core",halteres,weight,"reps, weight",kg,"dumbbell_hang_power_snatch, kettlebell_swing"
+dumbbell_squat_snatch,Dumbbell Squat Snatch,levantamento de peso,"costas, ombros, core, glúteos",halteres,weight,"reps, weight",kg,"dumbbell_power_snatch, dumbbell_hang_power_snatch, kettlebell_swing"
+hang_power_clean,Hang Power Clean,levantamento de peso,"costas, trapézio, core",barra,weight,"reps, weight",kg,deadlift
+hang_squat_clean,Hang Squat Clean,levantamento de peso,"quadríceps, costas, glúteos",barra,weight,"reps, weight",kg,"hang_power_clean, front_squat, air_squat, deadlift"
+power_clean,Power Clean,levantamento de peso,"costas, trapézio, core",barra,weight,"reps, weight",kg,"hang_power_clean, deadlift"
+clean,Clean,levantamento de peso,"quadríceps, costas, glúteos",barra,weight,"reps, weight",kg,"power_clean, hang_squat_clean, hang_power_clean, front_squat, air_squat, deadlift"
+muscle_clean,Muscle Clean,levantamento de peso,"trapézio, costas",barra,weight,"reps, weight",kg,"hang_power_clean, deadlift"
+dumbbell_hang_power_clean,Dumbbell Hang Power Clean,levantamento de peso,"costas, trapézio, core",halteres,weight,"reps, weight",kg,deadlift
+dumbbell_power_clean,Dumbbell Power Clean,levantamento de peso,"costas, trapézio, core",halteres,weight,"reps, weight",kg,"dumbbell_hang_power_clean, deadlift"
+dumbbell_squat_clean,Dumbbell Squat Clean,levantamento de peso,"quadríceps, costas, glúteos",halteres,weight,"reps, weight",kg,"dumbbell_power_clean, dumbbell_hang_power_clean, deadlift"
+push_press,Push Press,levantamento de peso,"ombros, tríceps, quadríceps",barra,weight,"reps, weight",kg,shoulder_press
+push_jerk,Push Jerk,levantamento de peso,"deltoides, quadríceps, glúteos",barra,weight,"reps, weight",kg,"push_press, shoulder_press"
+split_jerk,Split Jerk,levantamento de peso,"deltoides, quadríceps, glúteos",barra,weight,"reps, weight",kg,"push_jerk, push_press, shoulder_press"
+power_clean_and_jerk,Power Clean & Jerk,levantamento de peso,"corpo todo",barra,weight,"reps, weight",kg,"power_clean, push_jerk, hang_power_clean, push_press, shoulder_press, deadlift"
+clean_and_jerk,Clean & Jerk,levantamento de peso,"corpo todo",barra,weight,"reps, weight",kg,"power_clean_and_jerk, clean, split_jerk, power_clean, push_jerk, hang_squat_clean, hang_power_clean, push_press, shoulder_press, front_squat, air_squat, deadlift"
+wall_ball_shot,Wall Ball Shot,levantamento de peso,"quadríceps, ombros, core",bola medicinal,reps,"reps, weight",reps,air_squat
+thruster,Thruster,levantamento de peso,"quadríceps, deltoides, core",barra,weight,"reps, weight",kg,"front_squat, push_press, wall_ball_shot, shoulder_press, air_squat"
+dumbbell_thruster,Dumbbell Thruster,levantamento de peso,"quadríceps, deltoides, core",halteres,weight,"reps, weight",kg,"front_squat, push_press, wall_ball_shot, shoulder_press, air_squat"
+sumo_deadlift_high_pull,Sumo Deadlift High Pull,levantamento de peso,"trapézio, deltoides, glúteos",barra,weight,"reps, weight",kg,deadlift
+box_jump,Box Jump,ginástica,"quadríceps, glúteos",caixa pliométrica,reps,"reps",reps,"box_step_up, air_squat"
+box_jump_over,Box Jump-Over,ginástica,"quadríceps, glúteos",caixa pliométrica,reps,"reps",reps,"box_jump, box_step_up, air_squat"
+burpee,Burpee,metcon,"peitoral, tríceps, quadríceps",nenhum,reps,"reps",reps,sprawl
+bar_facing_burpee,Bar-Facing Burpee,metcon,"peitoral, tríceps, quadríceps",barra,reps,"reps",reps,"burpee, sprawl"
+burpee_box_jump,Burpee Box Jump,metcon,"corpo todo",caixa pliométrica,reps,"reps",reps,"burpee, box_jump, sprawl, box_step_up, air_squat"
+burpee_box_jump_over,Burpee Box Jump-Over,metcon,"corpo todo",caixa pliométrica,reps,"reps",reps,"burpee_box_jump, bar_facing_burpee, box_jump_over, burpee, box_jump, sprawl, box_step_up, air_squat"
+double_unders,Double-Unders,metcon,"panturrilhas, core",corda de pular,reps,"reps",reps,single_unders
+turkish_get_up,Turkish Get-Up,habilidade,"ombros, core, glúteos",kettlebell,weight,"reps, weight",kg,lunges

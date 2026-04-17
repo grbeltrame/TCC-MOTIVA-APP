@@ -1,0 +1,1350 @@
+[
+  {
+    "name": "ring_row",
+    "displayName": "Ring Row",
+    "description": "Remada utilizando argolas de ginástica, com os pés apoiados no chão.",
+    "categories": ["ginástica"],
+    "modalities": ["força"],
+    "movementPatterns": ["tração horizontal"],
+    "equipment": ["argolas"],
+    "primaryMuscles": ["latíssimo do dorso", "bíceps"],
+    "secondaryMuscles": ["romboides", "músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "body_angle": "mais vertical"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "knee_push_up",
+    "displayName": "Knee Push-Up",
+    "description": "Flexão de braço com os joelhos apoiados no chão.",
+    "categories": ["ginástica"],
+    "modalities": ["resistência muscular"],
+    "movementPatterns": ["empurrada horizontal"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["peitoral", "tríceps", "deltoides"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "rangeOfMotion": "reduzido"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "push_up",
+    "displayName": "Push-Up",
+    "description": "Flexão de braço tradicional em posição de prancha.",
+    "categories": ["ginástica"],
+    "modalities": ["resistência muscular"],
+    "movementPatterns": ["empurrada horizontal"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["peitoral", "tríceps", "deltoides"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "assistance": "apoiar mãos em uma caixa"
+    },
+    "adaptations": [
+      "knee_push_up"
+    ]
+  },
+  {
+    "name": "abmat_sit_up",
+    "displayName": "AbMat Sit-Up",
+    "description": "Abdominal borboleta com suporte lombar (AbMat).",
+    "categories": ["ginástica"],
+    "modalities": ["resistência muscular"],
+    "movementPatterns": ["flexão de tronco"],
+    "equipment": ["abmat"],
+    "primaryMuscles": ["abdominais"],
+    "secondaryMuscles": ["flexores do quadril"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "assistance": "usar os braços para impulso"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "air_squat",
+    "displayName": "Air Squat",
+    "description": "Agachamento livre com o peso do corpo.",
+    "categories": ["ginástica"],
+    "modalities": ["resistência muscular"],
+    "movementPatterns": ["agachamento"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["quadríceps", "glúteos"],
+    "secondaryMuscles": ["isquiotibiais", "músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "rangeOfMotion": "agachar em uma caixa alta"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "deadlift",
+    "displayName": "Deadlift",
+    "description": "Levantamento terra com barra.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["força"],
+    "movementPatterns": ["dobradiça de quadril"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["isquiotibiais", "glúteos", "parte inferior das costas"],
+    "secondaryMuscles": ["quadríceps", "trapézio"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve",
+      "rangeOfMotion": "anilhas sobre blocos"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "shoulder_press",
+    "displayName": "Shoulder Press",
+    "description": "Desenvolvimento estrito de ombros com barra.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["força"],
+    "movementPatterns": ["empurrada vertical"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["deltoides", "tríceps"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "single_unders",
+    "displayName": "Single-Unders",
+    "description": "Salto simples de corda.",
+    "categories": ["metcon"],
+    "modalities": ["cardio"],
+    "movementPatterns": ["salto pliométrico"],
+    "equipment": ["corda de pular"],
+    "primaryMuscles": ["panturrilhas"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "impact": "polichinelos"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "sprawl",
+    "displayName": "Sprawl",
+    "description": "Meio-burpee, chutando as pernas para trás e retornando à posição em pé.",
+    "categories": ["metcon"],
+    "modalities": ["cardio"],
+    "movementPatterns": ["prancha", "extensão de quadril"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["músculos do core", "quadríceps"],
+    "secondaryMuscles": ["ombros"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "impact": "step-back"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "box_step_up",
+    "displayName": "Box Step-Up",
+    "description": "Subida na caixa alternando as pernas.",
+    "categories": ["ginástica"],
+    "modalities": ["resistência muscular"],
+    "movementPatterns": ["agachamento unilateral"],
+    "equipment": ["caixa pliométrica"],
+    "primaryMuscles": ["quadríceps", "glúteos"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "box_height": "baixa"
+    },
+    "adaptations": [
+      "air_squat"
+    ]
+  },
+  {
+    "name": "kettlebell_swing",
+    "displayName": "Kettlebell Swing",
+    "description": "Balanço de kettlebell utilizando a explosão do quadril.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "cardio"],
+    "movementPatterns": ["dobradiça de quadril"],
+    "equipment": ["kettlebell"],
+    "primaryMuscles": ["isquiotibiais", "glúteos", "músculos do core"],
+    "secondaryMuscles": ["ombros"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve",
+      "rangeOfMotion": "russian (até os olhos)"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "rowing",
+    "displayName": "Rowing (Erg)",
+    "description": "Remo em máquina ergométrica.",
+    "categories": ["metcon"],
+    "modalities": ["cardio"],
+    "movementPatterns": ["remada", "extensão de pernas"],
+    "equipment": ["máquina de remo"],
+    "primaryMuscles": ["pernas", "costas", "músculos do core"],
+    "secondaryMuscles": ["braços"],
+    "prType": "distance",
+    "prUnit": "m",
+    "supportedPrTypes": ["distance", "time", "calories"],
+    "scalingOptions": {
+      "pace": "moderado"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "running",
+    "displayName": "Running",
+    "description": "Corrida.",
+    "categories": ["metcon"],
+    "modalities": ["cardio"],
+    "movementPatterns": ["locomoção"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["pernas", "músculos do core"],
+    "secondaryMuscles": ["panturrilhas"],
+    "prType": "distance",
+    "prUnit": "m",
+    "supportedPrTypes": ["distance", "time"],
+    "scalingOptions": {
+      "pace": "caminhada rápida"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "assault_bike",
+    "displayName": "Assault Bike",
+    "description": "Bicicleta de ar.",
+    "categories": ["metcon"],
+    "modalities": ["cardio"],
+    "movementPatterns": ["bicicleta", "empurrada e puxada horizontal"],
+    "equipment": ["assault_bike"],
+    "primaryMuscles": ["pernas", "músculos do core"],
+    "secondaryMuscles": ["braços"],
+    "prType": "distance",
+    "prUnit": "m",
+    "supportedPrTypes": ["distance", "time", "calories"],
+    "scalingOptions": {
+      "pace": "moderado"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "farmers_carry",
+    "displayName": "Farmers Carry",
+    "description": "Caminhada do fazendeiro carregando pesos nas mãos.",
+    "categories": ["metcon"],
+    "modalities": ["força", "resistência muscular"],
+    "movementPatterns": ["transporte", "locomoção"],
+    "equipment": ["halteres", "kettlebell"],
+    "primaryMuscles": ["antebraços", "trapézio", "pernas"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "distance",
+    "prUnit": "m",
+    "supportedPrTypes": ["distance", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "lunges",
+    "displayName": "Lunges",
+    "description": "Passada alternada para frente ou caminhando.",
+    "categories": ["metcon"],
+    "modalities": ["resistência muscular"],
+    "movementPatterns": ["agachamento unilateral"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["quadríceps", "glúteos"],
+    "secondaryMuscles": ["isquiotibiais", "músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "assistance": "segurar em um suporte"
+    },
+    "adaptations": []
+  },
+  {
+    "name": "jumping_pull_up",
+    "displayName": "Jumping Pull-Up",
+    "description": "Barra fixa auxiliada com o salto das pernas a partir de uma caixa.",
+    "categories": ["ginástica"],
+    "modalities": ["resistência muscular"],
+    "movementPatterns": ["tração vertical", "extensão de pernas"],
+    "equipment": ["barra para pull-up", "caixa pliométrica"],
+    "primaryMuscles": ["latíssimo do dorso", "bíceps"],
+    "secondaryMuscles": ["quadríceps"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "box_height": "alta"
+    },
+    "adaptations": [
+      "ring_row"
+    ]
+  },
+  {
+    "name": "pull_up",
+    "displayName": "Pull-Up",
+    "description": "Barra fixa estrita ou com kipping.",
+    "categories": ["ginástica"],
+    "modalities": ["força"],
+    "movementPatterns": ["tração vertical"],
+    "equipment": ["barra para pull-up"],
+    "primaryMuscles": ["latíssimo do dorso", "bíceps"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "assistance": "elástico"
+    },
+    "adaptations": [
+      "jumping_pull_up",
+      "ring_row"
+    ]
+  },
+  {
+    "name": "chest_to_bar_pull_up",
+    "displayName": "Chest-to-Bar Pull-Up",
+    "description": "Barra fixa tocando o peito na barra.",
+    "categories": ["ginástica"],
+    "modalities": ["força", "potência"],
+    "movementPatterns": ["tração vertical"],
+    "equipment": ["barra para pull-up"],
+    "primaryMuscles": ["latíssimo do dorso", "bíceps"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "assistance": "elástico"
+    },
+    "adaptations": [
+      "pull_up",
+      "jumping_pull_up",
+      "ring_row"
+    ]
+  },
+  {
+    "name": "bar_muscle_up",
+    "displayName": "Bar Muscle-Up",
+    "description": "Muscle-up realizado em uma barra fixa.",
+    "categories": ["ginástica"],
+    "modalities": ["habilidade", "potência"],
+    "movementPatterns": ["tração vertical", "empurrada vertical"],
+    "equipment": ["barra para pull-up"],
+    "primaryMuscles": ["peitoral", "latíssimo do dorso", "tríceps"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "assistance": "salto de uma caixa"
+    },
+    "adaptations": [
+      "chest_to_bar_pull_up",
+      "pull_up",
+      "jumping_pull_up",
+      "ring_row"
+    ]
+  },
+  {
+    "name": "ring_muscle_up",
+    "displayName": "Ring Muscle-Up",
+    "description": "Muscle-up realizado nas argolas.",
+    "categories": ["ginástica"],
+    "modalities": ["habilidade", "potência"],
+    "movementPatterns": ["tração vertical", "empurrada vertical"],
+    "equipment": ["argolas"],
+    "primaryMuscles": ["peitoral", "latíssimo do dorso", "tríceps"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "transition": "transição apoiando os pés no chão"
+    },
+    "adaptations": [
+      "bar_muscle_up",
+      "chest_to_bar_pull_up",
+      "pull_up",
+      "jumping_pull_up",
+      "ring_row"
+    ]
+  },
+  {
+    "name": "pike_push_up",
+    "displayName": "Pike Push-Up",
+    "description": "Flexão de braço em formato de V invertido para focar nos ombros.",
+    "categories": ["ginástica"],
+    "modalities": ["força"],
+    "movementPatterns": ["empurrada vertical"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["deltoides", "tríceps"],
+    "secondaryMuscles": ["peitoral superior"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "assistance": "apoiar mãos em um banco"
+    },
+    "adaptations": [
+      "push_up",
+      "knee_push_up"
+    ]
+  },
+  {
+    "name": "kipping_handstand_push_up",
+    "displayName": "Kipping Handstand Push-Up",
+    "description": "HSPU na parede utilizando o quadril e as pernas para impulso.",
+    "categories": ["ginástica"],
+    "modalities": ["potência", "habilidade"],
+    "movementPatterns": ["empurrada vertical", "extensão de quadril"],
+    "equipment": ["parede"],
+    "primaryMuscles": ["deltoides", "tríceps"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "rangeOfMotion": "adicionar abmats sob a cabeça"
+    },
+    "adaptations": [
+      "pike_push_up",
+      "push_up",
+      "knee_push_up"
+    ]
+  },
+  {
+    "name": "strict_handstand_push_up",
+    "displayName": "Strict Handstand Push-Up",
+    "description": "HSPU estrito na parede, usando apenas a força dos membros superiores.",
+    "categories": ["ginástica"],
+    "modalities": ["força"],
+    "movementPatterns": ["empurrada vertical"],
+    "equipment": ["parede"],
+    "primaryMuscles": ["deltoides", "tríceps", "músculos do core"],
+    "secondaryMuscles": ["trapézio"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "rangeOfMotion": "adicionar abmats"
+    },
+    "adaptations": [
+      "kipping_handstand_push_up",
+      "pike_push_up",
+      "push_up",
+      "knee_push_up"
+    ]
+  },
+  {
+    "name": "handstand_walk",
+    "displayName": "Handstand Walk",
+    "description": "Caminhada plantando bananeira (de mãos).",
+    "categories": ["ginástica"],
+    "modalities": ["habilidade", "equilíbrio"],
+    "movementPatterns": ["empurrada vertical", "locomoção"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["deltoides", "músculos do core", "trapézio"],
+    "secondaryMuscles": ["tríceps"],
+    "prType": "distance",
+    "prUnit": "m",
+    "supportedPrTypes": ["distance"],
+    "scalingOptions": {
+      "assistance": "bear crawl (caminhada do urso)"
+    },
+    "adaptations": [
+      "strict_handstand_push_up",
+      "kipping_handstand_push_up",
+      "pike_push_up",
+      "push_up",
+      "knee_push_up"
+    ]
+  },
+  {
+    "name": "knees_to_elbows",
+    "displayName": "Knees-to-Elbows",
+    "description": "Pendurado na barra, trazer os joelhos até tocar nos cotovelos.",
+    "categories": ["ginástica"],
+    "modalities": ["resistência muscular"],
+    "movementPatterns": ["flexão de tronco", "flexão de quadril"],
+    "equipment": ["barra para pull-up"],
+    "primaryMuscles": ["abdominais", "flexores do quadril"],
+    "secondaryMuscles": ["latíssimo do dorso"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "rangeOfMotion": "joelhos na altura do peito"
+    },
+    "adaptations": [
+      "abmat_sit_up"
+    ]
+  },
+  {
+    "name": "toes_to_bar",
+    "displayName": "Toes-to-Bar",
+    "description": "Pendurado na barra, levar a ponta de ambos os pés simultaneamente até tocar na barra.",
+    "categories": ["ginástica"],
+    "modalities": ["resistência muscular", "habilidade"],
+    "movementPatterns": ["flexão de tronco", "flexão de quadril"],
+    "equipment": ["barra para pull-up"],
+    "primaryMuscles": ["abdominais", "flexores do quadril"],
+    "secondaryMuscles": ["latíssimo do dorso"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "rangeOfMotion": "elevação de joelhos (knee raises)"
+    },
+    "adaptations": [
+      "knees_to_elbows",
+      "abmat_sit_up"
+    ]
+  },
+  {
+    "name": "ghd_sit_up",
+    "displayName": "GHD Sit-Up",
+    "description": "Abdominal completo realizado no equipamento Glute Ham Developer.",
+    "categories": ["ginástica"],
+    "modalities": ["resistência muscular", "força"],
+    "movementPatterns": ["flexão de tronco"],
+    "equipment": ["GHD"],
+    "primaryMuscles": ["abdominais", "flexores do quadril"],
+    "secondaryMuscles": ["quadríceps"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "rangeOfMotion": "descer apenas até a paralela"
+    },
+    "adaptations": [
+      "abmat_sit_up"
+    ]
+  },
+  {
+    "name": "pistol_squat",
+    "displayName": "Pistol Squat",
+    "description": "Agachamento profundo executado em uma única perna.",
+    "categories": ["ginástica"],
+    "modalities": ["força", "equilíbrio", "mobilidade"],
+    "movementPatterns": ["agachamento unilateral"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["quadríceps", "glúteos", "músculos do core"],
+    "secondaryMuscles": ["isquiotibiais", "panturrilhas"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "assistance": "segurar no pilar lateral"
+    },
+    "adaptations": [
+      "air_squat"
+    ]
+  },
+  {
+    "name": "front_squat",
+    "displayName": "Front Squat",
+    "description": "Agachamento com a barra apoiada na parte frontal dos ombros.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["força"],
+    "movementPatterns": ["agachamento"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["quadríceps", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "parte superior das costas"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "air_squat"
+    ]
+  },
+  {
+    "name": "overhead_squat",
+    "displayName": "Overhead Squat",
+    "description": "Agachamento com a barra travada acima da cabeça.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["força", "mobilidade"],
+    "movementPatterns": ["agachamento", "estabilização overhead"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["deltoides", "músculos do core", "glúteos"],
+    "secondaryMuscles": ["quadríceps", "trapézio"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "front_squat",
+      "air_squat"
+    ]
+  },
+  {
+    "name": "hang_power_snatch",
+    "displayName": "Hang Power Snatch",
+    "description": "Snatch saindo da posição suspensa (acima do joelho) e recebendo em power (acima da paralela).",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["puxada tripla extensão", "estabilização overhead"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["costas", "ombros", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "isquiotibiais"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "kettlebell_swing"
+    ]
+  },
+  {
+    "name": "hang_squat_snatch",
+    "displayName": "Hang Squat Snatch",
+    "description": "Snatch saindo da posição suspensa e recebendo em agachamento completo.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "mobilidade"],
+    "movementPatterns": ["puxada tripla extensão", "agachamento", "estabilização overhead"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["costas", "ombros", "músculos do core", "glúteos"],
+    "secondaryMuscles": ["quadríceps"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve",
+      "complexity": "simplificar para power"
+    },
+    "adaptations": [
+      "hang_power_snatch",
+      "overhead_squat",
+      "front_squat",
+      "air_squat",
+      "kettlebell_swing"
+    ]
+  },
+  {
+    "name": "power_snatch",
+    "displayName": "Power Snatch",
+    "description": "Snatch saindo do chão e recebendo com joelhos semi-flexionados (acima da paralela).",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["puxada tripla extensão", "estabilização overhead"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["costas", "ombros", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "isquiotibiais"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "hang_power_snatch",
+      "kettlebell_swing"
+    ]
+  },
+  {
+    "name": "snatch",
+    "displayName": "Snatch",
+    "description": "Snatch completo saindo do chão e recebendo em agachamento.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "habilidade"],
+    "movementPatterns": ["puxada tripla extensão", "agachamento", "estabilização overhead"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["costas", "ombros", "músculos do core", "glúteos"],
+    "secondaryMuscles": ["quadríceps", "isquiotibiais"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "power_snatch",
+      "hang_squat_snatch",
+      "hang_power_snatch",
+      "overhead_squat",
+      "front_squat",
+      "air_squat",
+      "kettlebell_swing"
+    ]
+  },
+  {
+    "name": "muscle_snatch",
+    "displayName": "Muscle Snatch",
+    "description": "Snatch do chão finalizado sem flexão de pernas na recepção (força bruta de ombros e costas).",
+    "categories": ["levantamento de peso"],
+    "modalities": ["força", "potência"],
+    "movementPatterns": ["puxada", "empurrada vertical"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["ombros", "costas"],
+    "secondaryMuscles": ["músculos do core", "glúteos"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "hang_power_snatch",
+      "kettlebell_swing"
+    ]
+  },
+  {
+    "name": "dumbbell_hang_power_snatch",
+    "displayName": "Dumbbell Hang Power Snatch",
+    "description": "Snatch com haltere, saindo da altura do joelho (unilateral ou simultâneo).",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["dobradiça de quadril", "puxada", "estabilização overhead"],
+    "equipment": ["halteres"],
+    "primaryMuscles": ["costas", "ombros", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "isquiotibiais"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "kettlebell_swing"
+    ]
+  },
+  {
+    "name": "dumbbell_power_snatch",
+    "displayName": "Dumbbell Power Snatch",
+    "description": "Snatch com haltere saindo do chão e finalizando acima da paralela.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["puxada tripla extensão", "estabilização overhead"],
+    "equipment": ["halteres"],
+    "primaryMuscles": ["costas", "ombros", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "isquiotibiais"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "dumbbell_hang_power_snatch",
+      "kettlebell_swing"
+    ]
+  },
+  {
+    "name": "dumbbell_squat_snatch",
+    "displayName": "Dumbbell Squat Snatch",
+    "description": "Snatch com haltere saindo do chão e recebendo em agachamento completo.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "mobilidade"],
+    "movementPatterns": ["puxada", "agachamento", "estabilização overhead"],
+    "equipment": ["halteres"],
+    "primaryMuscles": ["costas", "ombros", "músculos do core", "glúteos"],
+    "secondaryMuscles": ["quadríceps"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "dumbbell_power_snatch",
+      "dumbbell_hang_power_snatch",
+      "kettlebell_swing"
+    ]
+  },
+  {
+    "name": "hang_power_clean",
+    "displayName": "Hang Power Clean",
+    "description": "Clean saindo da posição suspensa e recebendo em power na posição de front rack.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["puxada tripla extensão"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["costas", "trapézio", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "isquiotibiais"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "deadlift"
+    ]
+  },
+  {
+    "name": "hang_squat_clean",
+    "displayName": "Hang Squat Clean",
+    "description": "Clean saindo da posição suspensa e recebendo em agachamento completo.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "mobilidade"],
+    "movementPatterns": ["puxada tripla extensão", "agachamento"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["quadríceps", "costas", "glúteos"],
+    "secondaryMuscles": ["músculos do core", "trapézio"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "hang_power_clean",
+      "front_squat",
+      "air_squat",
+      "deadlift"
+    ]
+  },
+  {
+    "name": "power_clean",
+    "displayName": "Power Clean",
+    "description": "Clean do chão, recebido com joelhos flexionados acima da paralela.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["puxada tripla extensão"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["costas", "trapézio", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "isquiotibiais"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "hang_power_clean",
+      "deadlift"
+    ]
+  },
+  {
+    "name": "clean",
+    "displayName": "Clean",
+    "description": "Clean (Arremesso fase 1) saindo do chão e recebendo a barra em agachamento completo.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "habilidade"],
+    "movementPatterns": ["puxada tripla extensão", "agachamento"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["quadríceps", "costas", "glúteos"],
+    "secondaryMuscles": ["trapézio", "músculos do core"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "power_clean",
+      "hang_squat_clean",
+      "hang_power_clean",
+      "front_squat",
+      "air_squat",
+      "deadlift"
+    ]
+  },
+  {
+    "name": "muscle_clean",
+    "displayName": "Muscle Clean",
+    "description": "Clean saindo do chão sem re-flexão de joelhos, puxando puramente na força de trapézio e braços.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["força"],
+    "movementPatterns": ["puxada vertical"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["trapézio", "costas"],
+    "secondaryMuscles": ["bíceps", "músculos do core"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "hang_power_clean",
+      "deadlift"
+    ]
+  },
+  {
+    "name": "dumbbell_hang_power_clean",
+    "displayName": "Dumbbell Hang Power Clean",
+    "description": "Clean de haltere em posição suspensa recebido em power.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["dobradiça de quadril", "puxada"],
+    "equipment": ["halteres"],
+    "primaryMuscles": ["costas", "trapézio", "músculos do core"],
+    "secondaryMuscles": ["glúteos"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "deadlift"
+    ]
+  },
+  {
+    "name": "dumbbell_power_clean",
+    "displayName": "Dumbbell Power Clean",
+    "description": "Clean de haltere saindo do chão e recebido em power.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["puxada tripla extensão"],
+    "equipment": ["halteres"],
+    "primaryMuscles": ["costas", "trapézio", "músculos do core"],
+    "secondaryMuscles": ["glúteos"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "dumbbell_hang_power_clean",
+      "deadlift"
+    ]
+  },
+  {
+    "name": "dumbbell_squat_clean",
+    "displayName": "Dumbbell Squat Clean",
+    "description": "Clean de haltere saindo do chão e recebido em agachamento profundo.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "mobilidade"],
+    "movementPatterns": ["puxada", "agachamento"],
+    "equipment": ["halteres"],
+    "primaryMuscles": ["quadríceps", "costas", "glúteos"],
+    "secondaryMuscles": ["trapézio", "músculos do core"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "dumbbell_power_clean",
+      "dumbbell_hang_power_clean",
+      "deadlift"
+    ]
+  },
+  {
+    "name": "push_press",
+    "displayName": "Push Press",
+    "description": "Desenvolvimento de ombros utilizando um 'dip & drive' (pequeno agachamento e explosão) das pernas.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["empurrada vertical", "extensão de quadril"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["ombros", "tríceps", "quadríceps"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "shoulder_press"
+    ]
+  },
+  {
+    "name": "push_jerk",
+    "displayName": "Push Jerk",
+    "description": "Desenvolvimento onde, após o 'drive' de pernas, o atleta entra novamente abaixo da barra com os joelhos flexionados.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["empurrada vertical", "extensão de quadril"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["deltoides", "quadríceps", "glúteos"],
+    "secondaryMuscles": ["tríceps", "músculos do core"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "push_press",
+      "shoulder_press"
+    ]
+  },
+  {
+    "name": "split_jerk",
+    "displayName": "Split Jerk",
+    "description": "Jerk onde os pés se separam numa posição de tesoura/afundo no momento da recepção da barra.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "habilidade"],
+    "movementPatterns": ["empurrada vertical", "afundo", "extensão de quadril"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["deltoides", "quadríceps", "glúteos"],
+    "secondaryMuscles": ["músculos do core", "tríceps"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "push_jerk",
+      "push_press",
+      "shoulder_press"
+    ]
+  },
+  {
+    "name": "power_clean_and_jerk",
+    "displayName": "Power Clean & Jerk",
+    "description": "Combinação de um Power Clean seguido de um Jerk (geralmente Push Jerk ou Split).",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "força"],
+    "movementPatterns": ["puxada tripla extensão", "empurrada vertical"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["costas", "ombros", "quadríceps", "glúteos"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "power_clean",
+      "push_jerk",
+      "hang_power_clean",
+      "push_press",
+      "shoulder_press",
+      "deadlift"
+    ]
+  },
+  {
+    "name": "clean_and_jerk",
+    "displayName": "Clean & Jerk",
+    "description": "Levantamento clássico: Clean (recebendo em agachamento) + Split Jerk.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "força", "habilidade"],
+    "movementPatterns": ["puxada", "agachamento", "empurrada vertical"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["corpo todo"],
+    "secondaryMuscles": [],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "power_clean_and_jerk",
+      "clean",
+      "split_jerk",
+      "power_clean",
+      "push_jerk",
+      "hang_squat_clean",
+      "hang_power_clean",
+      "push_press",
+      "shoulder_press",
+      "front_squat",
+      "air_squat",
+      "deadlift"
+    ]
+  },
+  {
+    "name": "wall_ball_shot",
+    "displayName": "Wall Ball Shot",
+    "description": "Agachamento com bola medicinal seguido de arremesso contra o alvo na parede.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["resistência muscular", "cardio"],
+    "movementPatterns": ["agachamento", "empurrada vertical"],
+    "equipment": ["bola medicinal"],
+    "primaryMuscles": ["quadríceps", "ombros", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "tríceps"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "target_height": "alvo mais baixo"
+    },
+    "adaptations": [
+      "air_squat"
+    ]
+  },
+  {
+    "name": "thruster",
+    "displayName": "Thruster",
+    "description": "Agachamento frontal fluido ligado diretamente a um Push Press.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "cardio"],
+    "movementPatterns": ["agachamento", "empurrada vertical"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["quadríceps", "deltoides", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "tríceps"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "front_squat",
+      "push_press",
+      "wall_ball_shot",
+      "shoulder_press",
+      "air_squat"
+    ]
+  },
+  {
+    "name": "dumbbell_thruster",
+    "displayName": "Dumbbell Thruster",
+    "description": "Thruster executado segurando halteres no rack frontal.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência", "cardio"],
+    "movementPatterns": ["agachamento", "empurrada vertical"],
+    "equipment": ["halteres"],
+    "primaryMuscles": ["quadríceps", "deltoides", "músculos do core"],
+    "secondaryMuscles": ["glúteos", "tríceps"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "front_squat",
+      "push_press",
+      "wall_ball_shot",
+      "shoulder_press",
+      "air_squat"
+    ]
+  },
+  {
+    "name": "sumo_deadlift_high_pull",
+    "displayName": "Sumo Deadlift High Pull",
+    "description": "Puxada alta saindo de uma base de terra sumô (pés afastados, mãos fechadas), puxando a barra até a clavícula.",
+    "categories": ["levantamento de peso"],
+    "modalities": ["potência"],
+    "movementPatterns": ["dobradiça de quadril", "puxada vertical"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["trapézio", "deltoides", "glúteos"],
+    "secondaryMuscles": ["isquiotibiais", "músculos do core"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "leve"
+    },
+    "adaptations": [
+      "deadlift"
+    ]
+  },
+  {
+    "name": "box_jump",
+    "displayName": "Box Jump",
+    "description": "Salte sobre uma caixa com os dois pés e fique em pé completamente antes de descer.",
+    "categories": ["ginástica"],
+    "modalities": ["potência"],
+    "movementPatterns": ["salto", "extensão de quadril"],
+    "equipment": ["caixa pliométrica"],
+    "primaryMuscles": ["quadríceps", "glúteos"],
+    "secondaryMuscles": ["panturrilhas", "isquiotibiais"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "box_height": "baixa",
+      "impact": "descer um pé de cada vez (step down)"
+    },
+    "adaptations": [
+      "box_step_up",
+      "air_squat"
+    ]
+  },
+  {
+    "name": "box_jump_over",
+    "displayName": "Box Jump-Over",
+    "description": "Salte sobre a caixa e desça para o outro lado sem a obrigação de estender o quadril no topo.",
+    "categories": ["ginástica"],
+    "modalities": ["potência", "cardio"],
+    "movementPatterns": ["salto"],
+    "equipment": ["caixa pliométrica"],
+    "primaryMuscles": ["quadríceps", "glúteos"],
+    "secondaryMuscles": ["panturrilhas"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "box_height": "baixa"
+    },
+    "adaptations": [
+      "box_jump",
+      "box_step_up",
+      "air_squat"
+    ]
+  },
+  {
+    "name": "burpee",
+    "displayName": "Burpee",
+    "description": "Deite-se no chão tocando o peito, levante-se rapidamente e faça um pequeno salto tocando as mãos acima da cabeça.",
+    "categories": ["metcon"],
+    "modalities": ["cardio", "resistência muscular"],
+    "movementPatterns": ["flexão de braço", "agachamento", "salto"],
+    "equipment": ["nenhum"],
+    "primaryMuscles": ["peitoral", "tríceps", "quadríceps"],
+    "secondaryMuscles": ["músculos do core", "glúteos", "ombros"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "impact": "realizar step-back em vez de saltar para trás"
+    },
+    "adaptations": [
+      "sprawl"
+    ]
+  },
+  {
+    "name": "bar_facing_burpee",
+    "displayName": "Bar-Facing Burpee",
+    "description": "Burpee realizado de frente para a barra, seguido de um salto lateral de pés juntos sobre a barra.",
+    "categories": ["metcon"],
+    "modalities": ["cardio"],
+    "movementPatterns": ["flexão de braço", "salto"],
+    "equipment": ["barra"],
+    "primaryMuscles": ["peitoral", "tríceps", "quadríceps"],
+    "secondaryMuscles": ["músculos do core"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "impact": "passo sobre a barra (step over)"
+    },
+    "adaptations": [
+      "burpee",
+      "sprawl"
+    ]
+  },
+  {
+    "name": "burpee_box_jump",
+    "displayName": "Burpee Box Jump",
+    "description": "Burpee de frente para a caixa seguido de um Box Jump estendendo o quadril no topo.",
+    "categories": ["metcon"],
+    "modalities": ["cardio", "potência"],
+    "movementPatterns": ["flexão de braço", "salto pliométrico"],
+    "equipment": ["caixa pliométrica"],
+    "primaryMuscles": ["corpo todo"],
+    "secondaryMuscles": [],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "box_height": "baixa"
+    },
+    "adaptations": [
+      "burpee",
+      "box_jump",
+      "sprawl",
+      "box_step_up",
+      "air_squat"
+    ]
+  },
+  {
+    "name": "burpee_box_jump_over",
+    "displayName": "Burpee Box Jump-Over",
+    "description": "Burpee de frente ou de lado para a caixa, seguido de um salto sobre a caixa descendo do outro lado.",
+    "categories": ["metcon"],
+    "modalities": ["cardio", "potência"],
+    "movementPatterns": ["flexão de braço", "salto pliométrico"],
+    "equipment": ["caixa pliométrica"],
+    "primaryMuscles": ["corpo todo"],
+    "secondaryMuscles": [],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "impact": "step over (passo em cima da caixa)"
+    },
+    "adaptations": [
+      "burpee_box_jump",
+      "bar_facing_burpee",
+      "box_jump_over",
+      "burpee",
+      "box_jump",
+      "sprawl",
+      "box_step_up",
+      "air_squat"
+    ]
+  },
+  {
+    "name": "double_unders",
+    "displayName": "Double-Unders",
+    "description": "Salto de corda onde a corda passa duas vezes sob os pés em um único salto.",
+    "categories": ["metcon"],
+    "modalities": ["cardio", "habilidade"],
+    "movementPatterns": ["salto pliométrico"],
+    "equipment": ["corda de pular"],
+    "primaryMuscles": ["panturrilhas"],
+    "secondaryMuscles": ["músculos do core", "ombros", "antebraços"],
+    "prType": "reps",
+    "prUnit": "reps",
+    "supportedPrTypes": ["reps"],
+    "scalingOptions": {
+      "volume": "reduzir o número de repetições"
+    },
+    "adaptations": [
+      "single_unders"
+    ]
+  },
+  {
+    "name": "turkish_get_up",
+    "displayName": "Turkish Get-Up",
+    "description": "Levantar-se do chão até ficar de pé sustentando um kettlebell ou haltere estabilizado acima da cabeça o tempo todo.",
+    "categories": ["habilidade"],
+    "modalities": ["estabilização", "mobilidade"],
+    "movementPatterns": ["estabilização overhead", "afundo", "dobradiça"],
+    "equipment": ["kettlebell"],
+    "primaryMuscles": ["ombros", "músculos do core", "glúteos"],
+    "secondaryMuscles": ["costas", "quadríceps"],
+    "prType": "weight",
+    "prUnit": "kg",
+    "supportedPrTypes": ["reps", "weight"],
+    "scalingOptions": {
+      "load": "praticar sem peso (balancear um sapato na mão)"
+    },
+    "adaptations": [
+      "lunges"
+    ]
+  }
+]
