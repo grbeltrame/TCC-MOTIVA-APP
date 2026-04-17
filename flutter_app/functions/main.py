@@ -55,11 +55,12 @@ def analyze_workout_with_ai(event):
 )
 def update_athlete_stats(event):
     """
-    Dispara sempre que um resultado de atleta é criado ou atualizado.
-    Recalcula users/{uid}/stats/summary com frequência, esforço médio,
-    estímulos e calendário da semana — sem LLM, só matemática.
+    Dispara sempre que um resultado de atleta é criado, atualizado ou deletado.
+    Recalcula users/{uid}/stats/summary (frequência, esforço, estímulos,
+    calendário) e users/{uid}/weekly_load/{weekLabel} (carga Session-RPE,
+    monotonia, strain, ICN) — sem LLM, só matemática.
     """
-    logging.info("update_athlete_stats triggered")
+    logging.info("update_athlete_stats triggered (results)")
     try:
         from athlete_stats_module import update_athlete_stats_logic
     except Exception:
@@ -70,4 +71,30 @@ def update_athlete_stats(event):
         update_athlete_stats_logic(event)
     except Exception:
         logging.exception("Erro ao executar update_athlete_stats_logic")
+        raise
+
+
+@firestore_fn.on_document_written(
+    document="users/{uid}/prs/{prId}",
+    region="us-central1",
+    memory=options.MemoryOption.MB_256,
+    timeout_sec=60
+)
+def update_athlete_stats_on_pr(event):
+    """
+    Dispara sempre que um PR é criado, atualizado ou deletado.
+    Usa a mesma lógica de update_athlete_stats para recalcular a contagem
+    de PRs semanais e manter o weekly_load consistente.
+    """
+    logging.info("update_athlete_stats_on_pr triggered (prs)")
+    try:
+        from athlete_stats_module import update_athlete_stats_logic
+    except Exception:
+        logging.exception("Falha ao importar athlete_stats_module")
+        return
+
+    try:
+        update_athlete_stats_logic(event)
+    except Exception:
+        logging.exception("Erro ao executar update_athlete_stats_logic (pr)")
         raise

@@ -17,14 +17,14 @@ class WeekFrequencyCard extends StatelessWidget {
     final count = summary.currentWeekTrainingDays;
 
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 4 * scale),
+      margin: EdgeInsets.symmetric(vertical: 3 * scale),
       shape: RoundedRectangleBorder(
         side: const BorderSide(color: AppColors.mediumGray),
-        borderRadius: BorderRadius.circular(16 * scale),
+        borderRadius: BorderRadius.circular(14 * scale),
       ),
       elevation: 0,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16 * scale, 14 * scale, 16 * scale, 16 * scale),
+        padding: EdgeInsets.fromLTRB(12 * scale, 10 * scale, 12 * scale, 11 * scale),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -34,12 +34,12 @@ class WeekFrequencyCard extends StatelessWidget {
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontWeight: FontWeight.bold,
-                fontSize: 11 * scale,
+                fontSize: 10 * scale,
                 color: AppColors.darkBlue,
-                letterSpacing: 0.8,
+                letterSpacing: 0.7,
               ),
             ),
-            SizedBox(height: 10 * scale),
+            SizedBox(height: 6 * scale),
 
             // Número grande
             Row(
@@ -50,18 +50,18 @@ class WeekFrequencyCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.montserrat,
                     fontWeight: FontWeight.bold,
-                    fontSize: 36 * scale,
+                    fontSize: 26 * scale,
                     color: AppColors.darkBlue,
                     height: 1,
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.only(bottom: 7 * scale, left: 4 * scale),
+                  padding: EdgeInsets.only(bottom: 4 * scale, left: 3 * scale),
                   child: Text(
                     'de 7',
                     style: TextStyle(
                       fontFamily: AppFonts.roboto,
-                      fontSize: 14 * scale,
+                      fontSize: 12 * scale,
                       color: AppColors.mediumGray,
                       fontWeight: FontWeight.w500,
                     ),
@@ -74,12 +74,12 @@ class WeekFrequencyCard extends StatelessWidget {
               count == 1 ? 'dia treinado' : 'dias treinados',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
-                fontSize: 12 * scale,
+                fontSize: 10.5 * scale,
                 color: AppColors.mediumGray,
               ),
             ),
 
-            SizedBox(height: 12 * scale),
+            SizedBox(height: 8 * scale),
 
             // Barra de progresso discreta (7 segmentos)
             Row(
@@ -87,11 +87,11 @@ class WeekFrequencyCard extends StatelessWidget {
                 final filled = i < count;
                 return Expanded(
                   child: Container(
-                    margin: EdgeInsets.only(right: i < 6 ? 3 * scale : 0),
-                    height: 5 * scale,
+                    margin: EdgeInsets.only(right: i < 6 ? 2.5 * scale : 0),
+                    height: 4 * scale,
                     decoration: BoxDecoration(
                       color: filled ? AppColors.baseBlue : AppColors.lightGray,
-                      borderRadius: BorderRadius.circular(3 * scale),
+                      borderRadius: BorderRadius.circular(2.5 * scale),
                     ),
                   ),
                 );

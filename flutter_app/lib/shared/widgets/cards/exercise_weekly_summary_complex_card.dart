@@ -12,12 +12,14 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
   final DateTime? from;
   final DateTime? to;
   const ExerciseWeeklySummaryComplexCard({Key? key, this.from, this.to})
-      : super(key: key);
+    : super(key: key);
 
   static const _pieColors = [
     AppColors.baseMagenta,
     AppColors.baseBlue,
     AppColors.darkBlue,
+    AppColors.lightBlue,
+    AppColors.lightMagenta,
   ];
 
   @override
@@ -25,9 +27,8 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
     final screenW = MediaQuery.of(context).size.width;
     final scale = screenW / 375.0;
 
-    // Mesma proporção do simples: 32% da largura
-    final indicatorW = screenW * 0.32;
-    final gap = screenW * 0.06;
+    // Pizza menor pra manter o card compacto
+    final pieSize = screenW * 0.28;
 
     return FutureBuilder<ComplexExerciseSummary>(
       future: ExerciseWeeklySummaryService.fetchComplexSummary(
@@ -36,61 +37,90 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
       ),
       builder: (ctx, snap) {
         if (snap.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return SizedBox(
+            height: 140 * scale,
+            child: const Center(child: CircularProgressIndicator()),
+          );
         }
         if (snap.hasError || snap.data == null) {
-          return const Center(child: Text('Erro ao carregar resumo completo'));
+          return _EmptyCard(scale: scale, message: 'Erro ao carregar resumo');
         }
 
         final summary = snap.data!;
-
         final total = summary.distribution.fold<int>(
           0,
           (sum, d) => sum + d.count,
         );
 
-        return Padding(
-          padding: EdgeInsets.symmetric(vertical: 2 * scale),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.transparent, // fundo transparente
-              border: Border.all(
-                color: AppColors.mediumGray, // borda cinza
-                width: 1 * scale,
-              ),
-              borderRadius: BorderRadius.circular(16 * scale),
+        return Card(
+          margin: EdgeInsets.symmetric(vertical: 3 * scale),
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: AppColors.mediumGray),
+            borderRadius: BorderRadius.circular(14 * scale),
+          ),
+          elevation: 0,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              12 * scale,
+              10 * scale,
+              12 * scale,
+              11 * scale,
             ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: 16 * scale,
-                vertical: 4 * scale,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Título padronizado
+                Text(
+                  'DISTRIBUIÇÃO DE ESTÍMULOS',
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10 * scale,
+                    color: AppColors.darkBlue,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+                SizedBox(height: 8 * scale),
+
+                if (summary.distribution.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8 * scale),
+                    child: Text(
+                      'Nenhum estímulo registrado no período.',
+                      style: TextStyle(
+                        fontFamily: AppFonts.roboto,
+                        fontSize: 11.5 * scale,
+                        color: AppColors.mediumGray,
+                      ),
+                    ),
+                  )
+                else ...[
+                  // ── Conteúdo: pizza (esq) + bloco estruturado (dir) ──────
                   SizedBox(
-                    height: indicatorW,
+                    height: pieSize,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Coluna 1: gráfico de pizza dos estímulos
                         SizedBox(
-                          width: indicatorW,
-                          height: indicatorW,
+                          width: pieSize,
+                          height: pieSize,
                           child: SfCircularChart(
+                            margin: EdgeInsets.zero,
                             palette: _pieColors,
                             series: <PieSeries<StimulusCount, String>>[
                               PieSeries<StimulusCount, String>(
                                 dataSource: summary.distribution,
                                 xValueMapper: (d, _) => d.name,
                                 yValueMapper: (d, _) => d.count,
-                                dataLabelMapper: (d, _) => d.name.substring(0, 1),
+                                dataLabelMapper: (d, _) =>
+                                    d.name.substring(0, 1),
                                 dataLabelSettings: DataLabelSettings(
                                   isVisible: true,
-                                  labelPosition: ChartDataLabelPosition.inside,
+                                  labelPosition:
+                                      ChartDataLabelPosition.inside,
                                   textStyle: TextStyle(
-                                    fontSize: 12 * scale,
+                                    fontSize: 10 * scale,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
@@ -101,95 +131,141 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                           ),
                         ),
 
-                        SizedBox(width: gap),
+                        SizedBox(width: 12 * scale),
 
-                        // Coluna 2: textos alinhados verticalmente ao centro
+                        // Bloco à direita: tudo top-aligned com hierarquia clara
                         Expanded(
-                          child: SizedBox(
-                            height: indicatorW,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Olá, ${summary.userName}!',
-                                  style: TextStyle(
-                                    fontFamily: AppFonts.roboto,
-                                    fontWeight: AppFontWeight.bold,
-                                    fontSize: 14 * scale,
-                                    color: AppColors.darkText,
-                                  ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              // Rótulo de seção (mesmo estilo do card title)
+                              Text(
+                                'ESTÍMULO PRINCIPAL',
+                                style: TextStyle(
+                                  fontFamily: AppFonts.roboto,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 9 * scale,
+                                  color: AppColors.darkBlue,
+                                  letterSpacing: 0.7,
                                 ),
-                                SizedBox(height: 4 * scale),
+                              ),
+                              SizedBox(height: 3 * scale),
 
-                                Text(
-                                  'Essa é a sua distribuição de estímulos da semana',
-                                  style: TextStyle(
-                                    fontFamily: AppFonts.roboto,
-                                    fontWeight: AppFontWeight.regular,
-                                    fontSize: 12 * scale,
-                                    color: AppColors.darkText,
-                                  ),
+                              // Nome em destaque
+                              Text(
+                                summary.predominantStimulus,
+                                style: TextStyle(
+                                  fontFamily: AppFonts.montserrat,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20 * scale,
+                                  color: AppColors.darkBlue,
+                                  height: 1,
                                 ),
-                                SizedBox(height: 4 * scale),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
 
-                                Text(
-                                  '${summary.predominantStimulus} – ${summary.shortInsight}',
+                              // Separador sutil
+                              SizedBox(height: 8 * scale),
+                              Container(
+                                height: 1,
+                                width: 28 * scale,
+                                color: AppColors.mediumGray
+                                    .withValues(alpha: 0.35),
+                              ),
+                              SizedBox(height: 8 * scale),
+
+                              // Insight curto
+                              Expanded(
+                                child: Text(
+                                  summary.shortInsight,
                                   style: TextStyle(
                                     fontFamily: AppFonts.roboto,
-                                    fontWeight: AppFontWeight.medium,
-                                    fontSize: 12 * scale,
+                                    fontSize: 10.5 * scale,
                                     color: AppColors.darkText,
+                                    height: 1.3,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
 
-                  // Legenda das cores do gráfico
-                  if (summary.distribution.isNotEmpty) ...[
-                    SizedBox(height: 8 * scale),
-                    Wrap(
-                      spacing: 10 * scale,
-                      runSpacing: 4 * scale,
-                      children: summary.distribution.asMap().entries.map((e) {
-                        final color = _pieColors[e.key % _pieColors.length];
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8 * scale,
-                              height: 8 * scale,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                              ),
+                  SizedBox(height: 10 * scale),
+
+                  // Legenda compacta
+                  Wrap(
+                    spacing: 8 * scale,
+                    runSpacing: 4 * scale,
+                    children: summary.distribution.asMap().entries.map((e) {
+                      final color = _pieColors[e.key % _pieColors.length];
+                      final pct = total > 0
+                          ? ((e.value.count / total) * 100).round()
+                          : 0;
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7 * scale,
+                            height: 7 * scale,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
                             ),
-                            SizedBox(width: 4 * scale),
-                            Text(
-                              '${e.value.name}  ${e.value.count}x (${total > 0 ? ((e.value.count / total) * 100).round() : 0}%)',
-                              style: TextStyle(
-                                fontFamily: AppFonts.roboto,
-                                fontWeight: AppFontWeight.regular,
-                                fontSize: 11 * scale,
-                                color: AppColors.darkText,
-                              ),
+                          ),
+                          SizedBox(width: 4 * scale),
+                          Text(
+                            '${e.value.name} $pct%',
+                            style: TextStyle(
+                              fontFamily: AppFonts.roboto,
+                              fontSize: 10 * scale,
+                              color: AppColors.darkText,
                             ),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  ],
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _EmptyCard extends StatelessWidget {
+  final double scale;
+  final String message;
+  const _EmptyCard({required this.scale, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.symmetric(vertical: 3 * scale),
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: AppColors.mediumGray),
+        borderRadius: BorderRadius.circular(14 * scale),
+      ),
+      elevation: 0,
+      child: Padding(
+        padding: EdgeInsets.all(14 * scale),
+        child: Text(
+          message,
+          style: TextStyle(
+            fontFamily: AppFonts.roboto,
+            fontSize: 11.5 * scale,
+            color: AppColors.mediumGray,
+          ),
+        ),
+      ),
     );
   }
 }

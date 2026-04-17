@@ -49,6 +49,28 @@ class AthleteStatsSummary {
     this.updatedAt,
   });
 
+  /// Retorna uma cópia com todos os dados da semana atual zerados.
+  /// Usado quando o summary armazenado pertence a uma semana anterior.
+  AthleteStatsSummary withCurrentWeekZeroed({
+    required String currentWeekStart,
+    required String currentWeekEnd,
+  }) {
+    return AthleteStatsSummary(
+      totalTrainingDays: totalTrainingDays,
+      averageEffortAllTime: averageEffortAllTime,
+      currentMonthTrainingDays: currentMonthTrainingDays,
+      averageEffortCurrentMonth: averageEffortCurrentMonth,
+      currentWeekTrainingDays: 0,
+      averageEffortCurrentWeek: 0,
+      currentWeekStimuli: const {},
+      currentWeekCalendar: const {},
+      weekStart: currentWeekStart,
+      weekEnd: currentWeekEnd,
+      monthStart: monthStart,
+      updatedAt: updatedAt,
+    );
+  }
+
   factory AthleteStatsSummary.fromFirestore(Map<String, dynamic> data) {
     // Converte o calendário raw { "2026-04-08": "wod" } para enum
     final rawCalendar =
@@ -140,15 +162,41 @@ class AthleteStatsService {
       '${d.year}-${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
 
+  /// Domingo da semana que contém [ref] (semana dom→sáb).
+  /// Dart weekday: seg=1..sáb=6, dom=7 → `weekday % 7` dá dias desde domingo.
+  static DateTime _weekStartOf(DateTime ref) {
+    final daysSinceSunday = ref.weekday % 7; // seg=1..sáb=6, dom=0
+    return DateTime(ref.year, ref.month, ref.day - daysSinceSunday);
+  }
+
   // ── Leitura do summary pré-calculado (1 doc read) ────────────────────────────
 
   /// Retorna o resumo pré-calculado pela Cloud Function.
+  /// Se o summary armazenado for de uma semana anterior, devolve os dados
+  /// all-time/mensal intactos mas zera todos os campos da semana atual.
   /// Null se ainda não existir (atleta nunca registrou nada).
   static Future<AthleteStatsSummary?> fetchSummary() async {
     try {
       final doc = await _summaryRef.get();
       if (!doc.exists || doc.data() == null) return null;
-      return AthleteStatsSummary.fromFirestore(doc.data()!);
+      final summary = AthleteStatsSummary.fromFirestore(doc.data()!);
+
+      // Verifica se a semana armazenada corresponde à semana atual.
+      final now = DateTime.now();
+      final currentWeekStart = _weekStartOf(now);
+      final currentWeekEnd = currentWeekStart.add(const Duration(days: 6));
+      final expectedWeekStart = _dateKey(currentWeekStart);
+
+      if (summary.weekStart != expectedWeekStart) {
+        // Summary é de outra semana — zera dados da semana para não mostrar
+        // treinos/estímulos/calendário antigos como se fossem desta semana.
+        return summary.withCurrentWeekZeroed(
+          currentWeekStart: expectedWeekStart,
+          currentWeekEnd: _dateKey(currentWeekEnd),
+        );
+      }
+
+      return summary;
     } catch (e) {
       print('ERRO fetchSummary: $e');
       return null;

@@ -104,7 +104,7 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
                     // Calendário semanal — largura total
                     WeekCalendarCard(summary: summary),
 
-                    SizedBox(height: 4 * scale),
+                    SizedBox(height: 2 * scale),
 
                     // Frequência + Esforço lado a lado
                     IntrinsicHeight(
@@ -114,7 +114,7 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
                           Expanded(
                             child: WeekFrequencyCard(summary: summary),
                           ),
-                          SizedBox(width: 8 * scale),
+                          SizedBox(width: 6 * scale),
                           Expanded(
                             child: WeekEffortCard(summary: summary),
                           ),
@@ -122,12 +122,12 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
                       ),
                     ),
 
-                    SizedBox(height: 4 * scale),
+                    SizedBox(height: 2 * scale),
 
                     // Estímulos — largura total
                     WeekStimuliCard(summary: summary),
 
-                    SizedBox(height: 4 * scale),
+                    SizedBox(height: 2 * scale),
 
                     // PRs batidos — largura total
                     const WeekPRsCard(),
@@ -136,7 +136,7 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
               },
             ),
 
-            SizedBox(height: 24 * scale),
+            SizedBox(height: 16 * scale),
 
             // ── Insights da Semana ───────────────────────────────────────────
             Padding(

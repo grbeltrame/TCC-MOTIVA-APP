@@ -25,14 +25,14 @@ class WeekStimuliCard extends StatelessWidget {
     final stimuli = summary.stimuliSorted;
 
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 4 * scale),
+      margin: EdgeInsets.symmetric(vertical: 3 * scale),
       shape: RoundedRectangleBorder(
         side: const BorderSide(color: AppColors.mediumGray),
-        borderRadius: BorderRadius.circular(16 * scale),
+        borderRadius: BorderRadius.circular(14 * scale),
       ),
       elevation: 0,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16 * scale, 14 * scale, 16 * scale, 16 * scale),
+        padding: EdgeInsets.fromLTRB(12 * scale, 10 * scale, 12 * scale, 11 * scale),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -42,26 +42,26 @@ class WeekStimuliCard extends StatelessWidget {
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontWeight: FontWeight.bold,
-                fontSize: 11 * scale,
+                fontSize: 10 * scale,
                 color: AppColors.darkBlue,
-                letterSpacing: 0.8,
+                letterSpacing: 0.7,
               ),
             ),
-            SizedBox(height: 12 * scale),
+            SizedBox(height: 8 * scale),
 
             if (stimuli.isEmpty)
               Text(
                 'Nenhum estímulo registrado esta semana.',
                 style: TextStyle(
                   fontFamily: AppFonts.roboto,
-                  fontSize: 13 * scale,
+                  fontSize: 11.5 * scale,
                   color: AppColors.mediumGray,
                 ),
               )
             else
               Wrap(
-                spacing: 8 * scale,
-                runSpacing: 8 * scale,
+                spacing: 6 * scale,
+                runSpacing: 6 * scale,
                 children: stimuli.asMap().entries.map((entry) {
                   final color = _chipColors[entry.key % _chipColors.length];
                   return _StimulusChip(
@@ -100,12 +100,12 @@ class _StimulusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: 10 * scale,
-        vertical: 6 * scale,
+        horizontal: 8 * scale,
+        vertical: 4 * scale,
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20 * scale),
+        borderRadius: BorderRadius.circular(18 * scale),
         border: Border.all(color: color.withValues(alpha: 0.28), width: 1),
       ),
       child: Row(
@@ -115,26 +115,26 @@ class _StimulusChip extends StatelessWidget {
             label,
             style: TextStyle(
               fontFamily: AppFonts.roboto,
-              fontSize: 12 * scale,
+              fontSize: 11 * scale,
               fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
-          SizedBox(width: 6 * scale),
+          SizedBox(width: 5 * scale),
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: 5 * scale,
+              horizontal: 4 * scale,
               vertical: 1 * scale,
             ),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10 * scale),
+              borderRadius: BorderRadius.circular(9 * scale),
             ),
             child: Text(
               '${count}x',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
-                fontSize: 10 * scale,
+                fontSize: 9.5 * scale,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),

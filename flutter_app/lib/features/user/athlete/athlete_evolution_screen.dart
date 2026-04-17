@@ -65,7 +65,7 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Seletor de período global ────────────────────────────────────
+            // ── Título + seletor de período ─────────────────────────────────
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 6 * scale),
               child: Row(
@@ -79,26 +79,10 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
                     ),
                   ),
                   SizedBox(width: 8 * scale),
-                  GestureDetector(
+                  _DateChip(
+                    label: fmt.format(_from),
                     onTap: () => _pickDate(isFrom: true),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8 * scale,
-                        vertical: 4 * scale,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.lightGray),
-                        borderRadius: BorderRadius.circular(6 * scale),
-                      ),
-                      child: Text(
-                        fmt.format(_from),
-                        style: TextStyle(
-                          fontFamily: AppFonts.roboto,
-                          fontSize: 11 * scale,
-                          color: AppColors.darkText,
-                        ),
-                      ),
-                    ),
+                    scale: scale,
                   ),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4 * scale),
@@ -110,45 +94,87 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
                       ),
                     ),
                   ),
-                  GestureDetector(
+                  _DateChip(
+                    label: fmt.format(_to),
                     onTap: () => _pickDate(isFrom: false),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8 * scale,
-                        vertical: 4 * scale,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.lightGray),
-                        borderRadius: BorderRadius.circular(6 * scale),
-                      ),
-                      child: Text(
-                        fmt.format(_to),
-                        style: TextStyle(
-                          fontFamily: AppFonts.roboto,
-                          fontSize: 11 * scale,
-                          color: AppColors.darkText,
-                        ),
-                      ),
-                    ),
+                    scale: scale,
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 16 * scale),
+            SizedBox(height: 8 * scale),
 
             // ── Resumo semanal de exercícios (gráfico de pizza) ──────────────
             ExerciseWeeklySummaryWidget(from: _from, to: _to),
-            SizedBox(height: 24 * scale),
+
+            SizedBox(height: 4 * scale),
 
             // ── Estatísticas de treino ───────────────────────────────────────
             WeeklyStatisticsWidget(from: _from, to: _to),
-            SizedBox(height: 24 * scale),
+
+            SizedBox(height: 16 * scale),
 
             // ── Análises ────────────────────────────────────────────────────
             const AnalysisSection(),
 
             // ── Destaques / Recomendações ────────────────────────────────────
             const WeeklyRecomendationSection(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chip de data — estilo consistente com o filtro das estatísticas
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _DateChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final double scale;
+
+  const _DateChip({
+    required this.label,
+    required this.onTap,
+    required this.scale,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 10 * scale,
+          vertical: 4 * scale,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.baseBlue.withValues(alpha: 0.08),
+          border: Border.all(
+            color: AppColors.baseBlue.withValues(alpha: 0.35),
+          ),
+          borderRadius: BorderRadius.circular(18 * scale),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 11 * scale,
+              color: AppColors.darkBlue,
+            ),
+            SizedBox(width: 4 * scale),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: AppFonts.roboto,
+                fontSize: 11 * scale,
+                fontWeight: FontWeight.w600,
+                color: AppColors.darkBlue,
+              ),
+            ),
           ],
         ),
       ),

@@ -33,21 +33,36 @@ class ExerciseWeeklySummarySimpleCard extends StatelessWidget {
 
         final pct = (data.completedValue / data.targetValue).clamp(0.0, 1.0);
 
-        return Padding(
-          padding: EdgeInsets.symmetric(vertical: 8 * scale),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              border: Border.all(color: AppColors.lightGray, width: 1 * scale),
-              borderRadius: BorderRadius.circular(16 * scale),
-            ), // fundo transparente
-            child: Padding(
-              // padding interno do card
-              padding: EdgeInsets.symmetric(
-                horizontal: 16 * scale,
-                vertical: 12 * scale,
-              ),
-              child: IntrinsicHeight(
+        return Card(
+          margin: EdgeInsets.symmetric(vertical: 3 * scale),
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: AppColors.mediumGray),
+            borderRadius: BorderRadius.circular(14 * scale),
+          ),
+          elevation: 0,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              12 * scale,
+              10 * scale,
+              12 * scale,
+              11 * scale,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'RESUMO DA SEMANA',
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10 * scale,
+                    color: AppColors.darkBlue,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+                SizedBox(height: 8 * scale),
+                IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -181,6 +196,7 @@ class ExerciseWeeklySummarySimpleCard extends StatelessWidget {
                   ],
                 ),
               ),
+              ],
             ),
           ),
         );

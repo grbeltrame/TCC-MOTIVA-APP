@@ -821,8 +821,15 @@ class _RegisterResultSheetContentState
 
   // ── Resultado condicional por modalidade ─────────────────────────────────────
 
+  bool get _isForTimeLike =>
+      _modalidade == 'FOR TIME' || _modalidade == 'ROUNDS FOR TIME';
+
   Widget _buildConditionalResultRow(double scale) {
-    if (_modalidade == 'FOR TIME') {
+    if (_isForTimeLike) {
+      final didNotComplete = (_selectedCompleted ?? 'Sim') == 'Não';
+      // When "não concluiu" and cap is known, time is locked to the cap.
+      final timeLocked = didNotComplete && _maxForTimeSeconds != null;
+
       return Wrap(
         spacing: 12 * scale,
         runSpacing: 6 * scale,
@@ -831,16 +838,34 @@ class _RegisterResultSheetContentState
             label: 'Concluiu?:',
             value: _selectedCompleted ?? 'Sim',
             items: const ['Sim', 'Não'],
-            onChanged: (v) => setState(() => _selectedCompleted = v),
+            onChanged: (v) {
+              setState(() {
+                _selectedCompleted = v;
+                if (v == 'Não' && _maxForTimeSeconds != null) {
+                  // Auto-fill cap time when athlete didn't finish
+                  _forTimeSeconds = _maxForTimeSeconds;
+                } else if (v == 'Sim' && _forTimeSeconds == _maxForTimeSeconds) {
+                  // Clear the auto-filled cap so athlete enters their real time
+                  _forTimeSeconds = null;
+                }
+              });
+            },
             scale: scale,
           ),
-          _LabeledTimePicker(
-            label: 'Seu tempo:',
-            seconds: _forTimeSeconds,
-            maxSeconds: _maxForTimeSeconds,
-            onChanged: (v) => setState(() => _forTimeSeconds = v),
-            scale: scale,
-          ),
+          if (timeLocked)
+            _CapTimeChip(
+              label: 'Tempo (cap):',
+              seconds: _maxForTimeSeconds!,
+              scale: scale,
+            )
+          else
+            _LabeledTimePicker(
+              label: 'Seu tempo:',
+              seconds: _forTimeSeconds,
+              maxSeconds: _maxForTimeSeconds,
+              onChanged: (v) => setState(() => _forTimeSeconds = v),
+              scale: scale,
+            ),
         ],
       );
     }
@@ -1179,6 +1204,84 @@ class _LabeledInputInt extends StatelessWidget {
                   fontWeight: AppFontWeight.medium,
                   color: AppColors.darkText,
                 ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Read-only chip showing the cap time when the athlete didn't complete.
+class _CapTimeChip extends StatelessWidget {
+  final String label;
+  final int seconds;
+  final double scale;
+
+  const _CapTimeChip({
+    required this.label,
+    required this.seconds,
+    required this.scale,
+  });
+
+  String _fmt(int total) {
+    final m = (total ~/ 60).toString().padLeft(2, '0');
+    final s = (total % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8 * scale),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppFonts.roboto,
+              fontWeight: AppFontWeight.bold,
+              fontSize: 12 * scale,
+              color: AppColors.mediumGray,
+            ),
+          ),
+          SizedBox(width: 8 * scale),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.mediumGray.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(6 * scale),
+              border: Border.all(
+                color: AppColors.mediumGray.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: 8 * scale,
+                vertical: 4 * scale,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _fmt(seconds),
+                    style: TextStyle(
+                      fontFamily: AppFonts.roboto,
+                      fontSize: 13 * scale,
+                      fontWeight: AppFontWeight.medium,
+                      color: AppColors.mediumGray,
+                    ),
+                  ),
+                  SizedBox(width: 4 * scale),
+                  Icon(
+                    Icons.lock_outline_rounded,
+                    size: 12 * scale,
+                    color: AppColors.mediumGray,
+                  ),
+                ],
               ),
             ),
           ),

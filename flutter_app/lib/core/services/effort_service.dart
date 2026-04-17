@@ -181,7 +181,7 @@ class EffortService {
       if (!doc.exists || doc.data() == null) return null;
       return AthleteResultRecord.fromFirestore(doc.data()!);
     } catch (e) {
-      print('ERRO fetchTodayResult: \$e');
+      print('ERRO fetchTodayResult: $e');
       return null;
     }
   }
@@ -196,9 +196,9 @@ class EffortService {
         _resultsRef.doc(docId).set(record.toFirestore()),
         deleteRestIfExists(date),
       ]);
-      print('✅ Resultado salvo: \$docId');
+      print('✅ Resultado salvo: $docId');
     } catch (e) {
-      print('ERRO submitResult: \$e');
+      print('ERRO submitResult: $e');
       rethrow;
     }
   }
@@ -213,7 +213,7 @@ class EffortService {
           .map((doc) => TodayRecord(docId: doc.id, raw: doc.data()))
           .toList();
     } catch (e) {
-      print('ERRO fetchAllRecordsForDate: \$e');
+      print('ERRO fetchAllRecordsForDate: $e');
       return [];
     }
   }
@@ -223,7 +223,7 @@ class EffortService {
     try {
       await _resultsRef.doc(docId).delete();
     } catch (e) {
-      print('ERRO deleteRecord: \$e');
+      print('ERRO deleteRecord: $e');
       rethrow;
     }
   }
@@ -239,7 +239,7 @@ class EffortService {
         print('🗑️ REST removido para $dateKey');
       }
     } catch (e) {
-      print('ERRO deleteRestIfExists: \$e');
+      print('ERRO deleteRestIfExists: $e');
       // Não relança — falha silenciosa para não bloquear o registro
     }
   }
@@ -270,7 +270,7 @@ class EffortService {
       if (effort == null) return 5;
       return (effort as num).toInt().clamp(1, 10);
     } catch (e) {
-      print('ERRO fetchDefaultEffort: \$e');
+      print('ERRO fetchDefaultEffort: $e');
       return 5;
     }
   }

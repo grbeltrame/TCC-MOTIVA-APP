@@ -34,14 +34,14 @@ class WeekEffortCard extends StatelessWidget {
     final barColor = _barColor(score);
 
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 4 * scale),
+      margin: EdgeInsets.symmetric(vertical: 3 * scale),
       shape: RoundedRectangleBorder(
         side: const BorderSide(color: AppColors.mediumGray),
-        borderRadius: BorderRadius.circular(16 * scale),
+        borderRadius: BorderRadius.circular(14 * scale),
       ),
       elevation: 0,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16 * scale, 14 * scale, 16 * scale, 16 * scale),
+        padding: EdgeInsets.fromLTRB(12 * scale, 10 * scale, 12 * scale, 11 * scale),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -51,12 +51,12 @@ class WeekEffortCard extends StatelessWidget {
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontWeight: FontWeight.bold,
-                fontSize: 11 * scale,
+                fontSize: 10 * scale,
                 color: AppColors.darkBlue,
-                letterSpacing: 0.8,
+                letterSpacing: 0.7,
               ),
             ),
-            SizedBox(height: 10 * scale),
+            SizedBox(height: 6 * scale),
 
             // Número grande
             Row(
@@ -67,19 +67,19 @@ class WeekEffortCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.montserrat,
                     fontWeight: FontWeight.bold,
-                    fontSize: 36 * scale,
+                    fontSize: 26 * scale,
                     color: barColor,
                     height: 1,
                   ),
                 ),
                 if (hasData)
                   Padding(
-                    padding: EdgeInsets.only(bottom: 7 * scale, left: 4 * scale),
+                    padding: EdgeInsets.only(bottom: 4 * scale, left: 3 * scale),
                     child: Text(
                       '/10',
                       style: TextStyle(
                         fontFamily: AppFonts.roboto,
-                        fontSize: 14 * scale,
+                        fontSize: 12 * scale,
                         color: AppColors.mediumGray,
                         fontWeight: FontWeight.w500,
                       ),
@@ -92,21 +92,21 @@ class WeekEffortCard extends StatelessWidget {
               _comment(score),
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
-                fontSize: 12 * scale,
+                fontSize: 10.5 * scale,
                 color: AppColors.mediumGray,
               ),
             ),
 
-            SizedBox(height: 12 * scale),
+            SizedBox(height: 8 * scale),
 
             // Barra de progresso colorida
             ClipRRect(
-              borderRadius: BorderRadius.circular(4 * scale),
+              borderRadius: BorderRadius.circular(3 * scale),
               child: LinearProgressIndicator(
                 value: hasData ? (score / 10).clamp(0.0, 1.0) : 0,
                 backgroundColor: AppColors.lightGray,
                 valueColor: AlwaysStoppedAnimation<Color>(barColor),
-                minHeight: 5 * scale,
+                minHeight: 4 * scale,
               ),
             ),
           ],
