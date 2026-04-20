@@ -12,14 +12,27 @@ def json_converter(o):
 def create_evaluation_prompt(
     current_workout: Dict[str, Any],
     past_workouts: List[Dict[str, Any]],
-    exercise_db: List[Dict[str, Any]]
+    exercise_db: List[Dict[str, Any]],
+    class_context: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """Cria o prompt detalhado para a LLM Gemini com lógica de análise distinta."""
-    
+    """Cria o prompt detalhado para a LLM Gemini com lógica de análise distinta.
+
+    `class_context` (opcional) traz as médias da turma na semana corrente:
+      - averageEffortCurrentWeek (0-10)
+      - averageMonotony
+      - averageIcnAll
+      - athletesCount
+    Essas médias permitem alertar o professor quando a turma como um todo
+    está fatigada.
+    """
+
     # Usa o conversor customizado para lidar com Timestamps do Firestore
     cw_json = json.dumps(current_workout, indent=2, ensure_ascii=False, default=json_converter)
     pw_json = json.dumps(past_workouts, indent=2, ensure_ascii=False, default=json_converter)
     ed_json = json.dumps(exercise_db, indent=2, ensure_ascii=False, default=json_converter)
+    cc_json = json.dumps(
+        class_context or {}, indent=2, ensure_ascii=False, default=json_converter
+    )
 
     base_prompt = (
         "Você é um assistente de IA especializado em avaliação e otimização de treinos de CrossFit.\n"
@@ -28,6 +41,7 @@ def create_evaluation_prompt(
         f"**1. Treino Atual:**\n```json\n{cw_json}\n```\n\n"
         f"**2. Histórico (Últimos 15 Dias):**\n```json\n{pw_json}\n```\n\n"
         f"**3. Inventário do Box (Movimentos Disponíveis):**\n```json\n{ed_json}\n```\n\n"
+        f"**4. Contexto da Turma (médias da semana atual):**\n```json\n{cc_json}\n```\n\n"
 
         "**Contexto Importante:**\n"
         "Utilize sempre os dados do histórico e da base de exercícios como contexto para sua análise do treino atual, e utilize suas estruturas e suas proprias explicações para cada vez mais melhorar seu feedback dos treinos.\n"
@@ -38,7 +52,8 @@ def create_evaluation_prompt(
         "Analise os dados e gere o feedback estruturado. Siga estas 4 etapas e **NÃO** repita informações entre os campos.\n\n"
         "- **Tom de Voz:** Profissional, colaborativo e técnico. Nunca seja arrogante.\n"
         "- **Regra de Ouro (Inventário):** Ao sugerir exercícios, consulte o **Inventário**. Se não estiver na lista, não sugira.\n"
-        "- **Visão Holística:** Não olhe o exercício isolado. Olhe o padrão de movimento (Empurrar, Puxar, Agachar) e a via metabólica.\n\n"
+        "- **Visão Holística:** Não olhe o exercício isolado. Olhe o padrão de movimento (Empurrar, Puxar, Agachar) e a via metabólica.\n"
+        "- **Regra de Estímulos (ESTRITA):** Ao identificar os estímulos do treino atual, considere **APENAS os 3 estímulos mais relevantes**. IGNORE aquecimento (`WARM UP`), skill isolado de baixo volume e partes acessórias. Se algo não for um dos 3 principais, não o cite como estímulo dominante.\n\n"
 
         "**Etapa 1: Análise de Histórico (Preenche o campo `history_analysis`)**\n"
         "> Seja um analista de dados. Compare o **Treino Atual** com o **Histórico (Últimos 15 Dias)** procurando padrões de treinamento, grupos musculares, frequência de exercícios, intervalor e lacunas, tudo que for relavante para a analise.\n"
@@ -54,7 +69,9 @@ def create_evaluation_prompt(
         "> **Fadiga Acumulada (Olhar Clínico):** Verifique o histórico (especialmente dos ultimos 3 dias). Procure por fadiga de 'SNC' (Sistema Nervoso), 'Grip' (Pegada) e 'Lombar'.\n"
         "> Exemplo: Se houve muito Deadlift ou Toes-to-Bar ontem/anteontem, alerte sobre a fadiga de pegada para o treino de hoje.\n"
         "> **Use a Etapa 1 como CONTEXTO:** Se o treino atual tem muito exercício de perna (alerta) E o histórico mostra muitas pernas (fato), seu alerta deve ser: 'Risco de sobrecarga nas pernas. O treino de hoje tem alto volume, o que é agravado pelo foco excessivo em pernas nos últimos 15 dias.'\n"
-        "> **Formato:** A chave (key) do mapa deve ser o tipo de alerta (ex: 'sobrecarga', 'risco_tecnico', 'fadiga_pegada', 'risco_lombar') e o valor (message) a descrição detalhada.\n\n"
+        "> **Contexto da Turma (CRÍTICO):** Se `class_context.averageMonotony` > 1.5, ou `class_context.averageEffortCurrentWeek` > 7, ou `class_context.averageIcnAll` > 100, ADICIONE um alerta humanizado para o professor (ex: 'A turma está chegando cansada — a média de esforço percebido da semana está em 7.8/10. Considere reduzir a intensidade ou aumentar o descanso entre séries.').\n"
+        "> Se os alunos estiverem priorizando descanso/extra no lugar do WOD (visível em `class_context`), sinalize isso de forma empática (ex: 'Vários alunos optaram por descanso nos últimos dias — sinal de fadiga acumulada na turma').\n"
+        "> **Formato:** A chave (key) do mapa deve ser o tipo de alerta (ex: 'sobrecarga', 'risco_tecnico', 'fadiga_pegada', 'risco_lombar', 'fadiga_turma', 'baixa_adesao_wod') e o valor (message) a descrição detalhada.\n\n"
 
         "**Etapa 3: Insights e Otimizações (Preenche o campo `insights`)**\n"
         "> Seja um coach assistente. Forneça dicas práticas para *melhorar a sessão* de treino. **NÃO** sugira mudanças nos exercícios e **NÃO** repita os alertas.\n"
@@ -96,18 +113,23 @@ def create_evaluation_prompt(
 def create_cycle_prompt(
     month_workouts: List[Dict[str, Any]],
     previous_cycle_data: Optional[Dict[str, Any]] = None,
-    month_name: str = "Atual"
+    month_name: str = "Atual",
+    class_context: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
     Cria o prompt para a Análise de Ciclo Mensal (Macroanálise).
     Recebe todos os treinos do mês e, opcionalmente, o resumo do ciclo anterior.
+    `class_context` traz médias agregadas da turma para humanizar alertas.
     """
-    
+
     # 1. Serializa os dados
     mw_json = json.dumps(month_workouts, indent=2, ensure_ascii=False, default=json_converter)
     prev_json = "Sem dados do ciclo anterior."
     if previous_cycle_data:
         prev_json = json.dumps(previous_cycle_data, indent=2, ensure_ascii=False, default=json_converter)
+    cc_json = json.dumps(
+        class_context or {}, indent=2, ensure_ascii=False, default=json_converter
+    )
 
     # 2. Obtém o parser específico de Ciclo (que criamos no models.py)
     # Importante: Precisamos importar get_cycle_parser no topo ou aqui dentro
@@ -123,6 +145,7 @@ def create_cycle_prompt(
         "**DADOS FORNECIDOS:**\n"
         f"**1. Treinos Realizados neste Mês ({len(month_workouts)} treinos):**\n```json\n{mw_json}\n```\n\n"
         f"**2. Resumo do Ciclo Anterior (Para Comparação):**\n```json\n{prev_json}\n```\n\n"
+        f"**3. Contexto da Turma (médias da semana atual):**\n```json\n{cc_json}\n```\n\n"
 
         "---"
         "**ROTEIRO DE ANÁLISE MACRO (Siga rigorosamente):**\n"
@@ -157,7 +180,9 @@ def create_cycle_prompt(
         "> Eles devem resumir os pontos mais críticos do mês (riscos iminentes, falta de algum estímulo, sucesso do volume, etc).\n"
         "> Eles aparecerão em um carrossel na tela do professor.\n"
         "> Exemplo 1: 'Cuidado: Volume de perna muito alto nas últimas 2 semanas.'\n"
-        "> Exemplo 2: 'Excelente: Equilíbrio perfeito entre força e cardio neste mês.'\n\n"
+        "> Exemplo 2: 'Excelente: Equilíbrio perfeito entre força e cardio neste mês.'\n"
+        "> **Contexto da Turma:** Se `class_context.averageMonotony` > 1.5 ou `class_context.averageEffortCurrentWeek` > 7, inclua OBRIGATORIAMENTE pelo menos 1 alerta humanizado sobre o estado da turma (ex: 'Alunos estão chegando mais cansados — esforço médio em 7.8/10 nesta semana.').\n"
+        "> Também priorize alertar quando a turma está trocando o WOD por descanso/extra com frequência.\n\n"
 
         "**FORMATO DE RESPOSTA:**\n"
         f"{json_instructions}\n"

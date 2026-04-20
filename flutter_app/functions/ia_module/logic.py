@@ -3,7 +3,9 @@
 import os
 import json
 import logging
+import statistics
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from firebase_admin import firestore
 from google.cloud import secretmanager
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -14,6 +16,104 @@ from .models import get_parser, get_cycle_parser
 
 SECRET_ID = 'GEMINI_API_KEY'
 PROJECT_ID = os.environ.get("GCLOUD_PROJECT")
+
+_TZ_BRAZIL = ZoneInfo('America/Sao_Paulo')
+
+
+def _current_week_label() -> str:
+    """
+    Gera o label 'YYYY-Www' da semana atual seguindo a MESMA convenção
+    usada em athlete_stats_module.logic (semana domingo→sábado).
+    """
+    now = datetime.now(tz=_TZ_BRAZIL)
+    days_since_sunday = (now.weekday() + 1) % 7
+    week_start = (now - timedelta(days=days_since_sunday)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    year = week_start.year
+    jan1 = datetime(year, 1, 1, tzinfo=week_start.tzinfo)
+    days_to_first_sunday = (6 - jan1.weekday()) % 7
+    first_sunday = jan1 + timedelta(days=days_to_first_sunday)
+    if week_start < first_sunday:
+        # pertence ao ano anterior
+        prev_year = year - 1
+        jan1_prev = datetime(prev_year, 1, 1, tzinfo=week_start.tzinfo)
+        days_prev = (6 - jan1_prev.weekday()) % 7
+        first_sunday_prev = jan1_prev + timedelta(days=days_prev)
+        week_num = ((week_start - first_sunday_prev).days // 7) + 1
+        return f'{prev_year}-W{week_num:02d}'
+    week_num = ((week_start - first_sunday).days // 7) + 1
+    return f'{year}-W{week_num:02d}'
+
+
+def _compute_class_context(db) -> dict:
+    """
+    Agrega as médias da turma (todos os atletas registrados) para a semana
+    corrente, usando os documentos users/{uid}/weekly_load/{currentWeekLabel}.
+
+    Retorna um dict no formato:
+        {
+          'weekLabel': '2026-W16',
+          'athletesCount': int,
+          'averageEffortCurrentWeek': float,   # média de avgRpeAll
+          'averageMonotony': float,
+          'averageIcnAll': float,
+          'wodVsAlternativeRatio': float,      # wodDays / (wodDays+otherDays+restDays)
+        }
+
+    Se não há dados, retorna dict vazio — o prompt trata como "sem contexto".
+    """
+    try:
+        week_label = _current_week_label()
+        # collection_group permite varrer todos users/*/weekly_load/{label}
+        docs = list(
+            db.collection_group('weekly_load')
+              .where('weekLabel', '==', week_label)
+              .stream()
+        )
+        if not docs:
+            return {}
+
+        efforts = []
+        monotonies = []
+        icns = []
+        wod_days = 0
+        other_days = 0
+        rest_days = 0
+
+        for d in docs:
+            data = d.to_dict() or {}
+            if data.get('avgRpeAll'):
+                efforts.append(float(data['avgRpeAll']))
+            mono = data.get('monotony')
+            if mono is not None and mono > 0:
+                monotonies.append(float(mono))
+            icn = data.get('icnAll')
+            if icn is not None:
+                icns.append(float(icn))
+            wod_days += int(data.get('wodDays', 0) or 0)
+            other_days += int(data.get('otherDays', 0) or 0)
+            rest_days += int(data.get('restDays', 0) or 0)
+
+        total_days = wod_days + other_days + rest_days
+        ratio = round(wod_days / total_days, 2) if total_days > 0 else None
+
+        return {
+            'weekLabel': week_label,
+            'athletesCount': len(docs),
+            'averageEffortCurrentWeek': round(statistics.mean(efforts), 2) if efforts else None,
+            'averageMonotony': round(statistics.mean(monotonies), 2) if monotonies else None,
+            'averageIcnAll': round(statistics.mean(icns), 1) if icns else None,
+            'wodVsAlternativeRatio': ratio,
+            'totals': {
+                'wodDays': wod_days,
+                'otherDays': other_days,
+                'restDays': rest_days,
+            },
+        }
+    except Exception as e:
+        logging.warning(f"Falha ao calcular class_context: {e}")
+        return {}
 
 def get_gemini_api_key() -> str:
     """Busca a API Key no Secret Manager."""
@@ -37,7 +137,7 @@ def get_gemini_api_key() -> str:
         raise e
 
 
-def run_cycle_analysis(db, current_workout, api_key):
+def run_cycle_analysis(db, current_workout, api_key, class_context=None):
     """
     Executa a análise Macro (Ciclo Mensal) e salva no Firestore.
     """
@@ -157,7 +257,8 @@ def run_cycle_analysis(db, current_workout, api_key):
         prompt_text = create_cycle_prompt(
             month_workouts=month_workouts,
             previous_cycle_data=prev_cycle_data,
-            month_name=current_month_key
+            month_name=current_month_key,
+            class_context=class_context or {},
         )
         
         # Usando a API Key passada como argumento
@@ -265,7 +366,16 @@ def run_ai_analysis_logic(event):
         logging.info(f"Base de conhecimento: {len(exercise_db)} exercícios carregados.")
 
         # 4. Análise DIÁRIA (Micro)
-        prompt_text = create_evaluation_prompt(current_data, past_workouts, exercise_db)
+        # Calcula o contexto da turma (médias da semana corrente em todos os atletas)
+        class_context = _compute_class_context(firestore_client)
+        logging.info(f"class_context: {class_context}")
+
+        prompt_text = create_evaluation_prompt(
+            current_data,
+            past_workouts,
+            exercise_db,
+            class_context=class_context,
+        )
         
         # Pega a API Key uma única vez
         api_key = get_gemini_api_key()
@@ -308,8 +418,13 @@ def run_ai_analysis_logic(event):
         current_data_for_cycle = current_data.copy()
         current_data_for_cycle['id'] = workout_id
         
-        # Passamos a API Key que já pegamos lá em cima
-        run_cycle_analysis(firestore_client, current_data_for_cycle, api_key)
+        # Passamos a API Key que já pegamos lá em cima + reaproveitamos o class_context
+        run_cycle_analysis(
+            firestore_client,
+            current_data_for_cycle,
+            api_key,
+            class_context=class_context,
+        )
         
         logging.info("Ciclo Mensal atualizado com sucesso.")
         # -------------------------------------------------------------
