@@ -60,10 +60,10 @@ class _WeeklyStatisticsWidgetState extends State<WeeklyStatisticsWidget> {
       elevation: 0,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          12 * scale,
           10 * scale,
-          12 * scale,
-          11 * scale,
+          8 * scale,
+          10 * scale,
+          9 * scale,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -74,12 +74,12 @@ class _WeeklyStatisticsWidgetState extends State<WeeklyStatisticsWidget> {
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontWeight: FontWeight.bold,
-                fontSize: 10 * scale,
+                fontSize: 9 * scale,
                 color: AppColors.darkBlue,
                 letterSpacing: 0.7,
               ),
             ),
-            SizedBox(height: 8 * scale),
+            SizedBox(height: 6 * scale),
 
             // --- Filtro de tipo com expand/collapse ---
             FutureBuilder<List<String>>(
@@ -245,7 +245,7 @@ class _WeeklyStatisticsWidgetState extends State<WeeklyStatisticsWidget> {
                     ],
                   ),
                 ),
-                SizedBox(height: 6 * scale),
+                SizedBox(height: 4 * scale),
                 IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -332,15 +332,15 @@ class _StatBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-        9 * scale,
-        8 * scale,
-        9 * scale,
-        9 * scale,
+        7 * scale,
+        6 * scale,
+        7 * scale,
+        7 * scale,
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
         border: Border.all(color: color.withValues(alpha: 0.28)),
-        borderRadius: BorderRadius.circular(11 * scale),
+        borderRadius: BorderRadius.circular(10 * scale),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -350,8 +350,8 @@ class _StatBlock extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(icon, size: 13 * scale, color: color),
-              SizedBox(width: 5 * scale),
+              Icon(icon, size: 11 * scale, color: color),
+              SizedBox(width: 4 * scale),
               Expanded(
                 child: Text(
                   title.toUpperCase(),
@@ -360,15 +360,15 @@ class _StatBlock extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.roboto,
                     fontWeight: FontWeight.bold,
-                    fontSize: 10 * scale,
+                    fontSize: 8.5 * scale,
                     color: color,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.4,
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8 * scale),
+          SizedBox(height: 5 * scale),
 
           // Valor grande
           FutureBuilder<String>(
@@ -384,7 +384,7 @@ class _StatBlock extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: AppFonts.montserrat,
                   fontWeight: FontWeight.bold,
-                  fontSize: 22 * scale,
+                  fontSize: 17 * scale,
                   color: AppColors.darkText,
                   height: 1,
                 ),
@@ -393,14 +393,14 @@ class _StatBlock extends StatelessWidget {
           ),
 
           if (subtitle != null) ...[
-            SizedBox(height: 3 * scale),
+            SizedBox(height: 2 * scale),
             Text(
               subtitle!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
-                fontSize: 10 * scale,
+                fontSize: 8.5 * scale,
                 color: AppColors.mediumGray,
               ),
             ),

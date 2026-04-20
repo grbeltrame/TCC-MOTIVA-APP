@@ -85,23 +85,42 @@ class _RegisterPrSheetState extends State<_RegisterPrSheet> {
   }
 
   void _prefillFrom(Map<String, List<Movement>> grouped, AthletePr pr) {
+    final val = pr.value % 1 == 0
+        ? pr.value.toInt().toString()
+        : pr.value.toStringAsFixed(1);
+
+    String? foundCategory;
+    Movement? foundMovement;
     for (final entry in grouped.entries) {
       final match = entry.value
           .cast<Movement?>()
           .firstWhere((m) => m?.id == pr.movementId, orElse: () => null);
       if (match != null) {
-        final val = pr.value % 1 == 0
-            ? pr.value.toInt().toString()
-            : pr.value.toStringAsFixed(1);
-        setState(() {
-          _selectedCategory = entry.key;
-          _selectedMovement = match;
-          _date = pr.date;
-          _valueCtrl.text = val;
-        });
+        foundCategory = entry.key;
+        foundMovement = match;
         break;
       }
     }
+
+    // Fallback: movimento não encontrado na coleção atual (id órfão).
+    // Sintetiza um Movement a partir do PR para preencher o form.
+    foundMovement ??= Movement(
+      id: pr.movementId,
+      displayName: pr.movementName,
+      categories: const [],
+      prType: pr.prType,
+      supportedPrTypes: [pr.prType],
+      unit: pr.unit,
+    );
+    foundCategory ??= grouped.keys.isNotEmpty ? grouped.keys.first : '—';
+
+    if (!mounted) return;
+    setState(() {
+      _selectedCategory = foundCategory;
+      _selectedMovement = foundMovement;
+      _date = pr.date;
+      _valueCtrl.text = val;
+    });
   }
 
   String? _validate() {

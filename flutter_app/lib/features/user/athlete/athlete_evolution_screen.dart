@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/shared/widgets/sections/athlete/analysis_section.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/evolution_charts_section.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/exercise_weekly_summary_widget.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/weekly_recomendation_section.dart';
@@ -114,8 +114,8 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
 
             SizedBox(height: 16 * scale),
 
-            // ── Análises ────────────────────────────────────────────────────
-            const AnalysisSection(),
+            // ── Gráficos de evolução (PRs + Volume) ─────────────────────────
+            EvolutionChartsSection(from: _from, to: _to),
 
             // ── Destaques / Recomendações ────────────────────────────────────
             const WeeklyRecomendationSection(),

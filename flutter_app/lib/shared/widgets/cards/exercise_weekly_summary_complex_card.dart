@@ -28,7 +28,7 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
     final scale = screenW / 375.0;
 
     // Pizza menor pra manter o card compacto
-    final pieSize = screenW * 0.28;
+    final pieSize = screenW * 0.25;
 
     return FutureBuilder<ComplexExerciseSummary>(
       future: ExerciseWeeklySummaryService.fetchComplexSummary(
@@ -61,10 +61,10 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
           elevation: 0,
           child: Padding(
             padding: EdgeInsets.fromLTRB(
-              12 * scale,
               10 * scale,
-              12 * scale,
-              11 * scale,
+              8 * scale,
+              10 * scale,
+              9 * scale,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,12 +76,12 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.roboto,
                     fontWeight: FontWeight.bold,
-                    fontSize: 10 * scale,
+                    fontSize: 9.5 * scale,
                     color: AppColors.darkBlue,
                     letterSpacing: 0.7,
                   ),
                 ),
-                SizedBox(height: 8 * scale),
+                SizedBox(height: 6 * scale),
 
                 if (summary.distribution.isEmpty)
                   Padding(
@@ -145,12 +145,12 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontFamily: AppFonts.roboto,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 9 * scale,
+                                  fontSize: 8.5 * scale,
                                   color: AppColors.darkBlue,
                                   letterSpacing: 0.7,
                                 ),
                               ),
-                              SizedBox(height: 3 * scale),
+                              SizedBox(height: 2 * scale),
 
                               // Nome em destaque
                               Text(
@@ -158,7 +158,7 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontFamily: AppFonts.montserrat,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 20 * scale,
+                                  fontSize: 17 * scale,
                                   color: AppColors.darkBlue,
                                   height: 1,
                                 ),
@@ -167,14 +167,14 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                               ),
 
                               // Separador sutil
-                              SizedBox(height: 8 * scale),
+                              SizedBox(height: 6 * scale),
                               Container(
                                 height: 1,
-                                width: 28 * scale,
+                                width: 24 * scale,
                                 color: AppColors.mediumGray
                                     .withValues(alpha: 0.35),
                               ),
-                              SizedBox(height: 8 * scale),
+                              SizedBox(height: 6 * scale),
 
                               // Insight curto
                               Expanded(
@@ -182,9 +182,9 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                                   summary.shortInsight,
                                   style: TextStyle(
                                     fontFamily: AppFonts.roboto,
-                                    fontSize: 10.5 * scale,
+                                    fontSize: 9.5 * scale,
                                     color: AppColors.darkText,
-                                    height: 1.3,
+                                    height: 1.25,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -196,12 +196,12 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                     ),
                   ),
 
-                  SizedBox(height: 10 * scale),
+                  SizedBox(height: 8 * scale),
 
                   // Legenda compacta
                   Wrap(
-                    spacing: 8 * scale,
-                    runSpacing: 4 * scale,
+                    spacing: 7 * scale,
+                    runSpacing: 3 * scale,
                     children: summary.distribution.asMap().entries.map((e) {
                       final color = _pieColors[e.key % _pieColors.length];
                       final pct = total > 0
@@ -211,19 +211,19 @@ class ExerciseWeeklySummaryComplexCard extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 7 * scale,
-                            height: 7 * scale,
+                            width: 6 * scale,
+                            height: 6 * scale,
                             decoration: BoxDecoration(
                               color: color,
                               shape: BoxShape.circle,
                             ),
                           ),
-                          SizedBox(width: 4 * scale),
+                          SizedBox(width: 3 * scale),
                           Text(
                             '${e.value.name} $pct%',
                             style: TextStyle(
                               fontFamily: AppFonts.roboto,
-                              fontSize: 10 * scale,
+                              fontSize: 9 * scale,
                               color: AppColors.darkText,
                             ),
                           ),

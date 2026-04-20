@@ -1,6 +1,6 @@
-import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-/// Modelo bem simples para contadores da seção.
 class ProfileSummaryCounts {
   final int totalPrs;
   final int totalWorkouts;
@@ -9,20 +9,29 @@ class ProfileSummaryCounts {
 }
 
 class ProfileSummaryService {
-  /// Retorna os contadores usados nos mini-cards.
-  /// TODO backend: retornar totais **desde a criação da conta**.
-  static Future<ProfileSummaryCounts> fetchCounts() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    // TODO backend: substituir mocks por valores reais
-    return ProfileSummaryCounts(totalPrs: 12, totalWorkouts: 63);
+  static String get _uid {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw Exception('Usuário não logado');
+    return uid;
   }
 
-  /// Retorna o título do último PR registrado pelo usuário
-  /// (ex.: "74 kg Power Clean").
-  /// TODO backend: buscar o PR mais recente do usuário (ordenado por data desc)
-  static Future<String?> fetchLastPrTitle() async {
-    await Future.delayed(const Duration(milliseconds: 250));
-    // Retorne null se o usuário ainda não tiver PRs:
-    return '74 kg Power Clean';
+  /// Retorna a contagem total de PRs e de treinos registrados pelo atleta.
+  /// - PRs: `users/{uid}/prs`
+  /// - Treinos: `users/{uid}/results`
+  static Future<ProfileSummaryCounts> fetchCounts() async {
+    try {
+      final userDoc =
+          FirebaseFirestore.instance.collection('users').doc(_uid);
+      final prsFut = userDoc.collection('prs').count().get();
+      final resultsFut = userDoc.collection('results').count().get();
+      final prs = await prsFut;
+      final results = await resultsFut;
+      return ProfileSummaryCounts(
+        totalPrs: prs.count ?? 0,
+        totalWorkouts: results.count ?? 0,
+      );
+    } catch (_) {
+      return ProfileSummaryCounts(totalPrs: 0, totalWorkouts: 0);
+    }
   }
 }
