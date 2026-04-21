@@ -12,15 +12,17 @@ class WeeklyLoadEntry {
   final String weekStart;
   final String weekEnd;
 
-  // Cargas brutas (AU)
+  // Cargas brutas (AU) — Session-RPE (esforço × duração)
   final double totalLoadCrossfit;
   final double totalLoadOther;
   final double totalLoadAll;
 
-  // ICN (0–150, meta = 50)
-  final double icnAll;
-  final double icnCrossfit;
-  final String icnBaselineUsed;
+  // ICN via ACWR (Gabbett, 2016) — nullable pois pode não ter base crônica
+  final double? icnAll;
+  final double? icnCrossfit;
+  final double? cargaCronica; // média das últimas 4 semanas
+  final double? acwrRaw;      // razão antes do × 50
+  final String baselineType;  // cold_start | partial_N_weeks | historical_4_weeks
 
   // RPE médio
   final double avgRpeCrossfit;
@@ -52,7 +54,9 @@ class WeeklyLoadEntry {
     required this.totalLoadAll,
     required this.icnAll,
     required this.icnCrossfit,
-    required this.icnBaselineUsed,
+    required this.cargaCronica,
+    required this.acwrRaw,
+    required this.baselineType,
     required this.avgRpeCrossfit,
     required this.avgRpeAll,
     required this.wodDays,
@@ -72,6 +76,9 @@ class WeeklyLoadEntry {
       return raw.map((k, v) => MapEntry(k as String, (v as num).toDouble()));
     }
 
+    double? _nullableDouble(dynamic raw) =>
+        raw is num ? raw.toDouble() : null;
+
     return WeeklyLoadEntry(
       weekLabel: d['weekLabel'] as String? ?? '',
       weekStart: d['weekStart'] as String? ?? '',
@@ -79,9 +86,11 @@ class WeeklyLoadEntry {
       totalLoadCrossfit: (d['totalLoadCrossfit'] as num? ?? 0).toDouble(),
       totalLoadOther: (d['totalLoadOther'] as num? ?? 0).toDouble(),
       totalLoadAll: (d['totalLoadAll'] as num? ?? 0).toDouble(),
-      icnAll: (d['icnAll'] as num? ?? 50).toDouble(),
-      icnCrossfit: (d['icnCrossfit'] as num? ?? 50).toDouble(),
-      icnBaselineUsed: d['icnBaselineUsed'] as String? ?? '',
+      icnAll: _nullableDouble(d['icnAll']),
+      icnCrossfit: _nullableDouble(d['icnCrossfit']),
+      cargaCronica: _nullableDouble(d['cargaCronica']),
+      acwrRaw: _nullableDouble(d['acwrRaw']),
+      baselineType: d['baselineType'] as String? ?? 'cold_start',
       avgRpeCrossfit: (d['avgRpeCrossfit'] as num? ?? 0).toDouble(),
       avgRpeAll: (d['avgRpeAll'] as num? ?? 0).toDouble(),
       wodDays: (d['wodDays'] as num? ?? 0).toInt(),
@@ -96,13 +105,15 @@ class WeeklyLoadEntry {
     );
   }
 
-  /// Interpreta o ICN: zona de treino.
+  /// Interpreta o ICN alinhado com as zonas oficiais do ACWR (Gabbett, 2016).
+  /// 50 é o ponto neutro (carga = média crônica); >75 é zona de alerta.
   String get icnZoneLabel {
-    if (icnAll < 25) return 'Muito Baixa';
-    if (icnAll < 40) return 'Baixa';
-    if (icnAll < 60) return 'Ideal';
-    if (icnAll < 80) return 'Elevada';
-    return 'Muito Elevada';
+    final icn = icnAll;
+    if (icn == null) return 'Sem histórico';
+    if (icn < 50)   return 'Abaixo da média';
+    if (icn < 75)   return 'Zona ideal';
+    if (icn < 100)  return 'Alerta';
+    return 'Risco de lesão';
   }
 }
 

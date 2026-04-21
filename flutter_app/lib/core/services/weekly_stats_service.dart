@@ -8,6 +8,7 @@ class WeeklyStatsType {
   static const String esforco = 'esforco_semana';
   static const String tipos = 'tipos_treino';
   static const String descanso = 'descanso';
+  static const String icn = 'icn_semana';
 }
 
 class WeeklyStatsService {
@@ -30,8 +31,14 @@ class WeeklyStatsService {
         return effort > 0 ? '${effort.toStringAsFixed(1)}/10' : '–/10';
 
       case WeeklyStatsType.cargas:
-        // Carga será implementada em melhoria futura (campo opcional no registro)
-        return '–';
+        final load = summary.weeklyLoadAll;
+        if (load <= 0) return '–';
+        return '${load.toStringAsFixed(0)} AU';
+
+      case WeeklyStatsType.icn:
+        final icn = summary.weeklyICN;
+        if (icn == null) return '–';
+        return icn.toStringAsFixed(0);
 
       default:
         return '–';

@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/features/user/athlete/athlete_evolution_insights_detail_screen.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/athlete_insights_carousel_loader.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/evolution_charts_section.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/exercise_weekly_summary_widget.dart';
@@ -112,7 +114,68 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
             // ── Estatísticas de treino ───────────────────────────────────────
             WeeklyStatisticsWidget(from: _from, to: _to),
 
-            SizedBox(height: 16 * scale),
+            SizedBox(height: 12 * scale),
+
+            // ── Insights de evolução (onCall automático, respeita cache 4d) ─
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Insights de Evolução',
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13 * scale,
+                    color: AppColors.darkText,
+                  ),
+                ),
+                InkWell(
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    AthleteEvolutionInsightsDetailScreen.routeName,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 6 * scale,
+                      vertical: 2 * scale,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Ver todos',
+                          style: TextStyle(
+                            fontFamily: AppFonts.roboto,
+                            fontSize: 11 * scale,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.baseBlue,
+                          ),
+                        ),
+                        SizedBox(width: 2 * scale),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 14 * scale,
+                          color: AppColors.baseBlue,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 4 * scale),
+
+            AthleteInsightsCarouselLoader(
+              mode: AthleteInsightsMode.evolutionOnly,
+              onTap: () => Navigator.pushNamed(
+                context,
+                AthleteEvolutionInsightsDetailScreen.routeName,
+              ),
+            ),
+
+            SizedBox(height: 4 * scale),
 
             // ── Gráficos de evolução (PRs + Volume) ─────────────────────────
             EvolutionChartsSection(from: _from, to: _to),

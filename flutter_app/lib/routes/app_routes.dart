@@ -17,7 +17,9 @@ import 'package:flutter_app/features/user/athlete/athlete_all_goals_screen.dart'
 import 'package:flutter_app/features/user/athlete/athlete_class_details_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_classes_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_edit_profile_screen.dart';
+import 'package:flutter_app/features/user/athlete/athlete_evolution_insights_detail_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_evolution_screen.dart';
+import 'package:flutter_app/features/user/athlete/athlete_weekly_insights_detail_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_full_training_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_general_settings_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_goals_screen.dart';
@@ -89,6 +91,10 @@ class AppRoutes {
       AllChampionshipsScreen.routeName;
   static const String athleteProfileEdit = EditProfileAthleteScreen.routeName;
   static const String athleteSettings = AthleteGeneralSettingsScreen.routeName;
+  static const String athleteWeeklyInsightsDetail =
+      AthleteWeeklyInsightsDetailScreen.routeName;
+  static const String athleteEvolutionInsightsDetail =
+      AthleteEvolutionInsightsDetailScreen.routeName;
 
   // Coach
   static const String coachHome = CoachHomeScreen.routeName;
@@ -181,6 +187,10 @@ final Map<String, WidgetBuilder> appRouteMap = {
     return EditProfileAthleteScreen.fromArgs(settings);
   },
   AppRoutes.athleteSettings: (_) => const AthleteGeneralSettingsScreen(),
+  AppRoutes.athleteWeeklyInsightsDetail:
+      (_) => const AthleteWeeklyInsightsDetailScreen(),
+  AppRoutes.athleteEvolutionInsightsDetail:
+      (_) => const AthleteEvolutionInsightsDetailScreen(),
 
   // Coach
   AppRoutes.coachHome: (_) => const CoachHomeScreen(),

@@ -135,11 +135,44 @@ def run_weekly_insights_logic(uid: str) -> dict:
     except Exception as e:
         logging.warning(f"[weekly-insights] falha ao carregar results: {e}")
 
-    # 4) Prompt + LLM
+    # 4) Histórico das últimas 4 semanas (exclui a semana atual)
+    recent_weeks = []
+    try:
+        wl_ref = db.collection("users").document(uid).collection("weekly_load")
+        hist_docs = list(
+            wl_ref.order_by("weekLabel", direction=firestore.Query.DESCENDING)
+                  .limit(5)
+                  .stream()
+        )
+        for d in hist_docs:
+            data = d.to_dict() or {}
+            if data.get("weekLabel") != week_label:
+                recent_weeks.append({
+                    "weekLabel":     data.get("weekLabel"),
+                    "weekStart":     data.get("weekStart"),
+                    "weekEnd":       data.get("weekEnd"),
+                    "wodDays":       data.get("wodDays"),
+                    "restDays":      data.get("restDays"),
+                    "avgRpeAll":     data.get("avgRpeAll"),
+                    "monotony":      data.get("monotony"),
+                    "strain":        data.get("strain"),
+                    "totalLoadAll":  data.get("totalLoadAll"),
+                    "icnAll":        data.get("icnAll"),
+                    "acwrRaw":       data.get("acwrRaw"),
+                    "cargaCronica":  data.get("cargaCronica"),
+                    "baselineType":  data.get("baselineType"),
+                    "prsCount":      data.get("prsCount"),
+                })
+        recent_weeks = recent_weeks[:4]  # máximo 4 semanas anteriores
+    except Exception as e:
+        logging.warning(f"[weekly-insights] falha ao carregar histórico: {e}")
+
+    # 5) Prompt + LLM
     prompt_text = create_weekly_insights_prompt(
         stats_summary=stats_summary,
         weekly_load=weekly_load,
         recent_results=recent_results,
+        recent_weeks=recent_weeks,
     )
 
     api_key = _get_gemini_api_key()

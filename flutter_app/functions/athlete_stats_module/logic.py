@@ -19,28 +19,13 @@ _OTHER_PREFIX = '_OTHER'
 # Dia de início da semana: domingo (mantém consistência com todo o app Flutter)
 _WEEK_START_WEEKDAY = 6  # domingo
 
-# Session-RPE: fatores de categoria (Foster, 2001 adaptado)
-_CATEGORY_FACTORS = {
-    'Iniciante':     0.70,
-    'Scale':         0.85,
-    'Intermediário': 0.95,
-    'RX':            1.00,
-}
-_DEFAULT_CATEGORY_FACTOR = 0.85
-
 # Fallback quando não conseguir ler duracaoMinutos do WOD
 _DEFAULT_WOD_DURATION_MIN = 20.0
 
-# Baselines semanais por categoria (AU) — usadas para calcular ICN enquanto
-# o atleta ainda não tem histórico de weekly_load.
-# Calibradas para ~3-4 sessões/semana em intensidade típica da categoria.
-_CATEGORY_BASELINE_LOAD = {
-    'Iniciante':     600.0,
-    'Scale':         900.0,
-    'Intermediário': 1200.0,
-    'RX':            1500.0,
-}
-_DEFAULT_BASELINE_LOAD = 1000.0
+# Janela do ACWR (Gabbett, 2016): 4 semanas para a Carga Crônica.
+_ACWR_CHRONIC_WINDOW = 4
+_ICN_CLAMP_MIN = 0.0
+_ICN_CLAMP_MAX = 150.0
 
 # Partes do treino que NÃO são o treino principal (quando precisamos do cap)
 _SUPPORT_PARTS = {
@@ -160,10 +145,18 @@ def _is_emom(modalidade: str) -> bool:
     return modalidade == 'EMOM'
 
 
-def _category_factor(category) -> float:
-    if not category:
-        return _DEFAULT_CATEGORY_FACTOR
-    return _CATEGORY_FACTORS.get(str(category).strip(), _DEFAULT_CATEGORY_FACTOR)
+def _compute_icn(
+    current_load: float, chronic_load: float | None
+) -> float | None:
+    """ICN = (carga_aguda / carga_crônica) × 50, clampado em [0, 150].
+
+    Retorna None se não houver carga crônica (cold start semana 1).
+    """
+    if chronic_load is None or chronic_load <= 0:
+        return None
+    raw = (current_load / chronic_load) * 50.0
+    clamped = min(max(raw, _ICN_CLAMP_MIN), _ICN_CLAMP_MAX)
+    return round(clamped, 1)
 
 
 def _fetch_main_part_duration_minutes(db, training_doc_id: str) -> float:
@@ -303,11 +296,6 @@ def update_athlete_stats_logic(event):
     week_other_days           = set()
     week_rest_days            = set()
 
-    # Categoria mais recente registrada pelo atleta — usada para baseline de ICN
-    # quando não há histórico. Escolhemos o mais recente percorrendo por date_str.
-    latest_category        = None
-    latest_category_date   = ''
-
     # Pré-popula 7 dias da semana com carga 0.0 (monotonia precisa dos zeros)
     for i in range(7):
         day_key = _date_key(week_start + timedelta(days=i))
@@ -361,11 +349,14 @@ def update_athlete_stats_logic(event):
             week_training_days.add(date_str)
 
         # ── Carga semanal (só calcula para registros da semana atual) ───────
+        # Fórmula Session-RPE pura (Foster, 2001): carga = RPE × duração_min.
+        # Sem fator de categoria: RPE já é carga INTERNA relativa à capacidade
+        # do atleta (Haddad et al., 2017).
         if in_week:
             if kind == 'other':
                 duration = data.get('durationMinutes')
                 if duration is not None and duration > 0:
-                    carga = float(effort) * float(duration) * 1.0
+                    carga = float(effort) * float(duration)
                     week_daily_loads_other[date_str] = \
                         week_daily_loads_other.get(date_str, 0.0) + carga
                     week_rpes_all.append(effort)
@@ -376,8 +367,7 @@ def update_athlete_stats_logic(event):
                     )
             else:  # training (WOD, LPO, Ginástica, etc.)
                 duration_min = _training_duration_minutes(data, db)
-                factor       = _category_factor(data.get('category'))
-                carga        = float(effort) * duration_min * factor
+                carga        = float(effort) * duration_min
                 week_daily_loads_crossfit[date_str] = \
                     week_daily_loads_crossfit.get(date_str, 0.0) + carga
                 week_rpes_crossfit.append(effort)
@@ -389,12 +379,6 @@ def update_athlete_stats_logic(event):
                     if isinstance(metric, str) and metric.strip():
                         label = metric.strip()
                         week_stimuli[label] = week_stimuli.get(label, 0) + 1
-
-        # ── Rastreia categoria mais recente (para baseline de ICN) ─────────
-        cat = data.get('category')
-        if kind != 'other' and cat and date_str > latest_category_date:
-            latest_category      = cat
-            latest_category_date = date_str
 
     # ── Médias e totais ─────────────────────────────────────────────────────
     def avg(lst):
@@ -431,45 +415,84 @@ def update_athlete_stats_logic(event):
     except Exception as e:
         logging.warning(f'Falha ao contar PRs da semana: {e}')
 
-    # ── ICN — Índice de Carga Normalizado (0-150) ───────────────────────────
-    # Híbrido: se tem QUALQUER histórico, usa média das semanas passadas.
-    # Se não tem, usa baseline por categoria do atleta.
-    # ICN=50 → carga na média/esperada; >50 sobrecarga; <50 subcarga.
-    icn_all           = None
-    icn_crossfit      = None
-    icn_baseline_used = None  # 'historical' ou 'category:RX' — diagnóstico
+    # ── ICN — Índice de Carga Normalizado via ACWR (Gabbett, 2016) ──────────
+    # ICN = (Carga Aguda / Carga Crônica) × 50
+    #   Carga Aguda  = totalLoadAll da semana atual
+    #   Carga Crônica = média de totalLoadAll das últimas N≤4 semanas completas
+    #                   ANTERIORES à semana atual (sem incluir a atual).
+    #
+    # Interpretação:
+    #   ICN = 50            → Na média histórica (manutenção)
+    #   ICN entre 50–75     → Acima da média — zona de evolução segura
+    #   ICN > 75            → Alerta — aumento abrupto de carga, risco de lesão
+    #   ICN < 50            → Abaixo da média — recuperação ou destreinamento
+    #
+    # Cold start:
+    #   - semana 1 (sem histórico)    → ICN = 50 e baselineType = 'cold_start'
+    #   - semanas 2–4 (≤3 completas)  → média do que houver (partial_N_weeks)
+    #   - semana 5+ (4 completas)     → média das 4 últimas (historical_4_weeks)
+    icn_all        = None
+    icn_crossfit   = None
+    carga_cronica  = None
+    acwr_raw       = None
+    baseline_type  = 'cold_start'
     try:
         weekly_load_ref = db.collection('users').document(uid).collection('weekly_load')
         hist_docs = list(
             weekly_load_ref
                 .order_by('weekLabel', direction=firestore.Query.DESCENDING)
-                .limit(12)
+                .limit(_ACWR_CHRONIC_WINDOW + 1)  # +1 para poder descartar atual
                 .stream()
         )
-        historical_loads = [
-            (d.to_dict() or {}).get('totalLoadAll', 0)
+        prev_weeks_loads = [
+            float((d.to_dict() or {}).get('totalLoadAll') or 0.0)
             for d in hist_docs
             if d.id != week_label
-        ]
-        historical_loads = [l for l in historical_loads if l and l > 0]
+        ][:_ACWR_CHRONIC_WINDOW]
 
-        if historical_loads:
-            baseline = statistics.mean(historical_loads)
-            icn_baseline_used = 'historical'
+        completed_count = len(prev_weeks_loads)
+
+        if completed_count == 0:
+            # Semana 1 — sem histórico. ICN neutro = 50.
+            icn_all       = 50.0
+            icn_crossfit  = 50.0
+            baseline_type = 'cold_start'
         else:
-            baseline = _CATEGORY_BASELINE_LOAD.get(
-                (latest_category or '').strip(),
-                _DEFAULT_BASELINE_LOAD,
-            )
-            icn_baseline_used = f'category:{latest_category or "default"}'
+            carga_cronica = round(statistics.mean(prev_weeks_loads), 1)
+            if completed_count < _ACWR_CHRONIC_WINDOW:
+                baseline_type = f'partial_{completed_count}_weeks'
+            else:
+                baseline_type = 'historical_4_weeks'
 
-        if baseline > 0:
-            icn_all_raw      = (total_load_all      / baseline) * 50
-            icn_crossfit_raw = (total_load_crossfit / baseline) * 50
-            icn_all      = round(min(max(icn_all_raw,      0), 150), 1)
-            icn_crossfit = round(min(max(icn_crossfit_raw, 0), 150), 1)
+            if carga_cronica > 0:
+                acwr_raw_val = total_load_all / carga_cronica
+                acwr_raw     = round(acwr_raw_val, 3)
+                icn_all      = _compute_icn(total_load_all, carga_cronica)
+                icn_crossfit = _compute_icn(total_load_crossfit, carga_cronica)
+            else:
+                # Todas as semanas anteriores com carga zerada — tratamos como cold start.
+                icn_all       = 50.0
+                icn_crossfit  = 50.0
+                carga_cronica = None
+                acwr_raw      = None
     except Exception as e:
         logging.warning(f'Falha ao calcular ICN: {e}')
+
+    # ── Validações matemáticas (log-only; nunca derruba a função) ───────────
+    if round(total_load_all - (total_load_crossfit + total_load_other), 2) != 0:
+        logging.warning(
+            f'[{uid}|{week_label}] inconsistência: total_load_all={total_load_all} '
+            f'≠ crossfit({total_load_crossfit}) + other({total_load_other})'
+        )
+    if icn_all is not None and not (_ICN_CLAMP_MIN <= icn_all <= _ICN_CLAMP_MAX):
+        logging.warning(
+            f'[{uid}|{week_label}] ICN fora do clamp: {icn_all}'
+        )
+    if icn_all is not None and baseline_type != 'cold_start' and \
+            (carga_cronica is None or carga_cronica <= 0):
+        logging.warning(
+            f'[{uid}|{week_label}] ICN calculado sem carga crônica válida.'
+        )
 
     # ── Persiste weekly_load/{weekLabel} ────────────────────────────────────
     weekly_load_doc = {
@@ -478,15 +501,17 @@ def update_athlete_stats_logic(event):
         'weekStart': _date_key(week_start),
         'weekEnd':   _date_key(week_end),
 
-        # Cargas brutas (AU)
+        # Cargas brutas (AU) — Session-RPE sem fator de categoria
         'totalLoadCrossfit': total_load_crossfit,
         'totalLoadOther':    total_load_other,
         'totalLoadAll':      total_load_all,
 
-        # ICN (sempre calculado — usa histórico quando há, senão baseline por categoria)
-        'icnAll':          icn_all,
-        'icnCrossfit':     icn_crossfit,
-        'icnBaselineUsed': icn_baseline_used,
+        # ICN via ACWR (Gabbett, 2016)
+        'icnAll':       icn_all,        # float ou None (cold start, ~nunca)
+        'icnCrossfit':  icn_crossfit,   # float ou None
+        'cargaCronica': carga_cronica,  # float ou None
+        'acwrRaw':      acwr_raw,       # float ou None (razão antes do ×50)
+        'baselineType': baseline_type,  # cold_start | partial_N_weeks | historical_4_weeks
 
         # RPE médio
         'avgRpeCrossfit': avg_rpe_crossfit,
@@ -538,9 +563,11 @@ def update_athlete_stats_logic(event):
 
         # Novos campos de carga (expostos para o app ler sem precisar
         # abrir weekly_load — lookup rápido)
-        'weeklyLoadCrossfit': total_load_crossfit,
-        'weeklyLoadAll':      total_load_all,
-        'weeklyLoadLabel':    week_label,
+        'weeklyLoadCrossfit':  total_load_crossfit,
+        'weeklyLoadAll':       total_load_all,
+        'weeklyLoadLabel':     week_label,
+        'weeklyICN':           icn_all,          # float ou None
+        'weeklyBaselineType':  baseline_type,    # string
 
         # Metadados
         'weekStart':  _date_key(week_start),
@@ -556,5 +583,6 @@ def update_athlete_stats_logic(event):
     logging.info(
         f'✅ {uid} | {week_label} | '
         f'loadAll={total_load_all} loadCrossfit={total_load_crossfit} '
+        f'icnAll={icn_all} baseline={baseline_type} cronica={carga_cronica} '
         f'monotony={monotony} strain={strain} prs={prs_count}'
     )

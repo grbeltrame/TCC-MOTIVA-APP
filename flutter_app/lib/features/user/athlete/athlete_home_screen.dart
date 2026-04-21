@@ -9,7 +9,7 @@ import 'package:flutter_app/shared/widgets/sections/athlete/home_greeting_sectio
 import 'package:flutter_app/shared/widgets/home_primary_actions.dart';
 import 'package:flutter_app/shared/widgets/mocks/near_completion_section.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/pending_actions_section.dart';
-import 'package:flutter_app/shared/widgets/carousels/performance_insights_carousel.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/athlete_insights_carousel_loader.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 
 class AthleteHomeScreen extends StatefulWidget {
@@ -45,8 +45,10 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
             // Saudação inicial
             const HomeGreetingSection(),
 
-            // Inisghts de performance do usuario
-            const PerformanceInsightsCarousel(),
+            // Insights do atleta (2 semanais + 2 de evolução, sorteados)
+            const AthleteInsightsCarouselLoader(
+              mode: AthleteInsightsMode.homeMix,
+            ),
 
             // Navegação incial
             const HomePrimaryActions(),

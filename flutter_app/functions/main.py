@@ -21,7 +21,16 @@ if not firebase_admin._apps:
 
 _REGION = "us-central1"
 _TASK_QUEUE_ID = os.environ.get("WEEKLY_INSIGHTS_QUEUE", "weekly-insights-queue")
-_TASK_DELAY_SECONDS = int(os.environ.get("WEEKLY_INSIGHTS_DELAY_SEC", "1080"))  # 18 min
+
+# Janela base de debounce: 5 min. Se o atleta publicar N resultados em até
+# 5 min, apenas UMA task é criada (o Cloud Tasks recusa duplicatas pelo nome).
+_TASK_DELAY_SECONDS = int(os.environ.get("WEEKLY_INSIGHTS_DELAY_SEC", "300"))  # 5 min
+
+# Jitter máximo por atleta (em segundos). Distribui os atletas que publicam
+# simultaneamente (ex: após o fim da aula) ao longo de uma janela de 10 min,
+# evitando que dezenas de tasks disparem no mesmo instante.
+# É determinístico por UID: o mesmo atleta sempre tem o mesmo offset.
+_TASK_MAX_JITTER_SECONDS = int(os.environ.get("WEEKLY_INSIGHTS_JITTER_SEC", "600"))  # 10 min
 
 # URL do handler HTTPS registrado abaixo (`run_weekly_insights_task`).
 # Preenchida em runtime: depende de PROJECT_ID da função.
@@ -35,13 +44,32 @@ def _weekly_insights_handler_url() -> str:
     return f"https://{_REGION}-{project}.cloudfunctions.net/run_weekly_insights_task"
 
 
+def _uid_jitter_seconds(uid: str) -> int:
+    """
+    Retorna um offset de 0 a _TASK_MAX_JITTER_SECONDS determinístico para o
+    UID dado. Distribui atletas que publicam simultaneamente (fim de aula)
+    ao longo de uma janela de ~10 min, sem afetar o debounce — o mesmo
+    atleta sempre recebe o mesmo jitter, logo o nome da task permanece
+    idêntico para múltiplas publicações dentro da mesma janela.
+    """
+    import hashlib
+    digest = int(hashlib.md5(uid.encode()).hexdigest(), 16)
+    return digest % (_TASK_MAX_JITTER_SECONDS + 1)
+
+
 def _enqueue_weekly_insights_task(uid: str) -> None:
     """
-    Enfileira uma Cloud Task que, após `_TASK_DELAY_SECONDS`, chama o handler
-    HTTP para gerar os insights semanais do atleta. Se já existir uma task
-    com o mesmo nome determinístico, o Cloud Tasks RECUSA a duplicata — é
-    exatamente o comportamento de debounce que queremos (sempre criamos
-    com um nome que inclui um bucket de tempo).
+    Enfileira uma Cloud Task que, após `_TASK_DELAY_SECONDS` + jitter por UID,
+    chama o handler HTTP para gerar os insights semanais do atleta.
+
+    Debounce: o nome da task é determinístico (uid + bucket de tempo). Se o
+    atleta publicar vários resultados dentro da mesma janela de 5 min, o
+    Cloud Tasks recusa as duplicatas com ALREADY_EXISTS — apenas UMA task
+    é executada.
+
+    Anti-pico: o jitter espalha os atletas de uma mesma turma ao longo de
+    até 10 min adicionais, evitando que todos disparem no mesmo segundo
+    após o fim da aula.
     """
     try:
         from google.cloud import tasks_v2
@@ -58,15 +86,18 @@ def _enqueue_weekly_insights_task(uid: str) -> None:
         client = tasks_v2.CloudTasksClient()
         parent = client.queue_path(project, _REGION, _TASK_QUEUE_ID)
 
-        scheduled = _dt.datetime.utcnow() + _dt.timedelta(
-            seconds=_TASK_DELAY_SECONDS
-        )
+        jitter = _uid_jitter_seconds(uid)
+        total_delay = _TASK_DELAY_SECONDS + jitter
+
+        now = _dt.datetime.utcnow()
+        scheduled = now + _dt.timedelta(seconds=total_delay)
         ts = timestamp_pb2.Timestamp()
         ts.FromDatetime(scheduled)
 
-        # Nome determinístico por janela de ~18 min — garante que escritas
-        # em sequência sejam coalescidas em UMA única execução.
-        bucket = int(_dt.datetime.utcnow().timestamp() // _TASK_DELAY_SECONDS)
+        # Bucket baseado só no delay base (sem jitter) — garante que dois
+        # publishes do MESMO atleta dentro de 5 min geram o mesmo nome
+        # e são coalescidos pelo Cloud Tasks.
+        bucket = int(now.timestamp() // _TASK_DELAY_SECONDS)
         task_name = f"{parent}/tasks/weekly-{uid}-{bucket}"
 
         task = {
@@ -81,7 +112,11 @@ def _enqueue_weekly_insights_task(uid: str) -> None:
         }
 
         client.create_task(request={"parent": parent, "task": task})
-        logging.info(f"[cloud-tasks] enqueued weekly insights for {uid}")
+        logging.info(
+            f"[cloud-tasks] enqueued weekly insights for {uid}"
+            f" (delay={_TASK_DELAY_SECONDS}s + jitter={jitter}s"
+            f" = {total_delay}s total)"
+        )
 
     except Exception as e:
         # AlreadyExists = debounce funcionou, não é erro.

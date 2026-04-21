@@ -28,6 +28,13 @@ class AthleteStatsSummary {
   final Map<String, DayActivityType>
   currentWeekCalendar; // { "2026-04-08": wod, ... }
 
+  // Carga da semana atual (atalho do weekly_load para leitura rápida)
+  final double weeklyLoadCrossfit;
+  final double weeklyLoadAll;
+  final String weeklyLoadLabel;
+  final double? weeklyICN;              // null em cold_start
+  final String weeklyBaselineType;      // cold_start | partial_N_weeks | historical_4_weeks
+
   // Metadados
   final String weekStart;
   final String weekEnd;
@@ -43,6 +50,11 @@ class AthleteStatsSummary {
     required this.averageEffortCurrentWeek,
     required this.currentWeekStimuli,
     required this.currentWeekCalendar,
+    required this.weeklyLoadCrossfit,
+    required this.weeklyLoadAll,
+    required this.weeklyLoadLabel,
+    required this.weeklyICN,
+    required this.weeklyBaselineType,
     required this.weekStart,
     required this.weekEnd,
     required this.monthStart,
@@ -64,6 +76,11 @@ class AthleteStatsSummary {
       averageEffortCurrentWeek: 0,
       currentWeekStimuli: const {},
       currentWeekCalendar: const {},
+      weeklyLoadCrossfit: 0,
+      weeklyLoadAll: 0,
+      weeklyLoadLabel: '',
+      weeklyICN: null,
+      weeklyBaselineType: 'cold_start',
       weekStart: currentWeekStart,
       weekEnd: currentWeekEnd,
       monthStart: monthStart,
@@ -97,6 +114,8 @@ class AthleteStatsSummary {
       updatedAt = raw.toDate();
     }
 
+    final weeklyIcnRaw = data['weeklyICN'];
+
     return AthleteStatsSummary(
       totalTrainingDays: (data['totalTrainingDays'] as num? ?? 0).toInt(),
       averageEffortAllTime:
@@ -111,6 +130,13 @@ class AthleteStatsSummary {
           (data['averageEffortCurrentWeek'] as num? ?? 0).toDouble(),
       currentWeekStimuli: stimuli,
       currentWeekCalendar: calendar,
+      weeklyLoadCrossfit:
+          (data['weeklyLoadCrossfit'] as num? ?? 0).toDouble(),
+      weeklyLoadAll: (data['weeklyLoadAll'] as num? ?? 0).toDouble(),
+      weeklyLoadLabel: data['weeklyLoadLabel'] as String? ?? '',
+      weeklyICN: weeklyIcnRaw is num ? weeklyIcnRaw.toDouble() : null,
+      weeklyBaselineType:
+          data['weeklyBaselineType'] as String? ?? 'cold_start',
       weekStart: data['weekStart'] as String? ?? '',
       weekEnd: data['weekEnd'] as String? ?? '',
       monthStart: data['monthStart'] as String? ?? '',
