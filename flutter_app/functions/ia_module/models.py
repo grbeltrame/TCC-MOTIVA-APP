@@ -7,7 +7,15 @@ from typing import List, Dict
 
 class Summary(BaseModel):
     overview: str = Field(..., max_length=600, description="Resumo até 600 caracteres")
-    key_metrics: List[str] = Field(..., description="Lista de métricas-chave")
+    key_metrics: List[str] = Field(
+        ...,
+        description=(
+            "Lista com NO MÁXIMO 3 capacidades físicas principais do treino "
+            "(ex: 'Força', 'Potência', 'Resistência Cardiovascular'). "
+            "Escolha apenas as 3 mais relevantes para este treino específico. "
+            "NUNCA retorne mais de 3 itens."
+        ),
+    )
 
 class HistoryAnalysis(BaseModel):
     weekly: List[str] = Field(..., description="Pontos de análise semanal")

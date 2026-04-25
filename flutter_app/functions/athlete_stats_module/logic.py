@@ -563,11 +563,12 @@ def update_athlete_stats_logic(event):
 
         # Novos campos de carga (expostos para o app ler sem precisar
         # abrir weekly_load — lookup rápido)
-        'weeklyLoadCrossfit':  total_load_crossfit,
-        'weeklyLoadAll':       total_load_all,
-        'weeklyLoadLabel':     week_label,
-        'weeklyICN':           icn_all,          # float ou None
-        'weeklyBaselineType':  baseline_type,    # string
+        'weeklyLoadCrossfit':   total_load_crossfit,
+        'weeklyLoadAll':        total_load_all,
+        'weeklyLoadLabel':      week_label,
+        'weeklyICN':            icn_all,        # float ou None
+        'weeklyBaselineType':   baseline_type,  # string
+        'weeklyCargaCronica':   carga_cronica,  # float ou None — base individual
 
         # Metadados
         'weekStart':  _date_key(week_start),

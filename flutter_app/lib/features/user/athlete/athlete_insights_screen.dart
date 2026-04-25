@@ -8,6 +8,7 @@ import 'package:flutter_app/features/user/athlete/athlete_weekly_insights_detail
 import 'package:flutter_app/shared/widgets/cards/week_calendar_card.dart';
 import 'package:flutter_app/shared/widgets/cards/week_effort_card.dart';
 import 'package:flutter_app/shared/widgets/cards/week_frequency_card.dart';
+import 'package:flutter_app/shared/widgets/cards/week_points_card.dart';
 import 'package:flutter_app/shared/widgets/cards/week_prs_card.dart';
 import 'package:flutter_app/shared/widgets/cards/week_stimuli_card.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/athlete_insights_carousel_loader.dart';
@@ -128,7 +129,7 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
 
                     SizedBox(height: 8 * scale),
 
-                    // Frequência + Esforço
+                    // Frequência + Esforço + Pontos da Semana
                     IntrinsicHeight(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -139,6 +140,10 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
                           SizedBox(width: 6 * scale),
                           Expanded(
                             child: WeekEffortCard(summary: summary),
+                          ),
+                          SizedBox(width: 6 * scale),
+                          Expanded(
+                            child: WeekPointsCard(summary: summary),
                           ),
                         ],
                       ),

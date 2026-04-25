@@ -34,6 +34,7 @@ class AthleteStatsSummary {
   final String weeklyLoadLabel;
   final double? weeklyICN;              // null em cold_start
   final String weeklyBaselineType;      // cold_start | partial_N_weeks | historical_4_weeks
+  final double? weeklyCargaCronica;     // base individual em AU (null em cold_start)
 
   // Metadados
   final String weekStart;
@@ -55,6 +56,7 @@ class AthleteStatsSummary {
     required this.weeklyLoadLabel,
     required this.weeklyICN,
     required this.weeklyBaselineType,
+    required this.weeklyCargaCronica,
     required this.weekStart,
     required this.weekEnd,
     required this.monthStart,
@@ -81,6 +83,7 @@ class AthleteStatsSummary {
       weeklyLoadLabel: '',
       weeklyICN: null,
       weeklyBaselineType: 'cold_start',
+      weeklyCargaCronica: null,
       weekStart: currentWeekStart,
       weekEnd: currentWeekEnd,
       monthStart: monthStart,
@@ -114,7 +117,8 @@ class AthleteStatsSummary {
       updatedAt = raw.toDate();
     }
 
-    final weeklyIcnRaw = data['weeklyICN'];
+    final weeklyIcnRaw      = data['weeklyICN'];
+    final weeklyCronicaRaw  = data['weeklyCargaCronica'];
 
     return AthleteStatsSummary(
       totalTrainingDays: (data['totalTrainingDays'] as num? ?? 0).toInt(),
@@ -137,6 +141,8 @@ class AthleteStatsSummary {
       weeklyICN: weeklyIcnRaw is num ? weeklyIcnRaw.toDouble() : null,
       weeklyBaselineType:
           data['weeklyBaselineType'] as String? ?? 'cold_start',
+      weeklyCargaCronica:
+          weeklyCronicaRaw is num ? weeklyCronicaRaw.toDouble() : null,
       weekStart: data['weekStart'] as String? ?? '',
       weekEnd: data['weekEnd'] as String? ?? '',
       monthStart: data['monthStart'] as String? ?? '',

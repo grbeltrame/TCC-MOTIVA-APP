@@ -28,8 +28,9 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _from = DateTime(now.year, now.month, 1);
     _to = now;
+    // Padrão: últimas 12 semanas — mostra evolução real ao invés de só o mês atual.
+    _from = now.subtract(const Duration(days: 84));
   }
 
   Future<void> _pickDate({required bool isFrom}) async {

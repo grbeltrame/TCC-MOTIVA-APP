@@ -88,7 +88,7 @@ def create_evaluation_prompt(
         "**Etapa 4: Resumo (Preenche o campo `summary`)**\n"
         "> Seja um editor. Crie um resumo conciso de tudo.\n"
         "> * No campo `overview`: Faça um resumo do treino do dia (foco, tipo de WOD), os principais músculos usados, e uma breve menção às análises (ex: 'Treino focado em LPO e um AMRAP intenso para o core. A análise principal indica um [risco de alerta X], mas oferece [insights sobre Y]')."
-        "> * No campo `key_metrics`: Liste as capacidades físicas (ex: 'Força', 'Potência', 'Resistência Cardiovascular') lembre-se de utilizar bem a lista de exercicios que você recebeu.\n"
+        "> * No campo `key_metrics`: Escolha os **TOP 3** estímulos físicos mais relevantes para ESTE treino específico (ex: 'Força', 'Potência', 'Resistência Cardiovascular'). MÁXIMO 3 itens — se o treino trabalhar mais de 3, escolha os 3 predominantes. NUNCA retorne mais de 3.\n"
         "---"
     )
     
