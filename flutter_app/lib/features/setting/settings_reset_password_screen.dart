@@ -23,7 +23,7 @@ class SettingsResetPasswordScreen extends StatelessWidget {
           children: [
             const SettingsHeader(title: 'Redefinir senha'),
             Text(
-              'Você será direcionado para o fluxo de recuperação de senha.',
+              'Nos informe seu email para enviarmos o link de redefinicao de senha.',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 12 * scale,
@@ -39,15 +39,15 @@ class SettingsResetPasswordScreen extends StatelessWidget {
                     () =>
                         Navigator.pushNamed(context, AppRoutes.forgotPassword),
                 style: const ButtonStyle(
-                  backgroundColor: MaterialStatePropertyAll(AppColors.baseBlue),
-                  elevation: MaterialStatePropertyAll(0),
+                  backgroundColor: WidgetStatePropertyAll(AppColors.baseBlue),
+                  elevation: WidgetStatePropertyAll(0),
                 ),
                 child: const Text('Continuar'),
               ),
             ),
             SizedBox(height: 12 * scale),
             Text(
-              'TODO(BACKEND): se existir política adicional, validar e registrar solicitação.',
+              'Se o email estiver cadastrado, o link sera enviado para a caixa de entrada. Vale conferir tambem a pasta de spam.',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 11 * scale,

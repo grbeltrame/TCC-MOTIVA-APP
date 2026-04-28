@@ -1,4 +1,64 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+const Map<String, String> coachCycleComparisonLabels = {
+  'distribution': 'Distribuição',
+  'effort': 'Esforço Percebido',
+  'progression': 'Progressão',
+  'variation': 'Variação',
+};
+
+String formatCoachCycleInsightTitle(String key) {
+  if (key.isEmpty) return key;
+  final spaced = key.replaceAll('_', ' ');
+  return spaced[0].toUpperCase() + spaced.substring(1);
+}
+
+String formatCoachCycleInsightMessage(String title, String description) {
+  return '$title\n$description';
+}
+
+List<String> buildCoachCycleTechnicalAlertMessages(Map<String, dynamic> data) {
+  final alerts = data['technical_alerts'];
+  if (alerts is! Map) return const [];
+
+  final messages = <String>[];
+  alerts.forEach((key, value) {
+    if (value is Map && value['description'] != null) {
+      final title = formatCoachCycleInsightTitle(key.toString());
+      final description = value['description'].toString();
+      messages.add(formatCoachCycleInsightMessage(title, description));
+    }
+  });
+  return messages;
+}
+
+List<String> buildCoachCycleComparisonMessages(Map<String, dynamic> data) {
+  final comparison = data['comparison'];
+  if (comparison is! Map) return const [];
+
+  final messages = <String>[];
+  coachCycleComparisonLabels.forEach((key, title) {
+    if (comparison[key] != null) {
+      messages.add(
+        formatCoachCycleInsightMessage(title, comparison[key].toString()),
+      );
+    }
+  });
+  return messages;
+}
+
+List<String> buildCoachCycleRecommendationMessages(Map<String, dynamic> data) {
+  final recommendations = data['recommendations'];
+  if (recommendations is! Map) return const [];
+
+  final messages = <String>[];
+  recommendations.forEach((key, value) {
+    if (value is Map && value['description'] != null) {
+      final title = formatCoachCycleInsightTitle(key.toString());
+      final description = value['description'].toString();
+      messages.add(formatCoachCycleInsightMessage(title, description));
+    }
+  });
+  return messages;
+}
 
 /// Modelo principal que representa a tela inteira de Insights do Ciclo
 class CoachCycleOverviewInsights {
@@ -14,105 +74,83 @@ class CoachCycleOverviewInsights {
     final List<CoachCycleCategoryInsights> parsedCategories = [];
 
     // 1. Technical Alerts
-    if (data['technical_alerts'] != null && data['technical_alerts'] is Map) {
-      final Map<String, dynamic> alerts = data['technical_alerts'];
-      final List<CoachCycleTopicInsights> topics = [];
-      alerts.forEach((key, value) {
-        if (value is Map && value['description'] != null) {
-          topics.add(CoachCycleTopicInsights(
-            key: key,
-            title: _formatKeyToTitle(key),
-            messages: [value['description'].toString()],
-          ));
-        }
-      });
-      if (topics.isNotEmpty) {
-        parsedCategories.add(CoachCycleCategoryInsights(
+    final technicalAlerts = buildCoachCycleTechnicalAlertMessages(data);
+    if (technicalAlerts.isNotEmpty) {
+      parsedCategories.add(
+        CoachCycleCategoryInsights(
           key: 'technical_alerts',
           title: 'Alertas Técnicos',
-          topics: topics,
-        ));
-      }
+          topics: [
+            CoachCycleTopicInsights(
+              key: 'technical_alerts_list',
+              title: 'Alertas do Mês',
+              messages: technicalAlerts,
+            ),
+          ],
+        ),
+      );
     }
 
     // 2. Positive Points
     if (data['positives'] != null && data['positives'] is List) {
       final List<dynamic> positives = data['positives'];
       if (positives.isNotEmpty) {
-        parsedCategories.add(CoachCycleCategoryInsights(
-          key: 'positive_points',
-          title: 'Pontos Positivos',
-          topics: [
-            CoachCycleTopicInsights(
-              key: 'positives_list',
-              title: 'Destaques do Mês',
-              messages: positives.map((e) => e.toString()).toList(),
-            ),
-          ],
-        ));
+        parsedCategories.add(
+          CoachCycleCategoryInsights(
+            key: 'positive_points',
+            title: 'Pontos Positivos',
+            topics: [
+              CoachCycleTopicInsights(
+                key: 'positives_list',
+                title: 'Destaques do Mês',
+                messages: positives.map((e) => e.toString()).toList(),
+              ),
+            ],
+          ),
+        );
       }
     }
 
     // 3. Comparison
-    if (data['comparison'] != null && data['comparison'] is Map) {
-      final Map<String, dynamic> comp = data['comparison'];
-      final List<CoachCycleTopicInsights> topics = [];
-      final labels = {
-        'distribution': 'Distribuição',
-        'effort': 'Esforço Percebido',
-        'progression': 'Progressão',
-        'variation': 'Variação',
-      };
-      labels.forEach((key, title) {
-        if (comp[key] != null) {
-          topics.add(CoachCycleTopicInsights(
-            key: key,
-            title: title,
-            messages: [comp[key].toString()],
-          ));
-        }
-      });
-      if (topics.isNotEmpty) {
-        parsedCategories.add(CoachCycleCategoryInsights(
+    final comparisonMessages = buildCoachCycleComparisonMessages(data);
+    if (comparisonMessages.isNotEmpty) {
+      parsedCategories.add(
+        CoachCycleCategoryInsights(
           key: 'cycle_comparison',
           title: 'Análise do Ciclo',
-          topics: topics,
-        ));
-      }
+          topics: [
+            CoachCycleTopicInsights(
+              key: 'cycle_comparison_list',
+              title: 'Resumo Comparativo',
+              messages: comparisonMessages,
+            ),
+          ],
+        ),
+      );
     }
 
     // 4. Recommendations
-    if (data['recommendations'] != null && data['recommendations'] is Map) {
-      final Map<String, dynamic> recs = data['recommendations'];
-      final List<CoachCycleTopicInsights> topics = [];
-      recs.forEach((key, value) {
-        if (value is Map && value['description'] != null) {
-          topics.add(CoachCycleTopicInsights(
-            key: key,
-            title: _formatKeyToTitle(key),
-            messages: [value['description'].toString()],
-          ));
-        }
-      });
-      if (topics.isNotEmpty) {
-        parsedCategories.add(CoachCycleCategoryInsights(
+    final recommendationMessages = buildCoachCycleRecommendationMessages(data);
+    if (recommendationMessages.isNotEmpty) {
+      parsedCategories.add(
+        CoachCycleCategoryInsights(
           key: 'smart_recommendations',
           title: 'Recomendações Inteligentes',
-          topics: topics,
-        ));
-      }
+          topics: [
+            CoachCycleTopicInsights(
+              key: 'smart_recommendations_list',
+              title: 'Plano Sugerido',
+              messages: recommendationMessages,
+            ),
+          ],
+        ),
+      );
     }
 
     return CoachCycleOverviewInsights(
       overview: data['overview']?.toString() ?? '',
       categories: parsedCategories,
     );
-  }
-
-  static String _formatKeyToTitle(String key) {
-    if (key.isEmpty) return key;
-    final spaced = key.replaceAll('_', ' ');
-    return spaced[0].toUpperCase() + spaced.substring(1);
   }
 }
 
@@ -145,8 +183,5 @@ class CoachCycleInsightItem {
   final DateTime date;
   final String message;
 
-  CoachCycleInsightItem({
-    required this.date,
-    required this.message,
-  });
+  CoachCycleInsightItem({required this.date, required this.message});
 }

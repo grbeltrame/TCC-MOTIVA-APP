@@ -6,8 +6,7 @@ import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/sections/athlete/inisghts_section.dart';
-import 'package:flutter_app/shared/widgets/mocks/near_completion_section.dart';
+import 'package:flutter_app/shared/widgets/sections/athlete/pre_workout_insights_section.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/training_info_section.dart';
 
@@ -60,11 +59,14 @@ class _AthleteTrainingScreenState extends State<AthleteTrainingScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Treinos do dia
-            TrainingInfoSection(onDateChanged: (DateTime value) {}),
+            TrainingInfoSection(onDateChanged: _onDateChanged),
             const SizedBox(height: 40),
 
-            // Insights sobre o treino do dia
-            InsightsSection(),
+            // Insights pré-treino — carrossel real (Gemini) com link
+            // "Ver todos" pra tela de detalhe. Resolve workoutId pela
+            // data atual; se não houver treino publicado ou insights
+            // ainda, a seção fica oculta.
+            PreWorkoutInsightsSection(date: _currentDate),
 
             // // Metas proximas de serem concluidas
             // const NearCompletionSection(),

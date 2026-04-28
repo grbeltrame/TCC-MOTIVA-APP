@@ -167,12 +167,22 @@ def run_weekly_insights_logic(uid: str) -> dict:
     except Exception as e:
         logging.warning(f"[weekly-insights] falha ao carregar histórico: {e}")
 
-    # 5) Prompt + LLM
+    # 5) Coorte do atleta (se elegível)
+    cohort = None
+    try:
+        from cohort_module import find_athlete_cohort
+        cohort = find_athlete_cohort(uid, db)
+    except Exception as e:
+        logging.warning(f"[weekly-insights] {uid}: cohort lookup falhou: {e}")
+
+    # 6) Prompt + LLM
     prompt_text = create_weekly_insights_prompt(
         stats_summary=stats_summary,
         weekly_load=weekly_load,
         recent_results=recent_results,
         recent_weeks=recent_weeks,
+        now=datetime.now(tz=_TZ_BRAZIL),
+        cohort=cohort,
     )
 
     api_key = _get_gemini_api_key()
@@ -183,6 +193,18 @@ def run_weekly_insights_logic(uid: str) -> dict:
     ai_message = llm.invoke(prompt_text)
     clean = _parse_llm_json(ai_message.content)
     parsed = parser.parse(clean).dict()
+
+    # Telemetria — não bloqueia o fluxo se falhar.
+    try:
+        from telemetry_module import record_insight_generated
+        record_insight_generated(
+            'weekly',
+            with_cohort=cohort is not None,
+            prompt_chars=len(prompt_text),
+            response_chars=len(ai_message.content or ''),
+        )
+    except Exception:
+        pass
 
     # 5) Persistência
     final_doc = {
@@ -304,12 +326,21 @@ def run_evolution_insights_logic(uid: str, force: bool = False) -> dict:
     prs_summary = _summarize_prs(db, uid, since_date)
     stimulus_distribution = _aggregate_stimuli_from_results(db, uid, since_date)
 
+    # Coorte (se elegível)
+    cohort = None
+    try:
+        from cohort_module import find_athlete_cohort
+        cohort = find_athlete_cohort(uid, db)
+    except Exception as e:
+        logging.warning(f"[evolution-insights] {uid}: cohort lookup falhou: {e}")
+
     # Prompt + LLM
     prompt_text = create_evolution_insights_prompt(
         stats_summary=stats_summary,
         last_12_weeks=last_12_weeks,
         prs_summary=prs_summary,
         stimulus_distribution=stimulus_distribution,
+        cohort=cohort,
     )
 
     api_key = _get_gemini_api_key()
@@ -320,6 +351,18 @@ def run_evolution_insights_logic(uid: str, force: bool = False) -> dict:
     ai_message = llm.invoke(prompt_text)
     clean = _parse_llm_json(ai_message.content)
     parsed = parser.parse(clean).dict()
+
+    # Telemetria
+    try:
+        from telemetry_module import record_insight_generated
+        record_insight_generated(
+            'evolution',
+            with_cohort=cohort is not None,
+            prompt_chars=len(prompt_text),
+            response_chars=len(ai_message.content or ''),
+        )
+    except Exception:
+        pass
 
     final_doc = {
         **parsed,

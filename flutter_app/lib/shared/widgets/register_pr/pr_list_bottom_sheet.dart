@@ -79,6 +79,12 @@ class _PrListSheetState extends State<_PrListSheet> {
     _reload();
   }
 
+  Future<void> _openNew() async {
+    await showRegisterPrBottomSheet(context);
+    if (!mounted) return;
+    _reload();
+  }
+
   Future<void> _confirmAndDelete(AthletePr pr) async {
     final valStr = pr.value % 1 == 0
         ? pr.value.toInt().toString()
@@ -193,7 +199,12 @@ class _PrListSheetState extends State<_PrListSheet> {
                     color: AppColors.mediumGray,
                   ),
                 ),
-                SizedBox(height: 14 * scale),
+                SizedBox(height: 12 * scale),
+                if (!isDetail) ...[
+                  _RegisterPrButton(scale: scale, onTap: _openNew),
+                  SizedBox(height: 12 * scale),
+                ] else
+                  SizedBox(height: 2 * scale),
               ],
             ),
           ),
@@ -306,6 +317,46 @@ class _MovementGroup {
   int count = 0;
   AthletePr? latest;
   _MovementGroup({required this.id, required this.name});
+}
+
+class _RegisterPrButton extends StatelessWidget {
+  final double scale;
+  final VoidCallback onTap;
+
+  const _RegisterPrButton({required this.scale, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10 * scale),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 12 * scale, vertical: 10 * scale,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.baseBlue,
+          borderRadius: BorderRadius.circular(10 * scale),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add, size: 16 * scale, color: Colors.white),
+            SizedBox(width: 6 * scale),
+            Text(
+              'Registrar PR',
+              style: TextStyle(
+                fontFamily: AppFonts.roboto,
+                fontWeight: FontWeight.w600,
+                fontSize: 13 * scale,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // =============================================================================

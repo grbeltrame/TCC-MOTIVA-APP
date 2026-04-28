@@ -15,6 +15,10 @@ enum AthleteInsightsMode {
   /// Tela de evolução: só insights de evolução. Dispara o onCall se
   /// o cache estiver vazio/expirado (o backend já decide isso).
   evolutionOnly,
+
+  /// Tela do treino do dia: insights pré-treino daquele workoutId.
+  /// Requer [workoutId] no widget.
+  preWorkoutOnly,
 }
 
 /// Wrapper que carrega os insights do atleta e exibe o carrossel.
@@ -27,11 +31,15 @@ class AthleteInsightsCarouselLoader extends StatefulWidget {
   /// Força seed fixa para o sorteio (útil em testes). Null = aleatório.
   final int? seed;
 
+  /// Obrigatório quando [mode] = preWorkoutOnly.
+  final String? workoutId;
+
   const AthleteInsightsCarouselLoader({
     Key? key,
     required this.mode,
     this.onTap,
     this.seed,
+    this.workoutId,
   }) : super(key: key);
 
   @override
@@ -43,6 +51,7 @@ class AthleteInsightsCarouselLoaderState
     extends State<AthleteInsightsCarouselLoader> {
   AthleteWeeklyInsights? _weekly;
   AthleteEvolutionInsights? _evolution;
+  AthletePreWorkoutInsights? _preWorkout;
 
   bool _loadingEvolution = false;
 
@@ -88,6 +97,22 @@ class AthleteInsightsCarouselLoaderState
         if (mounted) setState(() => _loadingEvolution = false);
       }
     }
+
+    if (widget.mode == AthleteInsightsMode.preWorkoutOnly) {
+      final id = widget.workoutId;
+      if (id == null || id.isEmpty) {
+        debugPrint(
+          '[InsightsLoader] preWorkoutOnly sem workoutId — skip.',
+        );
+        return;
+      }
+      try {
+        final p = await AthleteInsightsService.fetchPreWorkout(id);
+        if (mounted) setState(() => _preWorkout = p);
+      } catch (e, st) {
+        debugPrint('[InsightsLoader] fetchPreWorkout falhou: $e\n$st');
+      }
+    }
   }
 
   @override
@@ -112,6 +137,8 @@ class AthleteInsightsCarouselLoaderState
       AthleteInsightsMode.weeklyOnly => _weekly?.toCards() ?? const [],
       AthleteInsightsMode.evolutionOnly =>
         _evolution?.toCards() ?? const [],
+      AthleteInsightsMode.preWorkoutOnly =>
+        _preWorkout?.toCards() ?? const [],
     };
 
     if (items.isEmpty) return const SizedBox.shrink();

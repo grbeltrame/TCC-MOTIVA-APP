@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 
 /// Carrossel simples de textos longos:
 /// - 1 insight por vez
@@ -12,6 +13,7 @@ class AdaptiveInsightsCarousel extends StatefulWidget {
   final Color pillColor; // Cor de fundo do "chip" do título
   final Color pillTextColor; // Cor do texto/ícone do chip
   final List<String> messages; // Lista de insights (pode ser vazia)
+  final VoidCallback? onViewAll;
 
   const AdaptiveInsightsCarousel({
     Key? key,
@@ -20,6 +22,7 @@ class AdaptiveInsightsCarousel extends StatefulWidget {
     required this.pillColor,
     required this.pillTextColor,
     required this.messages,
+    this.onViewAll,
   }) : super(key: key);
 
   @override
@@ -59,32 +62,52 @@ class _AdaptiveInsightsCarouselState extends State<AdaptiveInsightsCarousel>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // "Chip" colorido com ícone + título (Análise:, Alertas:, etc.)
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 8 * scale,
-            vertical: 4 * scale,
-          ),
-          decoration: BoxDecoration(
-            color: widget.pillColor,
-            borderRadius: BorderRadius.circular(6 * scale),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(widget.icon, size: 14 * scale, color: widget.pillTextColor),
-              SizedBox(width: 4 * scale),
-              Text(
-                widget.title,
-                style: TextStyle(
-                  fontFamily: AppFonts.roboto,
-                  fontWeight: AppFontWeight.bold,
-                  fontSize: 11 * scale,
-                  color: widget.pillTextColor,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 8 * scale,
+                    vertical: 4 * scale,
+                  ),
+                  decoration: BoxDecoration(
+                    color: widget.pillColor,
+                    borderRadius: BorderRadius.circular(6 * scale),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        widget.icon,
+                        size: 14 * scale,
+                        color: widget.pillTextColor,
+                      ),
+                      SizedBox(width: 4 * scale),
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontFamily: AppFonts.roboto,
+                          fontWeight: AppFontWeight.bold,
+                          fontSize: 11 * scale,
+                          color: widget.pillTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+            if (hasMessages && widget.onViewAll != null)
+              TextActionButton(
+                text: 'Ver todos',
+                icon: Icons.add,
+                color: AppColors.baseBlue,
+                onPressed: widget.onViewAll!,
+              ),
+          ],
         ),
 
         SizedBox(height: 8 * scale),
@@ -123,7 +146,7 @@ class _AdaptiveInsightsCarouselState extends State<AdaptiveInsightsCarousel>
                   color:
                       _index > 0
                           ? AppColors.baseBlue
-                          : AppColors.mediumGray.withOpacity(0.5),
+                          : AppColors.mediumGray.withValues(alpha: 0.5),
                 ),
                 onPressed: _index > 0 ? _goPrev : null,
               ),
@@ -151,7 +174,7 @@ class _AdaptiveInsightsCarouselState extends State<AdaptiveInsightsCarousel>
                   color:
                       _index < widget.messages.length - 1
                           ? AppColors.baseBlue
-                          : AppColors.mediumGray.withOpacity(0.5),
+                          : AppColors.mediumGray.withValues(alpha: 0.5),
                 ),
                 onPressed: _index < widget.messages.length - 1 ? _goNext : null,
               ),

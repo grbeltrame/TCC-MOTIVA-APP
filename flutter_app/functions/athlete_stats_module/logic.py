@@ -5,7 +5,6 @@ import statistics
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from firebase_admin import firestore
-from google.cloud.firestore_v1.base_query import FieldFilter
 
 _TZ_BRAZIL = ZoneInfo('America/Sao_Paulo')
 
@@ -246,6 +245,206 @@ def _training_duration_minutes(data: dict, db) -> float:
 
 
 # ==============================================================================
+# CÁLCULO DE UMA SEMANA
+# ==============================================================================
+
+def _compute_week_load_doc(
+    *,
+    week_label: str,
+    week_start: datetime,
+    week_end: datetime,
+    week_docs: list,
+    prev_weeks_loads: list,
+    prs_count: int,
+    db,
+):
+    """
+    Calcula o documento de weekly_load/{week_label} a partir dos resultados
+    daquela semana e da carga das semanas ANTERIORES (já calculadas).
+
+    week_docs:
+        Lista de tuplas (doc_id, data_dict, kind) de resultados que pertencem
+        a esta semana. kind ∈ {'rest', 'other', 'training'}.
+
+    prev_weeks_loads:
+        Lista de até _ACWR_CHRONIC_WINDOW totalLoadAll das semanas COMPLETAS
+        anteriores a esta (em qualquer ordem). Usada para a Carga Crônica.
+
+    prs_count:
+        Quantidade de PRs registrados nesta semana.
+    """
+    # Pré-popula os 7 dias da semana com 0.0 (monotonia precisa dos zeros)
+    daily_loads_crossfit = {
+        _date_key(week_start + timedelta(days=i)): 0.0 for i in range(7)
+    }
+    daily_loads_other = {
+        _date_key(week_start + timedelta(days=i)): 0.0 for i in range(7)
+    }
+
+    rpes_crossfit = []
+    rpes_all      = []
+    wod_days      = set()
+    other_days    = set()
+    rest_days     = set()
+    stimuli       = {}
+
+    for doc_id, data, kind in week_docs:
+        date_str = data.get('date') or _date_from_doc_id(doc_id)
+        if not date_str:
+            continue
+
+        if kind == 'rest':
+            rest_days.add(date_str)
+            continue
+
+        effort = data.get('effort')
+        if effort is None or effort == 0:
+            logging.warning(
+                f'Resultado {doc_id} sem effort — pulando do cálculo de carga.'
+            )
+            continue
+
+        if kind == 'other':
+            duration = data.get('durationMinutes')
+            if duration is not None and duration > 0:
+                carga = float(effort) * float(duration)
+                daily_loads_other[date_str] = \
+                    daily_loads_other.get(date_str, 0.0) + carga
+                rpes_all.append(effort)
+                other_days.add(date_str)
+            else:
+                logging.warning(
+                    f'OTHER {doc_id} sem durationMinutes válido — pulando carga.'
+                )
+        else:  # training
+            duration_min = _training_duration_minutes(data, db)
+            carga        = float(effort) * duration_min
+            daily_loads_crossfit[date_str] = \
+                daily_loads_crossfit.get(date_str, 0.0) + carga
+            rpes_crossfit.append(effort)
+            rpes_all.append(effort)
+            wod_days.add(date_str)
+
+            for metric in data.get('keyMetrics', []) or []:
+                if isinstance(metric, str) and metric.strip():
+                    stimuli[metric.strip()] = stimuli.get(metric.strip(), 0) + 1
+
+    # ── Totais e médias ────────────────────────────────────────────────────
+    total_load_crossfit = round(sum(daily_loads_crossfit.values()), 1)
+    total_load_other    = round(sum(daily_loads_other.values()), 1)
+    total_load_all      = round(total_load_crossfit + total_load_other, 1)
+
+    def _avg(lst):
+        return round(sum(lst) / len(lst), 1) if lst else 0.0
+
+    avg_rpe_crossfit = _avg(rpes_crossfit)
+    avg_rpe_all      = _avg(rpes_all)
+
+    # ── Monotonia, strain, rest ratio ──────────────────────────────────────
+    daily_all = {
+        k: daily_loads_crossfit.get(k, 0.0) + daily_loads_other.get(k, 0.0)
+        for k in daily_loads_crossfit.keys()
+    }
+    valores  = list(daily_all.values())
+    media    = statistics.mean(valores)
+    desvio   = statistics.pstdev(valores)
+    monotony = round(media / desvio, 3) if desvio > 0 else 0.0
+    strain   = round(total_load_all * monotony, 1)
+    rest_ratio = round(len(rest_days) / 7.0, 2)
+
+    # ── ICN via ACWR (Gabbett, 2016) ───────────────────────────────────────
+    # ICN = (Carga Aguda / Carga Crônica) × 50
+    #   Carga Aguda  = totalLoadAll desta semana
+    #   Carga Crônica = média de totalLoadAll das últimas N≤4 semanas anteriores
+    #
+    # Cold start:
+    #   - sem histórico (0 semanas anteriores)    → ICN = 50, baselineType = 'cold_start'
+    #   - 1–3 semanas anteriores                  → 'partial_N_weeks'
+    #   - ≥4 semanas anteriores                   → 'historical_4_weeks'
+    icn_all       = None
+    icn_crossfit  = None
+    carga_cronica = None
+    acwr_raw      = None
+    baseline_type = 'cold_start'
+
+    completed_count = len(prev_weeks_loads)
+    if completed_count == 0:
+        icn_all       = 50.0
+        icn_crossfit  = 50.0
+        baseline_type = 'cold_start'
+    else:
+        carga_cronica = round(statistics.mean(prev_weeks_loads), 1)
+        baseline_type = (
+            f'partial_{completed_count}_weeks'
+            if completed_count < _ACWR_CHRONIC_WINDOW
+            else 'historical_4_weeks'
+        )
+        if carga_cronica > 0:
+            acwr_raw     = round(total_load_all / carga_cronica, 3)
+            icn_all      = _compute_icn(total_load_all, carga_cronica)
+            icn_crossfit = _compute_icn(total_load_crossfit, carga_cronica)
+        else:
+            # Todas as semanas anteriores zeradas → tratamos como cold start
+            icn_all       = 50.0
+            icn_crossfit  = 50.0
+            carga_cronica = None
+            acwr_raw      = None
+
+    # ── Validações log-only ────────────────────────────────────────────────
+    if round(total_load_all - (total_load_crossfit + total_load_other), 2) != 0:
+        logging.warning(
+            f'[{week_label}] inconsistência: total_load_all={total_load_all} '
+            f'≠ crossfit({total_load_crossfit}) + other({total_load_other})'
+        )
+
+    return {
+        # Identificação
+        'weekLabel': week_label,
+        'weekStart': _date_key(week_start),
+        'weekEnd':   _date_key(week_end),
+
+        # Cargas brutas (AU)
+        'totalLoadCrossfit': total_load_crossfit,
+        'totalLoadOther':    total_load_other,
+        'totalLoadAll':      total_load_all,
+
+        # ICN via ACWR
+        'icnAll':       icn_all,
+        'icnCrossfit':  icn_crossfit,
+        'cargaCronica': carga_cronica,
+        'acwrRaw':      acwr_raw,
+        'baselineType': baseline_type,
+
+        # RPE médio
+        'avgRpeCrossfit': avg_rpe_crossfit,
+        'avgRpeAll':      avg_rpe_all,
+
+        # Frequência
+        'wodDays':   len(wod_days),
+        'otherDays': len(other_days),
+        'restDays':  len(rest_days),
+
+        # Saúde do treino
+        'monotony':  monotony,
+        'strain':    strain,
+        'restRatio': rest_ratio,
+
+        # PRs
+        'prsCount': prs_count,
+
+        # Cargas diárias (para gráfico de barras no app)
+        'dailyLoadsCrossfit': daily_loads_crossfit,
+        'dailyLoadsOther':    daily_loads_other,
+
+        # Estímulos (usados pela IA semanal e pelo card de estímulos)
+        'stimuli': stimuli,
+
+        # Metadado
+        'updatedAt': firestore.SERVER_TIMESTAMP,
+    }
+
+
+# ==============================================================================
 # LÓGICA PRINCIPAL
 # ==============================================================================
 
@@ -257,7 +456,11 @@ def update_athlete_stats_logic(event):
 
     Recalcula e persiste:
       - users/{uid}/stats/summary (all-time, mês, semana, estímulos, calendário)
-      - users/{uid}/weekly_load/{weekLabel} (carga Session-RPE, monotonia, strain, ICN)
+      - users/{uid}/weekly_load/{weekLabel} para CADA semana com registros,
+        em ordem cronológica, garantindo que cargaCronica cascateie corretamente
+        quando um resultado de semana antiga é editado/apagado.
+      - Apaga docs órfãos de weekly_load (semanas onde todos os results foram
+        removidos).
     """
     db = firestore.client()
 
@@ -268,41 +471,28 @@ def update_athlete_stats_logic(event):
 
     logging.info(f'Atualizando stats do atleta: {uid}')
 
-    # ── Carrega todos os results (necessário para all-time + mês + semana) ──
+    # ── Carrega todos os results ────────────────────────────────────────────
     results_ref = db.collection('users').document(uid).collection('results')
     all_docs    = list(results_ref.stream())
 
     # ── Referências de tempo ────────────────────────────────────────────────
-    now                    = datetime.now(tz=_TZ_BRAZIL)
-    week_start, week_end   = _week_bounds(now)
-    month_start, month_end = _month_bounds(now)
-    week_label             = _week_label_sunday(week_start)
+    now                          = datetime.now(tz=_TZ_BRAZIL)
+    current_week_start, current_week_end = _week_bounds(now)
+    month_start, month_end       = _month_bounds(now)
+    current_label                = _week_label_sunday(current_week_start)
 
-    # ── Acumuladores: stats gerais ──────────────────────────────────────────
-    all_efforts         = []
-    month_efforts       = []
-    month_training_days = set()
-    week_efforts        = []
-    week_training_days  = set()
-    week_stimuli        = {}
-    week_calendar       = {}
+    # ── Acumuladores de stats gerais (all-time + mês + semana atual) ────────
+    all_efforts          = []
+    month_efforts        = []
+    month_training_days  = set()
+    week_efforts         = []
+    week_training_days   = set()
+    week_calendar        = {}
 
-    # ── Acumuladores: carga semanal ─────────────────────────────────────────
-    week_daily_loads_crossfit = {}
-    week_daily_loads_other    = {}
-    week_rpes_crossfit        = []
-    week_rpes_all             = []
-    week_wod_days             = set()
-    week_other_days           = set()
-    week_rest_days            = set()
+    # ── Agrupa results por semana (para recálculo de weekly_load) ───────────
+    # Estrutura: label -> {'week_start', 'week_end', 'docs': [(doc_id, data, kind)]}
+    docs_by_week: dict[str, dict] = {}
 
-    # Pré-popula 7 dias da semana com carga 0.0 (monotonia precisa dos zeros)
-    for i in range(7):
-        day_key = _date_key(week_start + timedelta(days=i))
-        week_daily_loads_crossfit[day_key] = 0.0
-        week_daily_loads_other[day_key]    = 0.0
-
-    # ── Processa cada documento ─────────────────────────────────────────────
     for doc in all_docs:
         doc_id   = doc.id
         data     = doc.to_dict() or {}
@@ -317,27 +507,32 @@ def update_athlete_stats_logic(event):
         except ValueError:
             continue
 
-        in_week  = week_start  <= doc_date <= week_end
-        in_month = month_start <= doc_date <= month_end
+        # Bucket da semana deste doc
+        wk_start, wk_end = _week_bounds(doc_date)
+        wk_label = _week_label_sunday(wk_start)
+        bucket = docs_by_week.setdefault(wk_label, {
+            'week_start': wk_start,
+            'week_end':   wk_end,
+            'docs':       [],
+        })
+        bucket['docs'].append((doc_id, data, kind))
 
-        # ── Calendário semanal ──────────────────────────────────────────────
+        # ── Stats agregadas (all-time / mês / semana atual) ─────────────────
+        in_week  = current_week_start <= doc_date <= current_week_end
+        in_month = month_start        <= doc_date <= month_end
+
         if in_week:
             existing = week_calendar.get(date_str)
             if existing != 'wod':
-                week_calendar[date_str] = kind if kind in ('rest', 'other') else 'wod'
+                week_calendar[date_str] = (
+                    kind if kind in ('rest', 'other') else 'wod'
+                )
 
-        # ── REST: carga = 0, conta no restDays, sem RPE ─────────────────────
         if kind == 'rest':
-            if in_week:
-                week_rest_days.add(date_str)
             continue
 
-        # ── Effort é obrigatório (OTHER e training) ─────────────────────────
         effort = data.get('effort')
         if effort is None or effort == 0:
-            logging.warning(
-                f'Resultado {doc_id} sem effort — pulando do cálculo de carga.'
-            )
             continue
 
         all_efforts.append(effort)
@@ -348,200 +543,95 @@ def update_athlete_stats_logic(event):
             week_efforts.append(effort)
             week_training_days.add(date_str)
 
-        # ── Carga semanal (só calcula para registros da semana atual) ───────
-        # Fórmula Session-RPE pura (Foster, 2001): carga = RPE × duração_min.
-        # Sem fator de categoria: RPE já é carga INTERNA relativa à capacidade
-        # do atleta (Haddad et al., 2017).
-        if in_week:
-            if kind == 'other':
-                duration = data.get('durationMinutes')
-                if duration is not None and duration > 0:
-                    carga = float(effort) * float(duration)
-                    week_daily_loads_other[date_str] = \
-                        week_daily_loads_other.get(date_str, 0.0) + carga
-                    week_rpes_all.append(effort)
-                    week_other_days.add(date_str)
-                else:
-                    logging.warning(
-                        f'OTHER {doc_id} sem durationMinutes válido — pulando carga.'
-                    )
-            else:  # training (WOD, LPO, Ginástica, etc.)
-                duration_min = _training_duration_minutes(data, db)
-                carga        = float(effort) * duration_min
-                week_daily_loads_crossfit[date_str] = \
-                    week_daily_loads_crossfit.get(date_str, 0.0) + carga
-                week_rpes_crossfit.append(effort)
-                week_rpes_all.append(effort)
-                week_wod_days.add(date_str)
+    # ── Carrega PRs e agrupa por semana (para prsCount em cada weekly_load) ─
+    prs_per_week: dict[str, int] = {}
+    try:
+        prs_ref = db.collection('users').document(uid).collection('prs')
+        for pr_doc in prs_ref.stream():
+            pr_data = pr_doc.to_dict() or {}
+            pr_date = pr_data.get('date')
+            if pr_date is None:
+                continue
+            # date pode vir como datetime (Timestamp) ou string ISO
+            if isinstance(pr_date, str):
+                try:
+                    pr_dt = datetime.strptime(pr_date[:10], '%Y-%m-%d') \
+                                    .replace(tzinfo=_TZ_BRAZIL)
+                except ValueError:
+                    continue
+            else:
+                pr_dt = pr_date
+                if pr_dt.tzinfo is None:
+                    pr_dt = pr_dt.replace(tzinfo=_TZ_BRAZIL)
+            wk_start, _ = _week_bounds(pr_dt)
+            wk_label = _week_label_sunday(wk_start)
+            prs_per_week[wk_label] = prs_per_week.get(wk_label, 0) + 1
+    except Exception as e:
+        logging.warning(f'Falha ao agrupar PRs por semana: {e}')
 
-                # Estímulos (só para treinos)
-                for metric in data.get('keyMetrics', []) or []:
-                    if isinstance(metric, str) and metric.strip():
-                        label = metric.strip()
-                        week_stimuli[label] = week_stimuli.get(label, 0) + 1
+    # ── Garante bucket para a semana ATUAL mesmo sem results, para que o
+    #    summary tenha um weekly_load atual válido (ICN=null se não houver
+    #    histórico, ou cargaCronica zerada).
+    if current_label not in docs_by_week:
+        docs_by_week[current_label] = {
+            'week_start': current_week_start,
+            'week_end':   current_week_end,
+            'docs':       [],
+        }
 
-    # ── Médias e totais ─────────────────────────────────────────────────────
+    # ── Calcula weekly_load para cada semana, EM ORDEM CRONOLÓGICA ──────────
+    # Isso é crítico: cada semana usa as 4 anteriores JÁ calculadas para a
+    # cargaCronica. Se um treino antigo é editado, a edição cascateia 4
+    # semanas à frente automaticamente.
+    sorted_labels    = sorted(docs_by_week.keys())  # asc
+    computed_loads: dict[str, dict] = {}
+
+    for label in sorted_labels:
+        bucket = docs_by_week[label]
+
+        # Pega totalLoadAll das semanas anteriores já calculadas (até 4)
+        prev_loads = []
+        for prev_label in reversed(sorted_labels):
+            if prev_label >= label:
+                continue
+            prev = computed_loads.get(prev_label)
+            if prev is None:
+                continue
+            prev_loads.append(float(prev.get('totalLoadAll') or 0.0))
+            if len(prev_loads) >= _ACWR_CHRONIC_WINDOW:
+                break
+
+        computed_loads[label] = _compute_week_load_doc(
+            week_label=label,
+            week_start=bucket['week_start'],
+            week_end=bucket['week_end'],
+            week_docs=bucket['docs'],
+            prev_weeks_loads=prev_loads,
+            prs_count=prs_per_week.get(label, 0),
+            db=db,
+        )
+
+    # ── Persiste todos os weekly_load docs ──────────────────────────────────
+    weekly_load_ref = db.collection('users').document(uid).collection('weekly_load')
+    for label, doc in computed_loads.items():
+        weekly_load_ref.document(label).set(doc)
+
+    # ── Apaga weekly_load órfãos (semanas onde todos os results foram apagados)
+    try:
+        existing_labels = {d.id for d in weekly_load_ref.stream()}
+        orphan_labels = existing_labels - set(computed_loads.keys())
+        for orphan in orphan_labels:
+            weekly_load_ref.document(orphan).delete()
+            logging.info(f'weekly_load órfão removido: {orphan}')
+    except Exception as e:
+        logging.warning(f'Falha ao limpar weekly_load órfãos: {e}')
+
+    # ── Atualiza stats/summary (semana atual + agregados) ───────────────────
     def avg(lst):
         return round(sum(lst) / len(lst), 1) if lst else 0.0
 
-    total_load_crossfit = round(sum(week_daily_loads_crossfit.values()), 1)
-    total_load_other    = round(sum(week_daily_loads_other.values()), 1)
-    total_load_all      = round(total_load_crossfit + total_load_other, 1)
+    current_week = computed_loads[current_label]
 
-    avg_rpe_crossfit = avg(week_rpes_crossfit)
-    avg_rpe_all      = avg(week_rpes_all)
-
-    # ── Monotonia, strain e rest ratio ──────────────────────────────────────
-    daily_loads_all = {
-        k: week_daily_loads_crossfit.get(k, 0.0) + week_daily_loads_other.get(k, 0.0)
-        for k in week_daily_loads_crossfit.keys()
-    }
-    valores = list(daily_loads_all.values())  # 7 valores
-    media   = statistics.mean(valores)
-    desvio  = statistics.pstdev(valores)
-    monotony = round(media / desvio, 3) if desvio > 0 else 0.0
-    strain   = round(total_load_all * monotony, 1)
-    rest_ratio = round(len(week_rest_days) / 7.0, 2)
-
-    # ── PRs da semana (users/{uid}/prs, field 'date' é Timestamp) ───────────
-    prs_count = 0
-    try:
-        prs_ref = db.collection('users').document(uid).collection('prs')
-        prs_snap = prs_ref \
-            .where(filter=FieldFilter('date', '>=', week_start)) \
-            .where(filter=FieldFilter('date', '<=', week_end)) \
-            .stream()
-        prs_count = sum(1 for _ in prs_snap)
-    except Exception as e:
-        logging.warning(f'Falha ao contar PRs da semana: {e}')
-
-    # ── ICN — Índice de Carga Normalizado via ACWR (Gabbett, 2016) ──────────
-    # ICN = (Carga Aguda / Carga Crônica) × 50
-    #   Carga Aguda  = totalLoadAll da semana atual
-    #   Carga Crônica = média de totalLoadAll das últimas N≤4 semanas completas
-    #                   ANTERIORES à semana atual (sem incluir a atual).
-    #
-    # Interpretação:
-    #   ICN = 50            → Na média histórica (manutenção)
-    #   ICN entre 50–75     → Acima da média — zona de evolução segura
-    #   ICN > 75            → Alerta — aumento abrupto de carga, risco de lesão
-    #   ICN < 50            → Abaixo da média — recuperação ou destreinamento
-    #
-    # Cold start:
-    #   - semana 1 (sem histórico)    → ICN = 50 e baselineType = 'cold_start'
-    #   - semanas 2–4 (≤3 completas)  → média do que houver (partial_N_weeks)
-    #   - semana 5+ (4 completas)     → média das 4 últimas (historical_4_weeks)
-    icn_all        = None
-    icn_crossfit   = None
-    carga_cronica  = None
-    acwr_raw       = None
-    baseline_type  = 'cold_start'
-    try:
-        weekly_load_ref = db.collection('users').document(uid).collection('weekly_load')
-        hist_docs = list(
-            weekly_load_ref
-                .order_by('weekLabel', direction=firestore.Query.DESCENDING)
-                .limit(_ACWR_CHRONIC_WINDOW + 1)  # +1 para poder descartar atual
-                .stream()
-        )
-        prev_weeks_loads = [
-            float((d.to_dict() or {}).get('totalLoadAll') or 0.0)
-            for d in hist_docs
-            if d.id != week_label
-        ][:_ACWR_CHRONIC_WINDOW]
-
-        completed_count = len(prev_weeks_loads)
-
-        if completed_count == 0:
-            # Semana 1 — sem histórico. ICN neutro = 50.
-            icn_all       = 50.0
-            icn_crossfit  = 50.0
-            baseline_type = 'cold_start'
-        else:
-            carga_cronica = round(statistics.mean(prev_weeks_loads), 1)
-            if completed_count < _ACWR_CHRONIC_WINDOW:
-                baseline_type = f'partial_{completed_count}_weeks'
-            else:
-                baseline_type = 'historical_4_weeks'
-
-            if carga_cronica > 0:
-                acwr_raw_val = total_load_all / carga_cronica
-                acwr_raw     = round(acwr_raw_val, 3)
-                icn_all      = _compute_icn(total_load_all, carga_cronica)
-                icn_crossfit = _compute_icn(total_load_crossfit, carga_cronica)
-            else:
-                # Todas as semanas anteriores com carga zerada — tratamos como cold start.
-                icn_all       = 50.0
-                icn_crossfit  = 50.0
-                carga_cronica = None
-                acwr_raw      = None
-    except Exception as e:
-        logging.warning(f'Falha ao calcular ICN: {e}')
-
-    # ── Validações matemáticas (log-only; nunca derruba a função) ───────────
-    if round(total_load_all - (total_load_crossfit + total_load_other), 2) != 0:
-        logging.warning(
-            f'[{uid}|{week_label}] inconsistência: total_load_all={total_load_all} '
-            f'≠ crossfit({total_load_crossfit}) + other({total_load_other})'
-        )
-    if icn_all is not None and not (_ICN_CLAMP_MIN <= icn_all <= _ICN_CLAMP_MAX):
-        logging.warning(
-            f'[{uid}|{week_label}] ICN fora do clamp: {icn_all}'
-        )
-    if icn_all is not None and baseline_type != 'cold_start' and \
-            (carga_cronica is None or carga_cronica <= 0):
-        logging.warning(
-            f'[{uid}|{week_label}] ICN calculado sem carga crônica válida.'
-        )
-
-    # ── Persiste weekly_load/{weekLabel} ────────────────────────────────────
-    weekly_load_doc = {
-        # Identificação
-        'weekLabel': week_label,
-        'weekStart': _date_key(week_start),
-        'weekEnd':   _date_key(week_end),
-
-        # Cargas brutas (AU) — Session-RPE sem fator de categoria
-        'totalLoadCrossfit': total_load_crossfit,
-        'totalLoadOther':    total_load_other,
-        'totalLoadAll':      total_load_all,
-
-        # ICN via ACWR (Gabbett, 2016)
-        'icnAll':       icn_all,        # float ou None (cold start, ~nunca)
-        'icnCrossfit':  icn_crossfit,   # float ou None
-        'cargaCronica': carga_cronica,  # float ou None
-        'acwrRaw':      acwr_raw,       # float ou None (razão antes do ×50)
-        'baselineType': baseline_type,  # cold_start | partial_N_weeks | historical_4_weeks
-
-        # RPE médio
-        'avgRpeCrossfit': avg_rpe_crossfit,
-        'avgRpeAll':      avg_rpe_all,
-
-        # Frequência
-        'wodDays':   len(week_wod_days),
-        'otherDays': len(week_other_days),
-        'restDays':  len(week_rest_days),
-
-        # Saúde do treino
-        'monotony':  monotony,
-        'strain':    strain,
-        'restRatio': rest_ratio,
-
-        # PRs
-        'prsCount': prs_count,
-
-        # Cargas diárias (para gráfico de barras no app)
-        'dailyLoadsCrossfit': week_daily_loads_crossfit,
-        'dailyLoadsOther':    week_daily_loads_other,
-
-        # Metadado
-        'updatedAt': firestore.SERVER_TIMESTAMP,
-    }
-    db.collection('users').document(uid) \
-      .collection('weekly_load').document(week_label) \
-      .set(weekly_load_doc)
-
-    # ── Atualiza stats/summary (preserva campos existentes + adiciona carga)
     summary = {
         # All-time
         'totalTrainingDays':      len({
@@ -558,21 +648,20 @@ def update_athlete_stats_logic(event):
         # Semana atual
         'currentWeekTrainingDays':     len(week_training_days),
         'averageEffortCurrentWeek':    avg(week_efforts),
-        'currentWeekStimuli':          week_stimuli,
+        'currentWeekStimuli':          current_week.get('stimuli', {}),
         'currentWeekCalendar':         week_calendar,
 
-        # Novos campos de carga (expostos para o app ler sem precisar
-        # abrir weekly_load — lookup rápido)
-        'weeklyLoadCrossfit':   total_load_crossfit,
-        'weeklyLoadAll':        total_load_all,
-        'weeklyLoadLabel':      week_label,
-        'weeklyICN':            icn_all,        # float ou None
-        'weeklyBaselineType':   baseline_type,  # string
-        'weeklyCargaCronica':   carga_cronica,  # float ou None — base individual
+        # Atalhos do weekly_load atual (lookup rápido sem 2ª query)
+        'weeklyLoadCrossfit': current_week.get('totalLoadCrossfit', 0.0),
+        'weeklyLoadAll':      current_week.get('totalLoadAll', 0.0),
+        'weeklyLoadLabel':    current_label,
+        'weeklyICN':          current_week.get('icnAll'),
+        'weeklyBaselineType': current_week.get('baselineType', 'cold_start'),
+        'weeklyCargaCronica': current_week.get('cargaCronica'),
 
         # Metadados
-        'weekStart':  _date_key(week_start),
-        'weekEnd':    _date_key(week_end),
+        'weekStart':  _date_key(current_week_start),
+        'weekEnd':    _date_key(current_week_end),
         'monthStart': _date_key(month_start),
         'updatedAt':  firestore.SERVER_TIMESTAMP,
     }
@@ -582,8 +671,10 @@ def update_athlete_stats_logic(event):
     stats_ref.set(summary)
 
     logging.info(
-        f'✅ {uid} | {week_label} | '
-        f'loadAll={total_load_all} loadCrossfit={total_load_crossfit} '
-        f'icnAll={icn_all} baseline={baseline_type} cronica={carga_cronica} '
-        f'monotony={monotony} strain={strain} prs={prs_count}'
+        f'✅ {uid} | weeks={len(computed_loads)} '
+        f'current={current_label} '
+        f'loadAll={current_week.get("totalLoadAll")} '
+        f'icn={current_week.get("icnAll")} '
+        f'baseline={current_week.get("baselineType")} '
+        f'cronica={current_week.get("cargaCronica")}'
     )

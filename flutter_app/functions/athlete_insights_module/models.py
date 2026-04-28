@@ -60,6 +60,35 @@ class EvolutionInsights(BaseModel):
     )
 
 
+class PreWorkoutInsights(BaseModel):
+    """
+    Saída da análise PRÉ-TREINO. Gerada por atleta a cada vez que o coach
+    publica/atualiza um treino em exercises/{workoutId}.
+
+    Foco: comportamento do ATLETA naquele tipo/modalidade. NUNCA sobre a
+    montagem do treino em si — isso é escopo do professor.
+
+    Total combinado de 5 insights (alertas + informacoes).
+    """
+    alertas: Dict[str, AlertDetail] = Field(
+        ...,
+        description=(
+            "Mapa de alertas pré-treino. Chave = tipo (ex:"
+            " 'modalidade_desafiadora', 'horario_subotimo',"
+            " 'pos_descanso_curto'). Valor = mensagem curta com ação"
+            " sugerida ao atleta."
+        ),
+    )
+    informacoes: Dict[str, InfoDetail] = Field(
+        ...,
+        description=(
+            "Mapa de pontos fortes e contexto positivo do atleta naquele"
+            " tipo de treino (ex: 'modalidade_forte', 'horario_otimo',"
+            " 'pr_recente_no_movimento')."
+        ),
+    )
+
+
 def get_weekly_parser():
     from langchain_core.output_parsers import PydanticOutputParser
     return PydanticOutputParser(pydantic_object=WeeklyInsights)
@@ -68,3 +97,8 @@ def get_weekly_parser():
 def get_evolution_parser():
     from langchain_core.output_parsers import PydanticOutputParser
     return PydanticOutputParser(pydantic_object=EvolutionInsights)
+
+
+def get_pre_workout_parser():
+    from langchain_core.output_parsers import PydanticOutputParser
+    return PydanticOutputParser(pydantic_object=PreWorkoutInsights)

@@ -12,7 +12,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 enum InsightKind { alert, info }
 
-enum InsightSource { weekly, evolution }
+enum InsightSource { weekly, evolution, preWorkout }
 
 /// Card unificado que alimenta o carrossel.
 class InsightCardItem {
@@ -170,6 +170,81 @@ class AthleteEvolutionInsights {
   }
 }
 
+/// Insights pré-treino — gerados quando o coach publica/atualiza um treino
+/// em `exercises/{workoutId}`. Persistidos por atleta em
+/// `users/{uid}/insights/pre_workout/items/{workoutId}`.
+class AthletePreWorkoutInsights {
+  final Map<String, String> alertas;
+  final Map<String, String> informacoes;
+  final String? workoutId;
+  final int historySize;
+  final bool hasPattern;
+  final DateTime? generatedAt;
+
+  const AthletePreWorkoutInsights({
+    required this.alertas,
+    required this.informacoes,
+    required this.historySize,
+    required this.hasPattern,
+    this.workoutId,
+    this.generatedAt,
+  });
+
+  bool get isEmpty => alertas.isEmpty && informacoes.isEmpty;
+
+  List<InsightCardItem> toCards() {
+    final out = <InsightCardItem>[];
+    alertas.forEach((k, v) => out.add(InsightCardItem(
+          key: k,
+          message: v,
+          kind: InsightKind.alert,
+          source: InsightSource.preWorkout,
+        )));
+    informacoes.forEach((k, v) => out.add(InsightCardItem(
+          key: k,
+          message: v,
+          kind: InsightKind.info,
+          source: InsightSource.preWorkout,
+        )));
+    return out;
+  }
+
+  static AthletePreWorkoutInsights fromMap(Map<String, dynamic> data) {
+    final alertas = <String, String>{};
+    final infos = <String, String>{};
+
+    final rawAlertas = data['alertas'];
+    if (rawAlertas is Map) {
+      rawAlertas.forEach((k, v) {
+        if (v is Map && v['message'] is String) {
+          alertas[k.toString()] = v['message'] as String;
+        }
+      });
+    }
+    final rawInfos = data['informacoes'];
+    if (rawInfos is Map) {
+      rawInfos.forEach((k, v) {
+        if (v is Map && v['detail'] is String) {
+          infos[k.toString()] = v['detail'] as String;
+        }
+      });
+    }
+
+    DateTime? generatedAt;
+    final ts = data['generatedAt'];
+    if (ts is Timestamp) generatedAt = ts.toDate();
+
+    return AthletePreWorkoutInsights(
+      alertas: alertas,
+      informacoes: infos,
+      workoutId: data['workoutId']?.toString(),
+      historySize: (data['historySize'] as num?)?.toInt() ?? 0,
+      hasPattern: data['hasPattern'] == true,
+      generatedAt: generatedAt,
+    );
+  }
+}
+
 // =============================================================================
 // Service
 // =============================================================================
@@ -200,6 +275,28 @@ class AthleteInsightsService {
         .get();
     if (!snap.exists) return null;
     return AthleteWeeklyInsights.fromMap(snap.data() ?? {});
+  }
+
+  /// Lê os insights pré-treino de um treino específico.
+  /// Path: `users/{uid}/insights/pre_workout/items/{workoutId}`.
+  /// Retorna null se ainda não foram gerados (atleta não elegível ou
+  /// trigger ainda não rodou).
+  static Future<AthletePreWorkoutInsights?> fetchPreWorkout(
+    String workoutId,
+  ) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return null;
+
+    final snap = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('insights')
+        .doc('pre_workout')
+        .collection('items')
+        .doc(workoutId)
+        .get();
+    if (!snap.exists) return null;
+    return AthletePreWorkoutInsights.fromMap(snap.data() ?? {});
   }
 
   /// Lê o cache local de evolução, se houver.

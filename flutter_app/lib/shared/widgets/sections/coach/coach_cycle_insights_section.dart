@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/users/coach/daily_insights_service.dart';
-import 'package:flutter_app/core/services/users/coach/daily_training_analytics_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/coach_cycle_insights.dart';
 import 'package:flutter_app/shared/widgets/utils/month_selector.dart';
@@ -164,7 +163,14 @@ class _CoachCycleInsightsSectionState extends State<CoachCycleInsightsSection> {
       if (i > 0) {
         children.add(SizedBox(height: 16 * scale));
       }
-      children.add(_CycleCategorySection(category: cat, scale: scale));
+      children.add(
+        _CycleCategorySection(
+          category: cat,
+          boxId: widget.boxId,
+          month: _month,
+          scale: scale,
+        ),
+      );
     }
 
     return children;
@@ -175,9 +181,16 @@ class _CoachCycleInsightsSectionState extends State<CoachCycleInsightsSection> {
 
 class _CycleCategorySection extends StatelessWidget {
   final CoachCycleCategoryInsights category;
+  final String boxId;
+  final DateTime month;
   final double scale;
 
-  const _CycleCategorySection({required this.category, required this.scale});
+  const _CycleCategorySection({
+    required this.category,
+    required this.boxId,
+    required this.month,
+    required this.scale,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -273,12 +286,8 @@ class _CycleCategorySection extends StatelessWidget {
                       context,
                       AppRoutes.coachCycleInsightTopicDetail,
                       arguments: {
-                        'boxId':
-                            '1', // ✅ se você tiver boxId real aqui, substitui
-                        'month': DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month,
-                        ), // ✅ ideal: passar o _month da section
+                        'boxId': boxId,
+                        'month': month,
                         'categoryKey': category.key,
                         'categoryTitle': category.title,
                         'topicKey': topic.key,
@@ -384,7 +393,7 @@ class _TopicCarouselState extends State<_TopicCarousel>
             padding: EdgeInsets.all(8 * scale),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8 * scale),
-              color: Colors.white.withOpacity(0.02),
+              color: Colors.white.withValues(alpha: 0.02),
             ),
             child: Text(
               current,

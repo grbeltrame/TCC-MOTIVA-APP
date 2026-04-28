@@ -17,18 +17,24 @@ class ProfileSummaryService {
 
   /// Retorna a contagem total de PRs e de treinos registrados pelo atleta.
   /// - PRs: `users/{uid}/prs`
-  /// - Treinos: `users/{uid}/results`
+  /// - Treinos: `users/{uid}/results` excluindo dias de descanso (`*_REST`).
+  ///   Inclui WODs, OTHER e qualquer outra atividade — só REST é descontado.
   static Future<ProfileSummaryCounts> fetchCounts() async {
     try {
       final userDoc =
           FirebaseFirestore.instance.collection('users').doc(_uid);
       final prsFut = userDoc.collection('prs').count().get();
-      final resultsFut = userDoc.collection('results').count().get();
+      // Lê os IDs dos results para conseguir filtrar *_REST (Firestore não
+      // suporta NOT-LIKE no servidor).
+      final resultsFut = userDoc.collection('results').get();
       final prs = await prsFut;
       final results = await resultsFut;
+      final trainingCount = results.docs
+          .where((d) => !d.id.toUpperCase().endsWith('_REST'))
+          .length;
       return ProfileSummaryCounts(
         totalPrs: prs.count ?? 0,
-        totalWorkouts: results.count ?? 0,
+        totalWorkouts: trainingCount,
       );
     } catch (_) {
       return ProfileSummaryCounts(totalPrs: 0, totalWorkouts: 0);

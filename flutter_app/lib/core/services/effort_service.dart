@@ -175,15 +175,29 @@ class EffortService {
     DateTime? date,
     String wodType = 'WOD',
   }) async {
-    try {
-      final day = date ?? DateTime.now();
-      final doc = await _resultsRef.doc(_docId(day, wodType)).get();
-      if (!doc.exists || doc.data() == null) return null;
-      return AthleteResultRecord.fromFirestore(doc.data()!);
-    } catch (e) {
-      print('ERRO fetchTodayResult: $e');
-      return null;
+    final day = date ?? DateTime.now();
+    final ref = _resultsRef.doc(_docId(day, wodType));
+    // 1 retry com backoff curto cobre o caso comum de Firestore ainda
+    // estabelecendo conexão no boot do app (erro 'unavailable' transiente).
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        final doc = await ref.get();
+        if (!doc.exists || doc.data() == null) return null;
+        return AthleteResultRecord.fromFirestore(doc.data()!);
+      } on FirebaseException catch (e) {
+        final transient = e.code == 'unavailable' || e.code == 'deadline-exceeded';
+        if (transient && attempt == 0) {
+          await Future.delayed(const Duration(milliseconds: 400));
+          continue;
+        }
+        print('ERRO fetchTodayResult: $e');
+        return null;
+      } catch (e) {
+        print('ERRO fetchTodayResult: $e');
+        return null;
+      }
     }
+    return null;
   }
 
   // ── Escrita ──────────────────────────────────────────────────────────────────
@@ -200,6 +214,24 @@ class EffortService {
     } catch (e) {
       print('ERRO submitResult: $e');
       rethrow;
+    }
+  }
+
+  /// Retorna todos os registros do atleta ordenados do mais recente para
+  /// o mais antigo. Usado pela tela de "Lista de Treinos" no perfil.
+  ///
+  /// Inclui REST, OTHER e treinos. Filtragem fica a cargo do caller.
+  static Future<List<TodayRecord>> fetchAllRecords() async {
+    try {
+      final snap = await _resultsRef
+          .orderBy('date', descending: true)
+          .get();
+      return snap.docs
+          .map((doc) => TodayRecord(docId: doc.id, raw: doc.data()))
+          .toList();
+    } catch (e) {
+      print('ERRO fetchAllRecords: $e');
+      return [];
     }
   }
 

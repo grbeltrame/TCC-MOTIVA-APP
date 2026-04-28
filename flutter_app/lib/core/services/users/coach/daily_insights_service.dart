@@ -95,28 +95,12 @@ class CoachDailyInsightsService {
       // Data de referência (dia 1 do mês) para exibição
       final refDate = DateTime(month.year, month.month, 1);
 
-      // Lógica de extração baseada na estrutura do JSON:
-
-      // 1. Technical Alerts e Recommendations
-      if (categoryKey == 'technical_alerts' ||
-          categoryKey == 'smart_recommendations') {
-        final catMap = data[categoryKey] as Map<String, dynamic>?;
-        if (catMap != null && catMap.containsKey(topicKey)) {
-          final topicData = catMap[topicKey];
-          // Verifica se é um mapa com 'description' (estrutura comum)
-          if (topicData is Map && topicData['description'] != null) {
-            items.add(
-              CoachCycleInsightItem(
-                date: refDate,
-                message: topicData['description'].toString(),
-              ),
-            );
-          }
-          // Caso a estrutura seja direta (string) ou diferente, adapte aqui
+      if (categoryKey == 'technical_alerts') {
+        final messages = buildCoachCycleTechnicalAlertMessages(data);
+        for (final message in messages) {
+          items.add(CoachCycleInsightItem(date: refDate, message: message));
         }
-      }
-      // 2. Positive Points (Array)
-      else if (categoryKey == 'positive_points') {
+      } else if (categoryKey == 'positive_points') {
         final list = data['positives'] as List<dynamic>?;
         if (list != null) {
           for (var msg in list) {
@@ -125,17 +109,15 @@ class CoachDailyInsightsService {
             );
           }
         }
-      }
-      // 3. Comparison (Map direto: key -> string)
-      else if (categoryKey == 'cycle_comparison') {
-        final compMap = data['comparison'] as Map<String, dynamic>?;
-        if (compMap != null && compMap.containsKey(topicKey)) {
-          items.add(
-            CoachCycleInsightItem(
-              date: refDate,
-              message: compMap[topicKey].toString(),
-            ),
-          );
+      } else if (categoryKey == 'cycle_comparison') {
+        final messages = buildCoachCycleComparisonMessages(data);
+        for (final message in messages) {
+          items.add(CoachCycleInsightItem(date: refDate, message: message));
+        }
+      } else if (categoryKey == 'smart_recommendations') {
+        final messages = buildCoachCycleRecommendationMessages(data);
+        for (final message in messages) {
+          items.add(CoachCycleInsightItem(date: refDate, message: message));
         }
       }
 

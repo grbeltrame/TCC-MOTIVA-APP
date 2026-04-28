@@ -122,7 +122,7 @@ class CoachTrainingInsightsOverviewSection extends StatelessWidget {
                 ],
               ),
               SizedBox(height: 12 * scale),
-              ..._buildBucketWidgets(buckets, scale),
+              ..._buildBucketWidgets(context, buckets, scale, training!.date),
               SizedBox(height: 12 * scale),
               // Row(
               //   children: [
@@ -225,7 +225,12 @@ class CoachTrainingInsightsOverviewSection extends StatelessWidget {
     return "${noUnderscore[0].toUpperCase()}${noUnderscore.substring(1)}";
   }
 
-  List<Widget> _buildBucketWidgets(List<_BucketData> buckets, double scale) {
+  List<Widget> _buildBucketWidgets(
+    BuildContext context,
+    List<_BucketData> buckets,
+    double scale,
+    DateTime trainingDate,
+  ) {
     final children = <Widget>[];
 
     for (var i = 0; i < buckets.length; i++) {
@@ -235,9 +240,40 @@ class CoachTrainingInsightsOverviewSection extends StatelessWidget {
           Divider(height: 24 * scale, thickness: 1, color: AppColors.lightGray),
         );
       }
-      children.add(_BucketInsightsWidget(bucket: bucket, scale: scale));
+      children.add(
+        _BucketInsightsWidget(
+          bucket: bucket,
+          scale: scale,
+          onViewAll: () {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.coachCycleInsightTopicDetail,
+              arguments: {
+                'categoryKey': bucket.key,
+                'categoryTitle': bucket.title,
+                'topicTitle': _detailTitleForBucket(bucket.key),
+                'staticDate': trainingDate,
+                'staticMessages': bucket.messages,
+              },
+            );
+          },
+        ),
+      );
     }
     return children;
+  }
+
+  String _detailTitleForBucket(String bucketKey) {
+    switch (bucketKey) {
+      case 'analysis':
+        return 'Visão Geral Completa';
+      case 'alerts':
+        return 'Todos os Alertas';
+      case 'suggestions':
+        return 'Todas as Dicas';
+      default:
+        return 'Todos os Insights';
+    }
   }
 }
 
@@ -284,8 +320,13 @@ const Map<String, _BucketStyle> _bucketStyles = {
 class _BucketInsightsWidget extends StatelessWidget {
   final _BucketData bucket;
   final double scale;
+  final VoidCallback onViewAll;
 
-  const _BucketInsightsWidget({required this.bucket, required this.scale});
+  const _BucketInsightsWidget({
+    required this.bucket,
+    required this.scale,
+    required this.onViewAll,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -303,6 +344,7 @@ class _BucketInsightsWidget extends StatelessWidget {
       pillColor: style.background,
       pillTextColor: style.foreground,
       messages: bucket.messages,
+      onViewAll: onViewAll,
     );
   }
 }

@@ -3,8 +3,8 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/athlete_prs_service.dart';
 import 'package:flutter_app/core/services/users/profile_summary_service.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/result_list_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/register_pr/pr_list_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/register_pr/register_pr_bottom_sheet.dart';
 import 'package:intl/intl.dart';
 
 class ProfileSummarySection extends StatefulWidget {
@@ -35,21 +35,19 @@ class _ProfileSummarySectionState extends State<ProfileSummarySection> {
     );
   }
 
-  Future<void> _openRegister() async {
-    await showRegisterPrBottomSheet(context);
+  Future<void> _openTrainings() async {
+    await showResultListBottomSheet(context);
     if (!mounted) return;
-    final next = _load();
     setState(() {
-      _future = next;
+      _future = _load();
     });
   }
 
   Future<void> _openList() async {
     await showPrListBottomSheet(context);
     if (!mounted) return;
-    final next = _load();
     setState(() {
-      _future = next;
+      _future = _load();
     });
   }
 
@@ -145,11 +143,11 @@ class _ProfileSummarySectionState extends State<ProfileSummarySection> {
                       children: [
                         Expanded(
                           child: _ActionButton(
-                            label: 'Registrar PR',
-                            icon: Icons.add,
+                            label: 'Lista de Treinos',
+                            icon: Icons.fitness_center,
                             filled: true,
                             scale: scale,
-                            onTap: _openRegister,
+                            onTap: _openTrainings,
                           ),
                         ),
                         SizedBox(width: 8 * scale),

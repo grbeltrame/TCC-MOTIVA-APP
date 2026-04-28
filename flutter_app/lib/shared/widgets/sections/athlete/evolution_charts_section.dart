@@ -637,22 +637,40 @@ class _AcwrComboChart extends StatelessWidget {
     final recoveryLoad = lastChronic != null ? lastChronic * 0.8 : null;
     final riskLoad = lastChronic != null ? lastChronic * 1.5 : null;
 
-    // Teto do eixo de volume: inclui o limiar de sobrecarga se existir.
+    // ── Teto do eixo de volume ─────────────────────────────────────────────
+    // Inclui o limiar de sobrecarga e o pico de volume + 10% de folga.
     final maxVolume = points.fold<double>(
       0,
       (m, p) => p.volume > m ? p.volume : m,
     );
+    final maxIcn = points.fold<double>(0, (m, p) {
+      final i = p.icn;
+      return (i != null && i > m) ? i : m;
+    });
     final maxY = [maxVolume, riskLoad ?? 0.0].reduce((a, b) => a > b ? a : b);
-    final volumeCeiling =
+    var volumeCeiling =
         maxY > 0 ? ((maxY * 1.10) / 100).ceil() * 100.0 : 100.0;
 
-    // Teto DINÂMICO do eixo de ICN, proporcional ao eixo de volume.
-    // Como ICN = (volume / cargaCronica) × 50, definir
-    //   icnCeiling = (volumeCeiling / cargaCronica) × 50
-    // alinha as duas escalas: ICN=40 cai em 0.8×chronic, ICN=75 em 1.5×chronic
-    // e ICN=icnCeiling em volumeCeiling. Assim a linha de Evolução cruza
-    // as PlotBands coloridas exatamente onde deveria — bolinha vermelha
-    // sempre cai no fundo vermelho, etc.
+    // Garante que TODOS os ICN dos pontos caibam dentro do icnCeiling
+    // proporcional. Como icnCeiling = (volumeCeiling / cargaCronica) × 50,
+    // para que maxIcn ≤ icnCeiling precisamos de
+    //   volumeCeiling ≥ (maxIcn × cargaCronica) / 50.
+    // Sem isso, semanas antigas com ICN próximo do clamp (≈150) saem fora
+    // do gráfico quando a cargaCronica atual disparou em relação à da época
+    // daquele ponto. O fator 1.10 garante folga vertical pra bolinha não
+    // grudar no topo.
+    if (lastChronic != null && lastChronic > 0 && maxIcn > 0) {
+      final requiredCeiling = (maxIcn * lastChronic / 50.0) * 1.10;
+      if (requiredCeiling > volumeCeiling) {
+        volumeCeiling = (requiredCeiling / 100).ceil() * 100.0;
+      }
+    }
+
+    // ── Teto DINÂMICO do eixo de ICN, proporcional ao eixo de volume ───────
+    // Como ICN = (volume / cargaCronica) × 50:
+    //   ICN=40 cai em 0.8×chronic, ICN=75 em 1.5×chronic, ICN=icnCeiling
+    //   em volumeCeiling. As PlotBands coloridas (no eixo de volume) ficam
+    //   visualmente trancadas com a linha de Evolução (no icnAxis).
     final icnCeiling =
         (lastChronic != null && lastChronic > 0)
             ? (volumeCeiling / lastChronic) * 50.0

@@ -7,7 +7,6 @@ import 'package:flutter_app/shared/widgets/sections/athlete/athlete_insights_car
 import 'package:flutter_app/shared/widgets/sections/athlete/evolution_charts_section.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/exercise_weekly_summary_widget.dart';
-import 'package:flutter_app/shared/widgets/sections/athlete/weekly_recomendation_section.dart';
 import 'package:flutter_app/shared/widgets/weekly_statistics_widget.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:intl/intl.dart';
@@ -180,9 +179,6 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
 
             // ── Gráficos de evolução (PRs + Volume) ─────────────────────────
             EvolutionChartsSection(from: _from, to: _to),
-
-            // ── Destaques / Recomendações ────────────────────────────────────
-            const WeeklyRecomendationSection(),
           ],
         ),
       ),

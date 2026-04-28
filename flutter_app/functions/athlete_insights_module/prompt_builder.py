@@ -14,16 +14,156 @@
 # nunca como um cientista.
 
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from datetime import datetime
 
-from .models import get_weekly_parser, get_evolution_parser
+from .models import (
+    get_weekly_parser,
+    get_evolution_parser,
+    get_pre_workout_parser,
+)
+
+
+# Nomes em PT-BR para o bloco de estágio da semana.
+_WEEKDAY_PT = [
+    'SEGUNDA-FEIRA', 'TERÇA-FEIRA', 'QUARTA-FEIRA',
+    'QUINTA-FEIRA', 'SEXTA-FEIRA', 'SÁBADO', 'DOMINGO',
+]
+_MONTH_PT = [
+    '', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+]
 
 
 def _json_converter(o):
     if isinstance(o, datetime):
         return o.isoformat()
     return str(o)
+
+
+def _cohort_context_block(cohort: Optional[Dict[str, Any]]) -> str:
+    """
+    Bloco de contexto da coorte do atleta (pré-computado em cohorts/{key}).
+    Se a coorte não está disponível (perfil incompleto, < 5 atletas), o
+    bloco vira string vazia e o prompt segue sem comparação.
+
+    Inclui REGRAS RÍGIDAS de framing positivo: jamais comparação negativa.
+    """
+    if not cohort:
+        return ""
+
+    level   = cohort.get('level')
+    cat     = cohort.get('category') or '?'
+    gender  = cohort.get('gender') or '?'
+    bucket  = cohort.get('experienceBucket')
+    count   = cohort.get('athleteCount') or 0
+    metrics = cohort.get('metrics') or {}
+
+    # Descreve a coorte em PT-BR amigável.
+    gender_pt    = {'M': 'masculino', 'F': 'feminino'}.get(gender, gender)
+    bucket_pt = {
+        'lt1y':  'menos de 1 ano de prática',
+        '1-3y':  '1 a 3 anos de prática',
+        '3-5y':  '3 a 5 anos de prática',
+        'gt5y':  'mais de 5 anos de prática',
+    }.get(bucket or '', '')
+
+    label_parts = [f'categoria {cat}', f'gênero {gender_pt}']
+    if bucket_pt:
+        label_parts.append(bucket_pt)
+    cohort_label = ', '.join(label_parts)
+
+    metrics_json = json.dumps(metrics, ensure_ascii=False, indent=2)
+
+    return (
+        "**CONTEXTO DA COORTE DO ATLETA (atletas com perfil parecido):**\n"
+        f"- Perfil da coorte: {cohort_label}.\n"
+        f"- Total de atletas no grupo: {count}.\n"
+        f"- Nível de specifidade: {level} "
+        f"({'level 3 — refinado por experiência' if level == 3 else 'level 2 — fallback (sem bucket de experiência)'}).\n"
+        f"- Métricas agregadas da semana atual:\n```json\n{metrics_json}\n```\n"
+        "\n"
+        "**REGRAS DE FRAMING COMPARATIVO (RÍGIDAS):**\n"
+        "- ❌ JAMAIS use comparação negativa. Proibido:\n"
+        "    'Você está pior que perfis parecidos'\n"
+        "    'Atletas como você rendem mais que você essa semana'\n"
+        "    'Sua carga está abaixo da sua coorte'\n"
+        "- ✅ USE como reforço positivo, validação ou contextualização:\n"
+        "    'Atletas com perfil parecido também sentem dificuldade em FOR"
+        " TIME longos — você está dentro da média'\n"
+        "    'Você se destaca em AMRAP em relação ao seu perfil'\n"
+        "    'A semana tem sido puxada para perfis como o seu — não está"
+        " só nessa'\n"
+        "- ⚖️ Se o atleta está PIOR que a média da coorte, NÃO mencione."
+        " Foque nos pontos positivos dele individualmente.\n"
+        "- ⚖️ Se está MELHOR ou IGUAL, pode destacar: validação ('está"
+        " no ritmo do grupo') ou conquista ('está acima da média').\n"
+        "- 🎯 Use a coorte para gerar NO MÁXIMO 1-2 insights de"
+        " comparação — não transforme tudo em comparativo. A maioria"
+        " dos insights ainda deve ser sobre o atleta individualmente.\n"
+        "- 🎯 Se a coorte é level 2 (fallback), seja mais cauteloso na"
+        " linguagem comparativa: 'atletas da sua categoria' em vez de"
+        " 'atletas com seu tempo de prática'.\n"
+    )
+
+
+def _week_stage_context(now: datetime, week_start: datetime) -> str:
+    """
+    Bloco de contexto temporal para que a IA calibre tempo verbal e
+    profundidade dos insights conforme o estágio da semana.
+
+    A IA recebe o estágio JÁ COMPUTADO (não precisa fazer aritmética
+    de data — modelos LLM são ruins nisso). A função é determinística
+    e testável.
+    """
+    # day_index: 1 = primeiro dia da semana (domingo), 7 = sábado.
+    day_index = (now.date() - week_start.date()).days + 1
+    day_index = max(1, min(7, day_index))
+    progress_pct = round((day_index / 7.0) * 100)
+
+    weekday_pt = _WEEKDAY_PT[now.weekday()]
+    date_pt = f'{now.day} de {_MONTH_PT[now.month]} de {now.year}'
+
+    if day_index <= 2:
+        stage = 'INÍCIO'
+    elif day_index <= 5:
+        stage = 'MEIO'
+    else:
+        stage = 'FIM'
+
+    return (
+        "**ESTÁGIO DA SEMANA (calibre seus insights por aqui):**\n"
+        f"- Hoje é {weekday_pt}, {date_pt}.\n"
+        f"- Dia {day_index} de 7 da semana corrente "
+        f"(~{progress_pct}% concluída).\n"
+        f"- Estágio: {stage}.\n"
+        "\n"
+        "Calibre seus insights conforme o estágio:\n"
+        "- INÍCIO (dia 1-2): foque em INTENÇÃO e PRÓXIMOS DIAS. Ainda"
+        " não há padrão semanal — NÃO fale em 'variação',"
+        " 'monotonia', 'queda de carga' ou 'pouca variação na semana'."
+        " Use o histórico anterior como referência se quiser comparar.\n"
+        "- MEIO (dia 3-5): MISTURE leitura do que está se desenhando +"
+        " projeção. Pode comentar tendência ('os primeiros dias têm"
+        " sido'), mas evite conclusões fechadas sobre a semana toda.\n"
+        "- FIM (dia 6-7): pode falar com confiança sobre o que JÁ"
+        " aconteceu na semana, usar passado para padrões consolidados.\n"
+        "\n"
+        "**TEMPO VERBAL:**\n"
+        "- O tempo verbal deve refletir onde você está no tempo. Use"
+        " passado APENAS para o que já é fato consolidado. Presente"
+        " para o que está acontecendo. Futuro próximo para o que"
+        " ainda virá.\n"
+        "- Você TEM A INTELIGÊNCIA para misturar tempos quando faz"
+        " sentido — exemplo na quinta-feira (dia 5):\n"
+        "    ✓ 'A semana TEM SIDO puxada — os próximos dias VÃO"
+        " determinar se você desacelera.'\n"
+        "    ✓ 'Você descansou bem nos primeiros dias — agora ESTÁ"
+        " na hora de buscar volume.'\n"
+        "- Evite generalizar para a semana inteira no início:\n"
+        "    ✗ 'Sua semana TEVE pouca variação' (no domingo, dia 1)\n"
+        "    ✓ 'A semana ESTÁ começando — mantenha a regularidade.'\n"
+    )
 
 
 def _common_rules() -> str:
@@ -135,6 +275,8 @@ def create_weekly_insights_prompt(
     weekly_load: Dict[str, Any],
     recent_results: list,
     recent_weeks: list = None,
+    now: Optional[datetime] = None,
+    cohort: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
     Prompt da análise SEMANAL do atleta.
@@ -160,6 +302,21 @@ def create_weekly_insights_prompt(
     has_history = bool(recent_weeks)
     baseline_type = (weekly_load or {}).get('baselineType', 'cold_start')
 
+    # Estágio da semana — só injeta se 'now' e o weekStart estão disponíveis.
+    week_stage_block = ""
+    week_start_str = (weekly_load or {}).get('weekStart')
+    if now is not None and week_start_str:
+        try:
+            week_start_dt = datetime.strptime(week_start_str, '%Y-%m-%d')
+            # Replica tzinfo do `now` para evitar erro de comparação naive/aware.
+            if now.tzinfo is not None:
+                week_start_dt = week_start_dt.replace(tzinfo=now.tzinfo)
+            week_stage_block = _week_stage_context(now, week_start_dt) + "\n"
+        except ValueError:
+            pass
+
+    cohort_block = _cohort_context_block(cohort)
+
     parser = get_weekly_parser()
     json_instructions = parser.get_format_instructions()
 
@@ -169,6 +326,10 @@ def create_weekly_insights_prompt(
         " curtos e acionáveis. Analise o cenário como um todo — não use"
         " thresholds fixos, pondere os números em conjunto com o histórico e"
         " com o perfil do atleta.\n\n"
+
+        f"{week_stage_block}"
+
+        f"{cohort_block}"
 
         f"{_common_rules()}\n"
 
@@ -332,6 +493,7 @@ def create_evolution_insights_prompt(
     last_12_weeks: list,
     prs_summary: Dict[str, Any],
     stimulus_distribution: Dict[str, int],
+    cohort: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
     Prompt da análise de EVOLUÇÃO (12 semanas).
@@ -353,6 +515,8 @@ def create_evolution_insights_prompt(
         default=_json_converter,
     )
 
+    cohort_block = _cohort_context_block(cohort)
+
     parser = get_evolution_parser()
     json_instructions = parser.get_format_instructions()
 
@@ -361,6 +525,8 @@ def create_evolution_insights_prompt(
         " atleta nos últimos 3 meses (até 12 semanas).\n"
         "Sua missão: encontrar tendências de médio prazo nos dados e traduzir"
         " em linguagem humana e motivacional.\n\n"
+
+        f"{cohort_block}"
 
         f"{_common_rules()}\n"
 
@@ -463,6 +629,215 @@ def create_evolution_insights_prompt(
         "- Sempre fale em 2ª pessoa, tom encorajador mesmo quando aponta"
         " riscos.\n"
         "- Zero perguntas.\n"
+        "---\n\n"
+
+        "**FORMATO DE RESPOSTA:**\n"
+        "1. APENAS JSON válido, sem texto fora.\n"
+        "2. Sem markdown dentro dos valores.\n"
+        f"{json_instructions}\n"
+    )
+    return prompt
+
+
+# =============================================================================
+# PROMPT — INSIGHTS PRÉ-TREINO
+# =============================================================================
+
+def _pre_workout_glossary() -> str:
+    """Explica os campos do bloco pré-treino para a IA."""
+    return (
+        "**GLOSSÁRIO DOS CAMPOS PRÉ-TREINO (para SUA interpretação):**\n"
+        "\n"
+        "**workout (treino do dia, publicado pelo coach):**\n"
+        "- `wodType`: tipo macro do treino (ex: 'WOD', 'LPO', 'GINÁSTICA').\n"
+        "- `modalidade`: formato (ex: 'AMRAP', 'FOR TIME', 'EMOM',"
+        " '3 ROUNDS FOR TIME').\n"
+        "- `duracaoMinutos`: tempo previsto da parte principal.\n"
+        "- `partes`: estrutura completa (warm up, parte principal, etc.)."
+        " NÃO opine sobre a montagem; isso é escopo do professor.\n"
+        "- `keyMetrics`: estímulos do treino segundo o coach (Força,"
+        " Resistência, Potência, etc.).\n"
+        "- `dataTreinoIso`: data do treino.\n"
+        "\n"
+        "**athlete_history_same_type (últimos N treinos do atleta no MESMO"
+        " tipo/modalidade):**\n"
+        "- Cada item tem `date`, `effort` (RPE 1-10), `modalidade`,"
+        " `wodType`, `completed`, `forTimeSec`, `amrapRounds`, `amrapReps`,"
+        " `keyMetrics`, `trainingTime` (HH:MM).\n"
+        "- Use para ler PADRÕES: RPE médio nessa modalidade, taxa de"
+        " conclusão, melhor horário do atleta nesse tipo, evolução de"
+        " desempenho ao longo do tempo.\n"
+        "\n"
+        "**athlete_current_load (semana atual via weekly_load):**\n"
+        "- Mesma semântica do glossário semanal — use para entender se o"
+        " atleta está descansado, sob desgaste alto, ou em zona ideal"
+        " ANTES do treino.\n"
+        "\n"
+        "**athlete_recent_prs (PRs recentes nas últimas 8 semanas):**\n"
+        "- Liste os movimentos onde o atleta vem progredindo. Útil para"
+        " linkar com movimentos do treino do dia se houver overlap.\n"
+    )
+
+
+def create_pre_workout_insights_prompt(
+    workout: Dict[str, Any],
+    athlete_profile: Dict[str, Any],
+    athlete_history_same_type: list,
+    athlete_current_load: Dict[str, Any],
+    athlete_recent_prs: list,
+    now: Optional[datetime] = None,
+    cohort: Optional[Dict[str, Any]] = None,
+) -> str:
+    """
+    Prompt da análise PRÉ-TREINO. Gera 5 insights focados no atleta naquele
+    tipo de treino — NUNCA sobre a montagem do treino em si.
+    """
+    workout_json = json.dumps(
+        workout, indent=2, ensure_ascii=False, default=_json_converter
+    )
+    profile_json = json.dumps(
+        athlete_profile, indent=2, ensure_ascii=False, default=_json_converter
+    )
+    history_json = json.dumps(
+        athlete_history_same_type, indent=2,
+        ensure_ascii=False, default=_json_converter,
+    )
+    load_json = json.dumps(
+        athlete_current_load, indent=2,
+        ensure_ascii=False, default=_json_converter,
+    )
+    prs_json = json.dumps(
+        athlete_recent_prs, indent=2,
+        ensure_ascii=False, default=_json_converter,
+    )
+
+    # Estágio da semana — só injeta se houver weekStart no current_load
+    week_stage_block = ""
+    week_start_str = (athlete_current_load or {}).get('weekStart')
+    if now is not None and week_start_str:
+        try:
+            week_start_dt = datetime.strptime(week_start_str, '%Y-%m-%d')
+            if now.tzinfo is not None:
+                week_start_dt = week_start_dt.replace(tzinfo=now.tzinfo)
+            week_stage_block = _week_stage_context(now, week_start_dt) + "\n"
+        except ValueError:
+            pass
+
+    cohort_block = _cohort_context_block(cohort)
+
+    parser = get_pre_workout_parser()
+    json_instructions = parser.get_format_instructions()
+
+    prompt = (
+        "Você é um assistente pessoal de CrossFit que conversa com o ATLETA"
+        " ANTES dele começar o treino do dia.\n"
+        "Sua missão: gerar 5 insights curtos, ÚTEIS e ACIONÁVEIS sobre como"
+        " o atleta tende a se comportar nesse tipo de treino. Use APENAS"
+        " padrões observáveis do histórico do próprio atleta.\n\n"
+
+        f"{week_stage_block}"
+
+        f"{cohort_block}"
+
+        f"{_common_rules()}\n"
+
+        "**🚫 ESCOPO — REGRAS RÍGIDAS DE TÓPICO:**\n"
+        "Você está falando com o ATLETA, não com o professor. Portanto:\n"
+        "- ✅ PERMITIDO falar sobre:\n"
+        "    - Como o atleta costuma se sentir/render nesse tipo de treino\n"
+        "    - Horários em que o atleta costuma ir melhor/pior\n"
+        "    - Movimentos do treino onde o atleta tem PR recente\n"
+        "    - Estado físico atual do atleta vs exigência prevista\n"
+        "    - Sugestões práticas de ritmo/cadência baseadas no histórico\n"
+        "    - Modalidades onde o atleta costuma se destacar ou penar\n"
+        "\n"
+        "- ❌ ESTRITAMENTE PROIBIDO falar sobre:\n"
+        "    - Montagem do treino ('esse AMRAP tem volume alto')\n"
+        "    - Sugestões técnicas ao coach ('seria melhor adicionar X')\n"
+        "    - Avaliação da progressão programada pelo coach\n"
+        "    - Crítica ou opinião sobre a estrutura/escolhas do treino\n"
+        "    - Sugestões para mudar o treino\n"
+        "\n"
+        "Se você não tem dados suficientes do histórico do atleta naquele"
+        " tipo, retorne MENOS insights — nunca preencha com palpites sobre"
+        " a montagem do treino.\n\n"
+
+        f"{_pre_workout_glossary()}\n"
+
+        "**DADOS COMPLETOS:**\n"
+        f"1) Treino publicado para hoje:\n```json\n{workout_json}\n```\n\n"
+        f"2) Perfil do atleta:\n```json\n{profile_json}\n```\n\n"
+        f"3) Histórico do atleta no MESMO tipo/modalidade:\n```json\n"
+        f"{history_json}\n```\n\n"
+        f"4) Estado atual do atleta (semana corrente):\n```json\n"
+        f"{load_json}\n```\n\n"
+        f"5) PRs recentes do atleta:\n```json\n{prs_json}\n```\n\n"
+
+        "---\n"
+        "**INSTRUÇÕES DE CRUZAMENTO DE DADOS:**\n"
+        "\n"
+        "1. **modalidade do treino × histórico naquela modalidade** — RPE"
+        " médio do atleta nessa modalidade está alto (8+) ou baixo (5-)?"
+        " Taxa de conclusão é alta? Tempo para FOR TIME tem caído?\n"
+        "\n"
+        "2. **trainingTime histórico × hora atual presumida** — Se o atleta"
+        " costuma render melhor pela manhã (RPE menor + completion maior)"
+        " e o treino é pra hoje à noite, pode mencionar.\n"
+        "\n"
+        "3. **keyMetrics do treino × PRs recentes** — Se o treino tem"
+        " 'Força' e o atleta bateu PR de Back Squat semana passada,"
+        " linkar como contexto positivo.\n"
+        "\n"
+        "4. **athlete_current_load.icnAll × exigência prevista** — Se ICN"
+        " está em zona de sobrecarga (>75) e o treino é puxado, sugerir"
+        " cuidado com ritmo. Se ICN está baixo (recuperação), liberar.\n"
+        "\n"
+        "5. **dailyLoadsCrossfit dos últimos dias** — Se o atleta treinou"
+        " 3 dias seguidos pesado, mencione o estado de recuperação ANTES"
+        " do treino do dia.\n\n"
+
+        "---\n"
+        "**INSTRUÇÕES DE GERAÇÃO:**\n"
+        "\n"
+        "**1. ALERTAS (`alertas`)** — riscos ou pontos de atenção"
+        " específicos do atleta nesse tipo de treino.\n"
+        "- Sempre acionável: 'considere começar mais leve', 'foque em"
+        " manter a respiração', 'adapte se sentir desgaste do dia"
+        " anterior'.\n"
+        "- Chaves sugeridas: 'modalidade_desafiadora', 'horario_subotimo',"
+        " 'pos_desgaste_acumulado', 'modalidade_ritmo_alto',"
+        " 'recuperacao_curta'.\n"
+        "\n"
+        "**2. INFORMAÇÕES (`informacoes`)** — pontos fortes do atleta"
+        " naquele tipo de treino, contexto positivo, oportunidades.\n"
+        "- Chaves sugeridas: 'modalidade_forte', 'horario_otimo',"
+        " 'pr_recente_no_movimento', 'estado_descansado',"
+        " 'historico_consistente'.\n"
+        "\n"
+        "**3. PROCESSO DE GERAÇÃO (duas etapas):**\n"
+        "- **Etapa 1 (interna):** gere ~8 candidatos cruzando variáveis.\n"
+        "- **Etapa 2 (saída):** SELECIONE os **5 melhores** (alertas +"
+        " informações somados). Priorize:\n"
+        "    (a) padrões claros do histórico do atleta\n"
+        "    (b) acionabilidade prática\n"
+        "    (c) NÃO-OBVIEDADE (algo que o atleta não notaria sozinho)\n"
+        "- **Distribuição:** Sempre misture — mínimo 1 alerta + 1"
+        " informação. Distribuição típica: 1-2 alertas + 3-4 informações"
+        " em cenários neutros; 2-3 alertas + 2-3 informações se houver"
+        " sinais de risco/desgaste.\n"
+        "\n"
+        "**4. REGRAS DE QUALIDADE:**\n"
+        "- Se histórico do atleta tem MENOS de 5 registros do mesmo tipo,"
+        " gere insights mais GENÉRICOS (sobre estado atual, descanso,"
+        " PRs) e menos sobre 'você costuma' — não há base estatística.\n"
+        "- NUNCA invente padrões que o histórico não suporta.\n"
+        "- Se for cold_start (semana 1 do atleta), foque só no treino"
+        " do dia + estado atual; não compare com histórico inexistente.\n"
+        "\n"
+        "**5. REGRAS DE FORMATO:**\n"
+        "- Cada mensagem: no máximo 240 caracteres.\n"
+        "- 2ª pessoa, ZERO perguntas, tom motivacional.\n"
+        "- Sem números crus internos (ICN, RPE 7.8, etc.).\n"
         "---\n\n"
 
         "**FORMATO DE RESPOSTA:**\n"

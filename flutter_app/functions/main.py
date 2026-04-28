@@ -172,6 +172,51 @@ def analyze_workout_with_ai(event):
 
 
 @firestore_fn.on_document_written(
+    document="exercises/{workoutId}",
+    region=_REGION,
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=540,  # 9 min — pode iterar dezenas de atletas
+)
+def generate_pre_workout_insights(event):
+    """
+    Dispara em qualquer write em exercises/{workoutId}. Gera insights
+    pré-treino para todos os atletas elegíveis. Dedup via hash dos
+    campos relevantes — evita reprocessar quando o coach edita campos
+    irrelevantes (título, status, etc.).
+    """
+    logging.info("generate_pre_workout_insights triggered")
+
+    after = event.data.after
+    if not after:
+        logging.info("Documento deletado — sem ação para pre-workout.")
+        return
+
+    workout_id = event.params.get("workoutId")
+    if not workout_id:
+        logging.warning("workoutId ausente — skip.")
+        return
+
+    workout_data = after.to_dict() or {}
+
+    # Skip se ainda não tem partes (PDF não foi processado).
+    if not workout_data.get("partes"):
+        logging.info(f"{workout_id}: sem `partes` ainda — skip.")
+        return
+
+    try:
+        from athlete_insights_module import run_pre_workout_insights_logic
+    except Exception:
+        logging.exception("Falha ao importar athlete_insights_module")
+        return
+
+    try:
+        run_pre_workout_insights_logic(workout_id, workout_data)
+    except Exception:
+        logging.exception("Erro ao executar run_pre_workout_insights_logic")
+        raise
+
+
+@firestore_fn.on_document_written(
     document="users/{uid}/results/{resultId}",
     region=_REGION,
     memory=options.MemoryOption.MB_256,
@@ -228,6 +273,35 @@ def update_athlete_stats_on_pr(event):
 # =============================================================================
 # NOVO: handler HTTPS do Cloud Tasks — gera insights semanais do atleta
 # =============================================================================
+
+@https_fn.on_request(
+    region=_REGION,
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=540,  # 9 min — itera todos os atletas do app
+)
+def update_cohort_snapshots(req: https_fn.Request) -> https_fn.Response:
+    """
+    Endpoint HTTP do job de agregação de coortes.
+    Chamado pelo Cloud Scheduler diariamente às 3h da manhã (BRT).
+
+    Pode ser chamado manualmente para forçar atualização (sem auth — restrito
+    pelo App Check ou pelo header X-CloudScheduler na produção).
+
+    Resposta: JSON com stats da execução (atletas visitados, coortes
+    persistidas, etc.) — útil para observabilidade.
+    """
+    try:
+        from cohort_module import update_cohort_snapshots_logic
+        result = update_cohort_snapshots_logic()
+        return https_fn.Response(
+            json.dumps(result, default=str),
+            status=200,
+            headers={"Content-Type": "application/json"},
+        )
+    except Exception as e:
+        logging.exception("Erro em update_cohort_snapshots")
+        return https_fn.Response(f"error: {e}", status=500)
+
 
 @https_fn.on_request(
     region=_REGION,

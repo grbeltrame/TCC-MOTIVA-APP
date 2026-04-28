@@ -75,6 +75,25 @@ class TrainingService {
     }
   }
 
+  /// Resolve o workoutId (`exercises/{id}`) para uma data. Útil para
+  /// telas que mostram conteúdo extra atrelado ao treino (ex: insights
+  /// pré-treino) sem precisar refazer toda a lógica de fetchFullTrainingBlocks.
+  static Future<String?> fetchWorkoutIdForDate(DateTime date) async {
+    try {
+      final dataFormatada = DateFormat('yyyy-MM-dd').format(date);
+      final snap = await FirebaseFirestore.instance
+          .collection('exercises')
+          .where('dataTreinoIso', isEqualTo: dataFormatada)
+          .limit(1)
+          .get();
+      if (snap.docs.isEmpty) return null;
+      return snap.docs.first.id;
+    } catch (e) {
+      print('ERRO fetchWorkoutIdForDate: $e');
+      return null;
+    }
+  }
+
   /// Busca e converte o treino em Blocos (TrainingBlock) para a UI.
   /// Suporta schema antigo e novo sem crash.
   static Future<List<TrainingBlock>> fetchFullTrainingBlocks({

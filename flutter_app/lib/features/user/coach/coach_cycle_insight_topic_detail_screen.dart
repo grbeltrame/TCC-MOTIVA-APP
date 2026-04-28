@@ -34,8 +34,9 @@ class _CoachCycleInsightTopicDetailScreenState
   late String _topicTitle;
 
   late DateTime _month;
+  late bool _isStaticMode;
+  DateTime? _staticDate;
 
-  // A classe CoachCycleInsightItem agora vem do import correto acima
   Future<List<CoachCycleInsightItem>>? _future;
 
   @override
@@ -48,13 +49,31 @@ class _CoachCycleInsightTopicDetailScreenState
     _categoryTitle = (args['categoryTitle'] ?? 'Insights') as String;
     _topicKey = (args['topicKey'] ?? '') as String;
     _topicTitle = (args['topicTitle'] ?? 'Detalhes') as String;
+    _staticDate = args['staticDate'] as DateTime?;
+
+    final staticMessagesArg = args['staticMessages'];
+    _isStaticMode = staticMessagesArg is List;
+
+    if (_isStaticMode) {
+      final staticMessages = List<String>.from(staticMessagesArg as List);
+      final refDate = _staticDate ?? DateTime.now();
+      _month = DateTime(refDate.year, refDate.month);
+      _future ??= Future.value(
+        staticMessages
+            .map(
+              (message) =>
+                  CoachCycleInsightItem(date: refDate, message: message),
+            )
+            .toList(),
+      );
+      return;
+    }
 
     final DateTime? initialMonthArg = args['month'] as DateTime?;
     final now = DateTime.now();
     final initialMonth = initialMonthArg ?? DateTime(now.year, now.month);
     _month = DateTime(initialMonth.year, initialMonth.month);
 
-    // Se o service foi atualizado corretamente, este método retorna Future<List<CoachCycleInsightItem>>
     _future ??= _service.fetchCycleTopicInsights(
       boxId: _boxId,
       month: _month,
@@ -64,6 +83,8 @@ class _CoachCycleInsightTopicDetailScreenState
   }
 
   void _onMonthChanged(DateTime newMonth) {
+    if (_isStaticMode) return;
+
     setState(() {
       _month = DateTime(newMonth.year, newMonth.month);
       _future = _service.fetchCycleTopicInsights(
@@ -93,6 +114,23 @@ class _CoachCycleInsightTopicDetailScreenState
     return '${months[m.month - 1]} de ${m.year}';
   }
 
+  String _buildSubtitle() {
+    if (_isStaticMode && _staticDate != null) {
+      return DateFormat(
+        "EEEE, d 'de' MMMM",
+        'pt_BR',
+      ).format(_staticDate!).toUpperCase();
+    }
+    return _formatMonthLabel(_month);
+  }
+
+  String _buildEmptyMessage() {
+    if (_isStaticMode) {
+      return 'Nenhum insight disponível para esta seção.';
+    }
+    return 'Nenhum insight disponível para este tópico neste mês.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -118,7 +156,7 @@ class _CoachCycleInsightTopicDetailScreenState
                 ),
                 SizedBox(height: 6 * scale),
                 Text(
-                  _formatMonthLabel(_month),
+                  _buildSubtitle(),
                   style: TextStyle(
                     fontSize: 12 * scale,
                     color: AppColors.mediumGray,
@@ -138,12 +176,13 @@ class _CoachCycleInsightTopicDetailScreenState
 
                 SizedBox(height: 12 * scale),
 
-                MonthSelector(
-                  initialMonth: _month,
-                  onMonthChanged: _onMonthChanged,
-                ),
-
-                SizedBox(height: 12 * scale),
+                if (!_isStaticMode) ...[
+                  MonthSelector(
+                    initialMonth: _month,
+                    onMonthChanged: _onMonthChanged,
+                  ),
+                  SizedBox(height: 12 * scale),
+                ],
 
                 Expanded(
                   child: FutureBuilder<List<CoachCycleInsightItem>>(
@@ -162,7 +201,7 @@ class _CoachCycleInsightTopicDetailScreenState
                           child: Padding(
                             padding: EdgeInsets.all(16.0 * scale),
                             child: Text(
-                              'Nenhum insight disponível para este tópico neste mês.',
+                              _buildEmptyMessage(),
                               style: TextStyle(
                                 fontSize: 14 * scale,
                                 color: AppColors.mediumGray,
@@ -361,6 +400,21 @@ class _CycleCategoryStyle {
 }
 
 const Map<String, _CycleCategoryStyle> _cycleCategoryStyles = {
+  'analysis': _CycleCategoryStyle(
+    background: AppColors.baseBlue,
+    foreground: Colors.white,
+    icon: Icons.analytics_outlined,
+  ),
+  'alerts': _CycleCategoryStyle(
+    background: Colors.red,
+    foreground: Colors.white,
+    icon: Icons.warning_amber_rounded,
+  ),
+  'suggestions': _CycleCategoryStyle(
+    background: AppColors.mediumGray,
+    foreground: Colors.white,
+    icon: Icons.lightbulb_outline,
+  ),
   'technical_alerts': _CycleCategoryStyle(
     background: Colors.red,
     foreground: Colors.white,
