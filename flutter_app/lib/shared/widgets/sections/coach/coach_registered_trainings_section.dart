@@ -7,7 +7,6 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/dialogs/confirm_delete_training.dart';
 
 /// Section: “Esses são todos os treinos cadastrados do Box”
@@ -146,15 +145,6 @@ class _CoachRegisteredTrainingsSectionState
   }
 
   // --- Métodos Auxiliares ---
-
-  Future<void> _openRegisterResult() async {
-    // await showRegisterResultBottomSheet(context);
-    // Comentado pois não vi o import no seu código original, mas mantenho a estrutura
-  }
-
-  void _onTapVerResultadosAlunos() {
-    // TODO: implementar
-  }
 
   void _onTapComentariosDoCriador() {
     // TODO: implementar

@@ -7,7 +7,7 @@ class CardInfoType {
   static const String prsTotal =
       'prs_total'; // PRs total (fora do widget atual)
   static const String treinosTotal =
-      'prs_total'; // PRs total (fora do widget atual)
+      'treinos_total'; // Treinos total (fora do widget atual)
 
   // ✅ NOVOS TIPOS (CICLO MENSAL - COACH)
   static const String cycleTrainings = 'cycle_trainings'; // "42 cadastros"

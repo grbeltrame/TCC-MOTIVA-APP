@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/effort_service.dart';
-import 'package:flutter_app/core/services/workout/movement_service.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/core/services/workout/workout_result_service.dart';
 import 'package:flutter_app/core/theme/app_theme.dart';
@@ -36,12 +35,13 @@ Future<void> showRegisterResultBottomSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder: (sheetCtx) => _RegisterResultSheetContent(
-      existingRecord: existingRecord,
-      initialDate: initialDate,
-      hasExistingRecords: hasExistingRecords,
-      parentContext: parentContext ?? context,
-    ),
+    builder:
+        (sheetCtx) => _RegisterResultSheetContent(
+          existingRecord: existingRecord,
+          initialDate: initialDate,
+          hasExistingRecords: hasExistingRecords,
+          parentContext: parentContext ?? context,
+        ),
   );
 }
 
@@ -108,7 +108,6 @@ class _RegisterResultSheetContentState
   List<Training> _trainings = [];
 
   // ── Treino selecionado ───────────────────────────────────────────────────────
-  Training? _selectedTraining;
   String? _wodType;
   String? _wodName;
   String? _modalidade;
@@ -135,7 +134,6 @@ class _RegisterResultSheetContentState
 
   // Adaptações
   final List<MovementRowData> _movementRows = [];
-  bool _loadingCategories = false;
   List<String> _categories = ['Iniciante', 'Scale', 'Intermediário', 'RX'];
 
   @override
@@ -210,7 +208,6 @@ class _RegisterResultSheetContentState
   }
 
   Future<void> _loadCategories() async {
-    _loadingCategories = true;
     try {
       final cats = await WorkoutResultService.fetchUserCategories();
       // Só sobrescreve a categoria se não estiver em modo edição
@@ -221,12 +218,9 @@ class _RegisterResultSheetContentState
         setState(() {
           _categories = cats;
           _selectedCategory = defCat;
-          _loadingCategories = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loadingCategories = false);
-    }
+    } catch (_) {}
   }
 
   // ── Seleção de data ──────────────────────────────────────────────────────────
@@ -243,7 +237,6 @@ class _RegisterResultSheetContentState
     setState(() {
       _selectedDate = picked;
       _trainings = [];
-      _selectedTraining = null;
     });
     await _loadTrainings();
   }
@@ -284,7 +277,6 @@ class _RegisterResultSheetContentState
     final duracaoMinutos = mainPart?['duracaoMinutos'] as int?;
 
     setState(() {
-      _selectedTraining = training;
       _wodType = type;
       _wodName = (wodName != null && wodName.isNotEmpty) ? wodName : null;
       _modalidade = modalidade;
@@ -614,10 +606,7 @@ class _RegisterResultSheetContentState
           ),
         ),
 
-        Divider(
-          color: AppColors.mediumGray.withValues(alpha: 0.2),
-          height: 1,
-        ),
+        Divider(color: AppColors.mediumGray.withValues(alpha: 0.2), height: 1),
         SizedBox(height: 12 * scale),
 
         // Botões: Não treinei (só se não há registros) + Outra atividade
@@ -844,7 +833,8 @@ class _RegisterResultSheetContentState
                 if (v == 'Não' && _maxForTimeSeconds != null) {
                   // Auto-fill cap time when athlete didn't finish
                   _forTimeSeconds = _maxForTimeSeconds;
-                } else if (v == 'Sim' && _forTimeSeconds == _maxForTimeSeconds) {
+                } else if (v == 'Sim' &&
+                    _forTimeSeconds == _maxForTimeSeconds) {
                   // Clear the auto-filled cap so athlete enters their real time
                   _forTimeSeconds = null;
                 }

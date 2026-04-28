@@ -1,20 +1,18 @@
 // lib/features/auth/presentation/signup_screen.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/services/auth_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
+import 'package:flutter_app/shared/models/profile_option.dart';
 import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/shared/widgets/utils/radio_option_tile.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:provider/provider.dart'; // <--- Importante
 import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart'; // <--- Seu Provider
-
-/// Perfis básicos disponíveis para cadastro.
-enum ProfileOption { athlete, coach, intern, athleteCoach, athleteIntern }
 
 class SignupScreen extends StatefulWidget {
   static const String routeName = '/signup';
@@ -64,35 +62,17 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       // 2. Cria o usuário no Firebase Authentication (Email/Senha)
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
+      final UserCredential userCredential = await AuthService.instance
+          .signUpWithEmailAndPassword(
+            name: _nameController.text,
+            email: _emailController.text,
             password: _passwordController.text,
+            profile: _selectedProfile!,
           );
 
       final User? user = userCredential.user;
 
       if (user != null) {
-        // 3. Prepara os dados para o Firestore
-        // Converte o enum (ex: ProfileOption.athleteCoach) para string ("athleteCoach")
-        final String profileString =
-            _selectedProfile.toString().split('.').last;
-
-        // Salva no banco de dados
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'uid': user.uid,
-          'name': _nameController.text.trim(),
-          'email': user.email,
-          'photoURL': user.photoURL ?? '',
-          'profile':
-              profileString, // <--- Aqui define se é athlete, coach, etc.
-          'provider': 'email',
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-
-        // Atualiza o nome de exibição no Auth (opcional, mas recomendado)
-        await user.updateDisplayName(_nameController.text.trim());
-
         // --- AQUI ESTÁ A MUDANÇA IMPORTANTE ---
         if (!mounted) return; // Segurança do Flutter
 
@@ -102,6 +82,8 @@ class _SignupScreenState extends State<SignupScreen> {
           context,
           listen: false,
         ).loadUserData(user);
+
+        if (!mounted) return;
 
         // 5. Pergunta ao Provider para onde devemos ir
         final userProvider = Provider.of<UserProvider>(context, listen: false);

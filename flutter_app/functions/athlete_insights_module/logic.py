@@ -220,6 +220,22 @@ def run_weekly_insights_logic(uid: str) -> dict:
       .collection("insights").document("semanal") \
       .set(final_doc)
 
+    try:
+        from notification_module import create_user_notification
+        create_user_notification(
+            db=db,
+            uid=uid,
+            role="athlete",
+            type_="athlete_weekly_insights_ready",
+            title="Seu resumo semanal está pronto",
+            body="A análise da sua semana foi finalizada e já está disponível.",
+            dedupe_key=f"athlete-weekly-insights:{uid}:{week_label}",
+            route_name="/athlete_insight",
+            source_id=week_label,
+        )
+    except Exception as e:
+        logging.warning(f"[weekly-insights] falha ao notificar {uid}: {e}")
+
     logging.info(f"[weekly-insights] ✅ salvo para {uid} ({week_label})")
     return final_doc
 
@@ -370,6 +386,22 @@ def run_evolution_insights_logic(uid: str, force: bool = False) -> dict:
         "lastGeneratedAt": firestore.SERVER_TIMESTAMP,
     }
     evolution_ref.set(final_doc)
+
+    try:
+        from notification_module import create_user_notification
+        create_user_notification(
+            db=db,
+            uid=uid,
+            role="athlete",
+            type_="athlete_evolution_insights_ready",
+            title="Sua análise de evolução está pronta",
+            body="A leitura das suas últimas semanas foi finalizada.",
+            dedupe_key=f"athlete-evolution-insights:{uid}:{datetime.now(tz=_TZ_BRAZIL).strftime('%Y-%m-%d')}",
+            route_name="/athlete_evolution",
+            source_id="evolucao",
+        )
+    except Exception as e:
+        logging.warning(f"[evolution-insights] falha ao notificar {uid}: {e}")
 
     logging.info(f"[evolution-insights] ✅ salvo para {uid}")
     # Retorno imediato: substitui o sentinel por timestamp real

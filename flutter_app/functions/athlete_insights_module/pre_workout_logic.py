@@ -325,6 +325,32 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
               .collection('items').document(workout_id) \
               .set(result)
             generated += 1
+
+            try:
+                from notification_module import create_user_notification
+                create_user_notification(
+                    db=db,
+                    uid=user_doc.id,
+                    role="athlete",
+                    type_="athlete_pre_workout_insights_ready",
+                    title="Treino novo publicado",
+                    body=(
+                        "Seu coach acabou de publicar um treino. "
+                        "Venha dar uma olhada nas informações que geramos para você."
+                    ),
+                    dedupe_key=(
+                        f"athlete-pre-workout-insights:{user_doc.id}:"
+                        f"{workout_id}"
+                    ),
+                    route_name="/athlete_pre_workout_insights_detail",
+                    route_args={"workoutId": workout_id},
+                    source_id=workout_id,
+                )
+            except Exception as notify_error:
+                logging.warning(
+                    f'[pre-workout] {user_doc.id}: falha ao notificar: '
+                    f'{notify_error}'
+                )
         except Exception as e:
             logging.error(
                 f'[pre-workout] {user_doc.id}: falha ao persistir: {e}'

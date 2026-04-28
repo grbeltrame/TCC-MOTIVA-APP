@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/core/services/notification_service.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart';
 
@@ -87,11 +88,13 @@ class TopNavbar extends StatelessWidget implements PreferredSizeWidget {
           const Spacer(),
 
           // 3) NOTIFICAÇÕES (Visual mantido)
-          _buildNotificationIcon(
-            context,
-            scale,
-            0,
-          ), // Passei 0 fixo pois o serviço antigo saiu
+          StreamBuilder<int>(
+            stream: NotificationService.instance.watchUnreadCount(),
+            initialData: 0,
+            builder: (context, snapshot) {
+              return _buildNotificationIcon(context, scale, snapshot.data ?? 0);
+            },
+          ),
         ],
       ),
     );
@@ -135,7 +138,7 @@ class TopNavbar extends StatelessWidget implements PreferredSizeWidget {
               child: Text(
                 'Athlete',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -144,7 +147,7 @@ class TopNavbar extends StatelessWidget implements PreferredSizeWidget {
               child: Text(
                 'Coach',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -181,10 +184,10 @@ class TopNavbar extends StatelessWidget implements PreferredSizeWidget {
           icon: Icon(
             Icons.notifications_none,
             size: 24 * scale,
-            color: Theme.of(context).colorScheme.onBackground,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
           onPressed: () {
-            // TODO: Navegar para notificações
+            Navigator.pushNamed(context, AppRoutes.notifications);
           },
         ),
         if (unreadCount > 0)

@@ -5,7 +5,6 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/users/athlete/athlete_service.dart';
 import 'package:flutter_app/shared/models/athlete_profile.dart';
-import 'package:flutter_app/shared/widgets/carousels/performance_insights_carousel.dart';
 
 /// Saudação da Home:
 /// Exibe "Olá, {nome}! Vamos começar mais um dia com movimento?"

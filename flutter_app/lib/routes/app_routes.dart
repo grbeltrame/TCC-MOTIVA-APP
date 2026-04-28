@@ -48,6 +48,7 @@ import 'package:flutter_app/features/auth/presentation/verify_otp_screen.dart';
 import 'package:flutter_app/features/auth/presentation/reset_password_screen.dart';
 import 'package:flutter_app/features/auth/presentation/terms_screen.dart';
 import 'package:flutter_app/features/auth/presentation/privacy_policy_screen.dart';
+import 'package:flutter_app/features/notifications/notifications_screen.dart';
 
 import 'package:flutter_app/features/splash/presentation/splash_screen.dart';
 
@@ -74,6 +75,7 @@ class AppRoutes {
   static const String resetPassword = ResetPasswordScreen.routeName;
   static const String terms = TermsScreen.routeName;
   static const String privacyPolicy = PrivacyPolicyScreen.routeName;
+  static const String notifications = NotificationsScreen.routeName;
 
   // Athlete
   static const String athleteHome = AthleteHomeScreen.routeName;
@@ -170,10 +172,12 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.resetPassword: (_) => const ResetPasswordScreen(email: ''),
   AppRoutes.terms: (_) => const TermsScreen(),
   AppRoutes.privacyPolicy: (_) => const PrivacyPolicyScreen(),
+  AppRoutes.notifications: (_) => const NotificationsScreen(),
 
   // Athlete
   AppRoutes.athleteHome: (_) => const AthleteHomeScreen(),
   AppRoutes.athleteInsight: (_) => const AthleteInsightScreen(),
+  '/athlete_insights': (_) => const AthleteInsightScreen(),
   AppRoutes.athleteEvolution: (_) => const AthleteEvolutionScreen(),
   AppRoutes.athleteTraining: (_) => const AthleteTrainingScreen(),
   AppRoutes.athleteProfile: (_) => const AthleteProfileScreen(),

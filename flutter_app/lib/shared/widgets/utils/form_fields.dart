@@ -36,7 +36,6 @@ class _EmailInputFieldState extends State<EmailInputField> {
 
   void _onFocusLost() {
     if (!_focusNode.hasFocus && widget.requireExists) {
-      final email = widget.controller.text;
       // TODO: chamar backend para verificar existência do e-mail
       // Exemplo:
       // final exists = await AuthService.checkEmailExists(email);

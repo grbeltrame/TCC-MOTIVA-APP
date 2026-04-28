@@ -26,7 +26,7 @@ Future<bool?> showRegisterChampResultBottomSheet(
 }
 
 class _RegisterChampResultSheet extends StatefulWidget {
-  const _RegisterChampResultSheet({super.key, required this.championship});
+  const _RegisterChampResultSheet({required this.championship});
   final Championship championship;
 
   @override
@@ -374,17 +374,4 @@ class _RegisterChampResultSheetState extends State<_RegisterChampResultSheet> {
       ),
     );
   }
-
-  Widget _labelTiny(String t, double scale) => Flexible(
-    child: Text(
-      t,
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontFamily: AppFonts.roboto,
-        fontSize: 10 * scale,
-        color: AppColors.mediumGray,
-        height: 1.1,
-      ),
-    ),
-  );
 }

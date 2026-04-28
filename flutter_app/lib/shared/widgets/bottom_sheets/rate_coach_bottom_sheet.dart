@@ -5,7 +5,6 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/theme/app_theme.dart';
 import 'package:flutter_app/shared/widgets/dialogs/feedback_thanks_dialog.dart';
 import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/core/services/users/coach/coach_feedback_service.dart';
 
 /// Abra com:

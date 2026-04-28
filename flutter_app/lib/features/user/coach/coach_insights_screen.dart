@@ -50,6 +50,15 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
         // Mesmo vindo um treino específico, buscamos a lista do dia para permitir troca
         _fetchTrainingsForDate(_selectedDate, preserveSelected: true);
       });
+    } else if (args != null &&
+        (args.containsKey('trainingId') || args.containsKey('dateIso'))) {
+      final preferredTrainingId = args['trainingId'] as String?;
+      final date = _dateFromArgs(args) ?? DateTime.now();
+      _selectedDate = date;
+      await _fetchTrainingsForDate(
+        date,
+        preferredTrainingId: preferredTrainingId,
+      );
     } else {
       // Se veio do menu (sem argumentos), carrega o dia de hoje
       _fetchTrainingsForDate(DateTime.now());
@@ -67,6 +76,7 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
   Future<void> _fetchTrainingsForDate(
     DateTime date, {
     bool preserveSelected = false,
+    String? preferredTrainingId,
   }) async {
     setState(() {
       _isLoading = true;
@@ -90,7 +100,7 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
           if (list.isNotEmpty) {
             // Se não estamos preservando um treino específico, pega o primeiro
             if (_selectedTraining == null || !preserveSelected) {
-              _selectedTraining = list.first;
+              _selectedTraining = _selectTraining(list, preferredTrainingId);
             }
           } else {
             _selectedTraining = null;
@@ -273,5 +283,26 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
     if (training.partes.containsKey('GINASTICA')) return "Ginástica / Skill";
 
     return "Treino Geral";
+  }
+
+  DateTime? _dateFromArgs(Map<String, dynamic> args) {
+    final rawDate = args['date'];
+    if (rawDate is DateTime) return rawDate;
+
+    final rawDateIso = args['dateIso'] ?? args['dataTreinoIso'];
+    if (rawDateIso is String && rawDateIso.isNotEmpty) {
+      return DateTime.tryParse(rawDateIso);
+    }
+
+    return null;
+  }
+
+  Training _selectTraining(List<Training> list, String? preferredTrainingId) {
+    if (preferredTrainingId != null && preferredTrainingId.isNotEmpty) {
+      for (final training in list) {
+        if (training.id == preferredTrainingId) return training;
+      }
+    }
+    return list.first;
   }
 }

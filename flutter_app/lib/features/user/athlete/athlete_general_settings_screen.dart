@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
-import 'package:flutter_app/core/services/settings/athlete_general_setting_service.dart';
 import 'package:flutter_app/core/services/users/profile_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';

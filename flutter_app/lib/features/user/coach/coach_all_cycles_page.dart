@@ -9,8 +9,6 @@ import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/year_selector.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:intl/intl.dart';
 
 class CoachAllCyclesScreen extends StatefulWidget {
@@ -47,10 +45,6 @@ class _CoachAllCyclesScreenState extends State<CoachAllCyclesScreen> {
     _currentCycleFut = CycleAll.fetchCurrentCycleMonth(boxId: _boxId);
 
     _bootstrapped = true;
-  }
-
-  void _openRegisterBoxSheet() {
-    showAppBottomSheet(context, const BoxSignupCoach());
   }
 
   void _onYearChanged(int year) {

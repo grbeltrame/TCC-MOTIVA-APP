@@ -1,9 +1,7 @@
 // lib/shared/screens/athlete_home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 
 // ===== ADIÇÕES =====
@@ -23,10 +21,6 @@ class AthleteAllGoalsScreen extends StatefulWidget {
 }
 
 class _AthleteAllGoalsScreenState extends State<AthleteAllGoalsScreen> {
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
-
   // ===== ADIÇÕES =====
   String? _highlightGoalId;
 

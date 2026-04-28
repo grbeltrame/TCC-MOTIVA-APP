@@ -3,9 +3,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/pr_service.dart';
 
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
@@ -35,10 +33,6 @@ class _AthletePrListScreenState extends State<AthletePrListScreen>
     _lpoFut = PRService.fetchMovements(PrCategory.lpo);
     _ginFut = PRService.fetchMovements(PrCategory.gym);
     _endFut = PRService.fetchMovements(PrCategory.endurance);
-  }
-
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
   }
 
   void _goToPrItem(String label, PrCategory category) {

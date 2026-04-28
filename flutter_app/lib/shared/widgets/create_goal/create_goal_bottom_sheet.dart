@@ -24,7 +24,7 @@ Future<void> showCreateGoalBottomSheet(BuildContext context) {
 }
 
 class _CreateGoalBottomSheet extends StatefulWidget {
-  const _CreateGoalBottomSheet({super.key});
+  const _CreateGoalBottomSheet();
 
   @override
   State<_CreateGoalBottomSheet> createState() => _CreateGoalBottomSheetState();

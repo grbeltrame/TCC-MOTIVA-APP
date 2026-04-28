@@ -81,11 +81,12 @@ class TrainingService {
   static Future<String?> fetchWorkoutIdForDate(DateTime date) async {
     try {
       final dataFormatada = DateFormat('yyyy-MM-dd').format(date);
-      final snap = await FirebaseFirestore.instance
-          .collection('exercises')
-          .where('dataTreinoIso', isEqualTo: dataFormatada)
-          .limit(1)
-          .get();
+      final snap =
+          await FirebaseFirestore.instance
+              .collection('exercises')
+              .where('dataTreinoIso', isEqualTo: dataFormatada)
+              .limit(1)
+              .get();
       if (snap.docs.isEmpty) return null;
       return snap.docs.first.id;
     } catch (e) {
@@ -392,14 +393,6 @@ class TrainingService {
   // 3. HELPERS INTERNOS
   // ===========================================================================
 
-  static List<String>? _parseCompositeId(String compositeId) {
-    if (compositeId.contains('__')) {
-      final parts = compositeId.split('__');
-      if (parts.length >= 2) return [parts[0], parts[1]];
-    }
-    return null;
-  }
-
   static String _mapUiTypeToDbKey(String uiType) {
     final t = uiType.trim().toUpperCase();
     if (t.contains('WARM')) return 'WARM UP';
@@ -564,49 +557,6 @@ class TrainingService {
       print('❌ [SERVICE ERROR]: $e');
       return {};
     }
-  }
-
-  static TrainingBlock _mapPartToTrainingBlock(
-    String keyId,
-    Map<String, dynamic> data,
-    String originalDocId,
-  ) {
-    // Exercícios: suporta schema antigo (String) e novo (Map)
-    final List<String> items = [];
-    if (data['exercicios'] != null) {
-      for (final e in data['exercicios']) {
-        if (e is String) {
-          items.add(e);
-        } else if (e is Map) {
-          final raw = e['raw']?.toString() ?? e['nome']?.toString() ?? '';
-          if (raw.isNotEmpty) items.add(raw);
-        }
-      }
-    }
-
-    // Subtitle: schema novo usa 'modalidade', antigo usa 'tipo'
-    final String tipoRaw =
-        data['modalidade']?.toString().toUpperCase() ??
-        data['tipo']?.toString().toUpperCase() ??
-        keyId.toUpperCase();
-
-    String subtitle = tipoRaw;
-    if (data['duracaoMinutos'] != null) {
-      subtitle += ' • ${data['duracaoMinutos']} min';
-    }
-
-    final String title =
-        (data['nomeWod'] != null &&
-                data['nomeWod'].toString().trim().isNotEmpty)
-            ? data['nomeWod'].toString()
-            : keyId;
-
-    return TrainingBlock(
-      id: '${originalDocId}__${keyId}',
-      title: title,
-      subtitle: subtitle,
-      items: items,
-    );
   }
 
   static Future<Map<String, TrainingBlock?>>

@@ -60,7 +60,7 @@ class _SectionEffortState extends State<SectionEffort> {
     try {
       final def = await _service.fetchDefaultEffort();
       final clamped = def.clamp(1, 10);
-      _effort = clamped is int ? clamped : (clamped as num).toInt();
+      _effort = clamped;
       if (mounted) widget.onEffortChanged?.call(_effort);
     } finally {
       if (mounted) setState(() => _loading = false);

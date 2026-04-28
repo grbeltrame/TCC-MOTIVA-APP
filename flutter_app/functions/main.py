@@ -7,6 +7,7 @@ from firebase_functions import (
     storage_fn,
     firestore_fn,
     https_fn,
+    scheduler_fn,
     options,
 )
 
@@ -325,6 +326,48 @@ def run_weekly_insights_task(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         logging.exception("Erro em run_weekly_insights_task")
         return https_fn.Response(f"error: {e}", status=500)
+
+
+@scheduler_fn.on_schedule(
+    schedule="every 1 hours",
+    timezone="America/Sao_Paulo",
+    region=_REGION,
+    memory=options.MemoryOption.MB_256,
+    timeout_sec=540,
+)
+def run_notification_reminders(event: scheduler_fn.ScheduledEvent) -> None:
+    """
+    Job horario que cria lembretes de treino/registro pendente.
+    A janela real e a deduplicacao ficam em notification_module.
+    """
+    try:
+        from notification_module import run_hourly_notification_reminders
+        result = run_hourly_notification_reminders()
+        logging.info(f"[notifications] reminders result={result}")
+    except Exception:
+        logging.exception("Erro em run_notification_reminders")
+        raise
+
+
+@scheduler_fn.on_schedule(
+    schedule="30 3 * * *",
+    timezone="America/Sao_Paulo",
+    region=_REGION,
+    memory=options.MemoryOption.MB_256,
+    timeout_sec=540,
+)
+def cleanup_expired_notifications(event: scheduler_fn.ScheduledEvent) -> None:
+    """
+    Job diario que remove notificacoes com mais de 7 dias.
+    A regra usa createdAt para limpar tambem documentos antigos sem expiresAt.
+    """
+    try:
+        from notification_module import delete_expired_notifications
+        result = delete_expired_notifications()
+        logging.info(f"[notifications] cleanup result={result}")
+    except Exception:
+        logging.exception("Erro em cleanup_expired_notifications")
+        raise
 
 
 # =============================================================================

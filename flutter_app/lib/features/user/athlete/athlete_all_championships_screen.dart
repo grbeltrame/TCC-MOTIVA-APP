@@ -1,7 +1,5 @@
 // lib/features/user/athlete/athlete_all_championships_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 
 import 'package:flutter_app/core/constants/app_colors.dart';
@@ -33,10 +31,6 @@ class AllChampionshipsScreen extends StatefulWidget {
 class _AllChampionshipsScreenState extends State<AllChampionshipsScreen> {
   late Future<List<Championship>> _futureUpcoming;
   late Future<List<Championship>> _futureConcluded;
-
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
 
   @override
   void initState() {

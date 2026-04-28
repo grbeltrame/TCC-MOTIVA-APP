@@ -11,9 +11,6 @@ import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/core/services/effort_service.dart';
 
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
-
 class FullTrainingScreen extends StatefulWidget {
   static const routeName = '/training_full';
   const FullTrainingScreen({Key? key}) : super(key: key);
@@ -29,8 +26,6 @@ class _FullTrainingScreenState extends State<FullTrainingScreen> {
 
   bool _bootstrapped = false;
   late Future<List<TrainingBlock>> _blocksFut;
-  TrainingBlock? _lastBlock;
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -68,10 +63,6 @@ class _FullTrainingScreenState extends State<FullTrainingScreen> {
 
     // 3) fallback: último bloco da lista
     return blocks.last;
-  }
-
-  void _openRegisterBoxSheet() {
-    showAppBottomSheet(context, const BoxSignupCoach());
   }
 
   Future<void> _onTapRegisterResult() async {

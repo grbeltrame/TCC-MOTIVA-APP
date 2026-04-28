@@ -6,8 +6,6 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 
@@ -282,47 +280,6 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     return 'WOD';
   }
 
-  /// Extrai modalidade e rounds de uma WorkoutPart vinda do Firestore.
-  /// Suporta schema novo (campo 'modalidade') e antigo (campo 'tipo').
-  (String? modalidade, int? rounds) _inferModalidadeFromPart(
-    Map<String, dynamic>? partData,
-  ) {
-    if (partData == null) return (null, null);
-
-    final raw =
-        partData['modalidade']?.toString() ??
-        partData['tipo']?.toString() ??
-        '';
-    final roundsFromDb = partData['rounds'] as int?;
-
-    if (raw.isEmpty) return (null, null);
-
-    final m = raw.trim().toUpperCase();
-
-    // "3 ROUNDS FOR TIME" → ("ROUNDS FOR TIME", 3)
-    final roundsForTimeMatch = RegExp(
-      r'^(\d+)\s+ROUNDS?\s+FOR\s+TIME',
-    ).firstMatch(m);
-    if (roundsForTimeMatch != null) {
-      final r = int.tryParse(roundsForTimeMatch.group(1)!) ?? roundsFromDb;
-      return ('ROUNDS FOR TIME', r);
-    }
-
-    // "3 ROUNDS" → ("ROUNDS FOR TIME", 3)
-    final roundsOnlyMatch = RegExp(r'^(\d+)\s+ROUNDS?$').firstMatch(m);
-    if (roundsOnlyMatch != null) {
-      final r = int.tryParse(roundsOnlyMatch.group(1)!) ?? roundsFromDb;
-      return ('ROUNDS FOR TIME', r);
-    }
-
-    if (m.contains('AMRAP')) return ('AMRAP', null);
-    if (m.contains('EMOM')) return ('EMOM', null);
-    if (m.contains('FOR TIME')) return ('FOR TIME', null);
-
-    // Schema antigo: tipo "WOD", "SKILL" etc não são modalidades reais
-    return (null, null);
-  }
-
   // ---------------------------------------------------------------------------
   // Mapeamento de blocks → EditableTraining
   // ---------------------------------------------------------------------------
@@ -338,17 +295,15 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
 
       // Extrai nome limpo (remove prefixo da seção: "WOD - " → "")
       String? cleanName = nameOnly;
-      if (cleanName != null) {
-        for (final prefix in ['WARM UP', 'EXTRA TRAINING', 'SKILL', 'WOD']) {
-          if (cleanName!.toUpperCase().startsWith(prefix)) {
-            cleanName = cleanName
-                .substring(prefix.length)
-                .replaceFirst(RegExp(r'^[\s\-–—:]+'), '');
-            break;
-          }
+      for (final prefix in ['WARM UP', 'EXTRA TRAINING', 'SKILL', 'WOD']) {
+        if (cleanName!.toUpperCase().startsWith(prefix)) {
+          cleanName = cleanName
+              .substring(prefix.length)
+              .replaceFirst(RegExp(r'^[\s\-–—:]+'), '');
+          break;
         }
-        if (cleanName!.trim().isEmpty) cleanName = null;
       }
+      if (cleanName!.trim().isEmpty) cleanName = null;
 
       // Modalidade e rounds
       // b.subtitle já contém a modalidade montada pelo fetchFullTrainingBlocks

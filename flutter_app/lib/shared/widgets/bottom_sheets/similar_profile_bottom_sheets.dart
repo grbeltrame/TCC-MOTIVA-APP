@@ -50,7 +50,6 @@ class _SimilarProfilesSheet extends StatefulWidget {
   final Future<void> Function() onTapRegister;
 
   const _SimilarProfilesSheet({
-    super.key,
     this.benchmarkName,
     this.movementName,
     required this.onTapRegister,

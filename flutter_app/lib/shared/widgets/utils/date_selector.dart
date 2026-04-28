@@ -98,7 +98,7 @@ class _DateSelectorState extends State<DateSelector> {
     final scale = MediaQuery.of(context).size.width / 375.0;
     final dayLabel = DateFormat('dd/MM/yyyy').format(_selectedDate);
     final rawWeekday = DateFormat.EEEE('pt_BR').format(_selectedDate);
-    final weekday = toBeginningOfSentenceCase(rawWeekday) ?? rawWeekday;
+    final weekday = toBeginningOfSentenceCase(rawWeekday);
 
     return Center(
       child: Container(
@@ -261,7 +261,7 @@ class _CycleAwareDateSelectorState extends State<CycleAwareDateSelector> {
     final scale = MediaQuery.of(context).size.width / 375.0;
     final dayLabel = DateFormat('dd/MM/yyyy').format(_selectedDate);
     final rawWeekday = DateFormat.EEEE('pt_BR').format(_selectedDate);
-    final weekday = toBeginningOfSentenceCase(rawWeekday) ?? rawWeekday;
+    final weekday = toBeginningOfSentenceCase(rawWeekday);
 
     return Center(
       child: Container(

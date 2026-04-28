@@ -1,20 +1,17 @@
 // lib/features/auth/presentation/select_profile_screen.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/services/auth_service.dart';
+import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart';
 import 'package:flutter_app/routes/app_routes.dart';
+import 'package:flutter_app/shared/models/profile_option.dart';
 // import 'package:flutter_app/shared/widgets/utils/form_fields.dart'; // Não é mais necessário
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/shared/widgets/utils/radio_option_tile.dart';
 // import 'package:flutter_app/shared/widgets/utils/text_action_button.dart'; // Não é mais necessário
-
-// TODO: Mova este Enum para um arquivo compartilhado (ex: lib/core/models/profile_option.dart)
-// para que tanto 'signup_screen.dart' quanto 'select_profile_screen.dart' possam usá-lo.
-/// Perfis básicos disponíveis para cadastro.
-enum ProfileOption { athlete, coach, intern, athleteCoach, athleteIntern }
+import 'package:provider/provider.dart';
 
 class SelectProfileScreen extends StatefulWidget {
   // TODO: Adicione esta rota no seu arquivo AppRoutes
@@ -57,35 +54,26 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
       // --- Início da Lógica de ATUALIZAÇÃO Firebase ---
 
       // 1. Pegar o usuário ATUAL (logado via Google)
-      final User? user = FirebaseAuth.instance.currentUser;
+      await AuthService.instance.completeCurrentUserProfile(
+        profile: _selectedProfile!,
+      );
 
-      if (user != null) {
-        // 2. Apenas ATUALIZAR o documento existente no Cloud Firestore
-        final userDoc = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid);
-
-        // Converte o enum para uma string (ex: "ProfileOption.athlete" -> "athlete")
-        final String profileString =
-            _selectedProfile.toString().split('.').last;
-
-        await userDoc.update({
-          'profile': profileString, // Salva APENAS o perfil
-        });
-
-        // 3. (Opcional) O 'name' e 'email' já foram salvos pelo GoogleSignInService
-      } else {
-        // Isso é um fallback, não deve acontecer no fluxo normal
+      final user = AuthService.instance.currentUser;
+      if (user == null) {
         throw Exception('Usuário não está logado. Tente novamente.');
       }
 
+      if (!mounted) return;
+      await Provider.of<UserProvider>(
+        context,
+        listen: false,
+      ).loadUserData(user);
+
+      if (!mounted) return;
+
       // navegação condicional:
       // (mesma lógica de antes)
-      final isCoach =
-          _selectedProfile == ProfileOption.coach ||
-          _selectedProfile == ProfileOption.athleteCoach ||
-          _selectedProfile == ProfileOption.athleteIntern ||
-          _selectedProfile == ProfileOption.intern;
+      final isCoach = _selectedProfile!.startsInCoachView;
       if (isCoach) {
         Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
       } else {
@@ -98,11 +86,14 @@ class _SelectProfileScreenState extends State<SelectProfileScreen> {
         errorMessage = e.toString().replaceFirst("Exception: ", "");
       }
 
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 

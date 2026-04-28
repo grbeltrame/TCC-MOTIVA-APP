@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/goal_service.dart';
-import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/cards/goal_card_widget.dart';
 
 /// Seção “Progresso Próximo”

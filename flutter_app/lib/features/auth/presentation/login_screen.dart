@@ -1,18 +1,16 @@
 // lib/features/auth/presentation/login_screen.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/services/auth_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:provider/provider.dart'; // <--- O pacote que instalamos
 import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart'; // <--- O arquivo que criamos
-// TODO(google): Importar o seu GoogleSignInService quando for implementar
-import 'google_auth.dart'; // Mantido como você importou
 
 /// -----LOGIN SCREEN-----
 /// Tela de Login com inputs de email e senha, botões de ação e opções de login social.
@@ -45,9 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       // 1. Login no Auth (Igual antes)
-      final UserCredential userCredential = await FirebaseAuth.instance
+      final UserCredential userCredential = await AuthService.instance
           .signInWithEmailAndPassword(
-            email: _emailController.text.trim(),
+            email: _emailController.text,
             password: _passwordController.text,
           );
 
@@ -60,6 +58,8 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           listen: false,
         ).loadUserData(user);
+
+        if (!mounted) return;
 
         // 3. Verifica o estado que o Provider definiu
         final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -87,11 +87,14 @@ class _LoginScreenState extends State<LoginScreen> {
         errorMessage = 'Perfil de usuário não encontrado.';
       }
 
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -102,13 +105,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       // 1. Login Google (Igual antes)
-      final UserCredential? userCredential =
-          await GoogleSignInService.signInWithGoogle();
+      final googleAuthResult = await AuthService.instance.signInWithGoogle();
 
-      if (userCredential == null || userCredential.user == null) {
+      if (googleAuthResult.userCredential.user == null) {
         throw Exception('Login com Google cancelado ou falhou.');
       }
-      final User user = userCredential.user!;
+      final User user = googleAuthResult.userCredential.user!;
+
+      if (!googleAuthResult.hasCompletedProfile) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, AppRoutes.selectProfile);
+        return;
+      }
 
       // 2. Tenta carregar perfil no Provider
       try {
@@ -116,6 +124,8 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           listen: false,
         ).loadUserData(user);
+
+        if (!mounted) return;
 
         // Se chegou aqui, tem perfil. Navega conforme o Provider manda.
         final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -128,15 +138,19 @@ class _LoginScreenState extends State<LoginScreen> {
       } catch (e) {
         // Se der erro no loadUserData, provavelmente é usuário novo (sem doc no Firestore)
         // Então mandamos para a tela de Seleção de Perfil
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, AppRoutes.selectProfile);
       }
     } catch (e) {
       String errorMessage = 'Erro no login com Google: ${e.toString()}';
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

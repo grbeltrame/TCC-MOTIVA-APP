@@ -7,11 +7,9 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 
 // Coach (modelo, card e service)
 import 'package:flutter_app/shared/models/coach.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/cards/coach_summary_card.dart';
 import 'package:flutter_app/core/services/users/coach/coach_service.dart';
 import 'package:flutter_app/shared/widgets/dialogs/interest_registred_dialog.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 
 // UI utilidades
@@ -37,9 +35,6 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
   // future do resumo do coach
   late Future<CoachProfileSummary> _coachSummaryFut;
   bool _bootstrapped = false;
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
 
   @override
   void didChangeDependencies() {

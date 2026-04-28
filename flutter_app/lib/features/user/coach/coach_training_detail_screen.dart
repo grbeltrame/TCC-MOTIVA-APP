@@ -1,11 +1,9 @@
 // lib/features/coach/coach_training_detail_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/training.dart'; // <--- IMPORTANTE
 import 'package:flutter_app/shared/widgets/sections/athlete/worked_muscles_section.dart';
 // import 'package:flutter_app/shared/widgets/sections/coach/coach_interested_per_class_section.dart'; // (Se não estiver usando, pode manter comentado)
-import 'package:intl/intl.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/widgets/cards/training_blocks_card.dart';
@@ -13,8 +11,6 @@ import 'package:flutter_app/shared/widgets/footers/coach_training_footer.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/core/constants/app_colors.dart'; // Para cores do botão
 
 class CoachTrainingDetailScreen extends StatefulWidget {
@@ -36,7 +32,6 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
   // 1. Armazena o objeto Treino para passar para a tela de Insights depois
   Training? _trainingObject;
 
-  TrainingBlock? _lastBlock;
   bool _bootstrapped = false;
   late Future<List<TrainingBlock>> _blocksFut;
 
@@ -98,12 +93,7 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
     return blocks.last;
   }
 
-  void _openRegisterBoxSheet() {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
-
   void _onTapVerResultados() {}
-  void _onTapComentariosDoCriador() {}
   void _onTapRegistrarResultado() {}
 
   // 4. Novo método para navegar para os Insights da IA

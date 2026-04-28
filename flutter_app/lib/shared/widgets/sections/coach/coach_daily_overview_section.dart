@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/constants/app_colors.dart';
-import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_insights_section.dart';
 
 // IMPORTA a section de abas que fizemos agora há pouco
-import 'package:flutter_app/shared/widgets/sections/coach/daily_summary_tabs.dart';
 
 /// Section MAIOR: "Resumo do dia (Coach)"
 /// - Renderiza o título "Resumo do dia"
@@ -22,8 +19,6 @@ class CoachDailyOverviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 375.0;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

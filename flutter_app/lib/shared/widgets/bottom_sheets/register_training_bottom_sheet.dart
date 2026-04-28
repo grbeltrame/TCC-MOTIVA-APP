@@ -24,15 +24,10 @@ class _RegisterTrainingBottomSheetState
     extends State<RegisterTrainingBottomSheet> {
   PlatformFile? _pickedFile;
   bool _uploading = false;
-  String? _uploadedUrl; // mock de retorno
 
   final _service = TrainingUploadService();
 
   Future<void> _pickPdf() async {
-    setState(() {
-      _uploadedUrl = null;
-    });
-
     final res = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: const ['pdf'],
@@ -57,7 +52,7 @@ class _RegisterTrainingBottomSheetState
         bytes = await File(path).readAsBytes();
       }
 
-      final result = await _service.uploadTrainingPdf(
+      await _service.uploadTrainingPdf(
         bytes: bytes,
         filename: _pickedFile!.name,
         boxId: 'BOX_123', // TODO: substituir pelo id real
@@ -66,7 +61,6 @@ class _RegisterTrainingBottomSheetState
 
       if (!mounted) return;
       setState(() {
-        _uploadedUrl = result.url; // mock
         _uploading = false;
       });
 

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/worked_muscles_section.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
@@ -48,10 +46,6 @@ class _CoachCycleTrainingTypeDetailScreenState
 
   // delete local (mock)
   final Set<String> _locallyDeletedBlockIds = {};
-
-  void _openRegisterBoxSheet() {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
 
   void _openRegisterTraining(BuildContext context) {
     showRegisterTrainingBottomSheet(context);

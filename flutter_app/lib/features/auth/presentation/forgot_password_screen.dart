@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/services/auth_service.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
@@ -58,8 +59,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.setLanguageCode('pt-BR');
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      await AuthService.instance.sendPasswordResetEmail(email);
 
       if (!mounted) return;
       setState(() {

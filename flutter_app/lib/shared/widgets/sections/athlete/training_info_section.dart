@@ -7,7 +7,6 @@ import 'package:flutter_app/features/user/athlete/athlete_classes_screen.dart';
 import 'package:flutter_app/shared/models/class.dart';
 import 'package:flutter_app/shared/widgets/dialogs/activity_status_dialogs.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/category_training_section.dart';
-import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
 import 'package:flutter_app/shared/widgets/utils/date_selector.dart';
 import 'package:flutter_app/shared/widgets/cards/interested_class_card.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';

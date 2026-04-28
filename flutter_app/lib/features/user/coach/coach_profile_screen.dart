@@ -3,8 +3,6 @@ import 'package:flutter_app/shared/models/coach_profile.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_info_section.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 
 // ✅ Imports novos necessários para o botão e para a navegação
 import 'package:flutter_app/routes/app_routes.dart';
@@ -34,10 +32,6 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     setState(() {
       _profileFuture = CoachProfileService.instance.fetchCoachProfileEditable();
     });
-  }
-
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
   }
 
   @override

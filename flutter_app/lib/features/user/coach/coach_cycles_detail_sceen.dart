@@ -1,7 +1,6 @@
 // lib/features/user/coach/coach_cycle_detail_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/services/mini_card_service.dart';
 import 'package:flutter_app/core/services/workout/cycle_service.dart';
 import 'package:flutter_app/shared/charts/cycle_stimulus_pie_chart.dart';
 import 'package:flutter_app/shared/widgets/cards/mini_card_widget.dart';
@@ -14,8 +13,6 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/cycle_models.dart';
 
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
@@ -40,7 +37,6 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
 
   late Future<CycleDetailBundle> _bundleFut;
 
-  DateTime _lastFetchedAt = DateTime.now();
   static const Duration _refreshInterval = Duration(hours: 1);
 
   @override
@@ -67,7 +63,6 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
       year: _year,
       month: _month,
     );
-    _lastFetchedAt = DateTime.now();
     return b;
   }
 
@@ -79,10 +74,6 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
       });
       _scheduleRefresh();
     });
-  }
-
-  void _openRegisterBoxSheet() {
-    showAppBottomSheet(context, const BoxSignupCoach());
   }
 
   String _titleMonth() {

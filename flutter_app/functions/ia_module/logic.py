@@ -294,6 +294,24 @@ def run_cycle_analysis(db, current_workout, api_key, class_context=None):
         
         cycle_ref = db.collection("cycles").document(current_month_key)
         cycle_ref.set(final_document)
+
+        try:
+            from notification_module import notify_all_coaches
+            notify_all_coaches(
+                db=db,
+                type_="coach_cycle_analysis_ready",
+                title="Análise de ciclo pronta",
+                body="A análise inteligente do ciclo foi atualizada.",
+                dedupe_key=f"coach-cycle-analysis:{current_month_key}",
+                route_name="/coach_training_insights",
+                route_args={"monthKey": current_month_key},
+                source_id=current_month_key,
+            )
+        except Exception as notify_error:
+            logging.warning(
+                f"Falha ao notificar coaches sobre ciclo {current_month_key}: "
+                f"{notify_error}"
+            )
         
         return final_document
 
@@ -407,6 +425,27 @@ def run_ai_analysis_logic(event):
             "analisadoEm": firestore.SERVER_TIMESTAMP
         })
         logging.info(f"Sucesso! Treino {workout_id} analisado (Micro).")
+
+        try:
+            from notification_module import notify_all_coaches
+            notify_all_coaches(
+                db=firestore_client,
+                type_="coach_daily_analysis_ready",
+                title="Análise do treino pronta",
+                body="A análise inteligente do treino cadastrado foi finalizada.",
+                dedupe_key=f"coach-daily-analysis:{workout_id}",
+                route_name="/coach_insights",
+                route_args={
+                    "trainingId": workout_id,
+                    "dateIso": current_data.get("dataTreinoIso"),
+                },
+                source_id=workout_id,
+            )
+        except Exception as notify_error:
+            logging.warning(
+                f"Falha ao notificar coaches sobre treino {workout_id}: "
+                f"{notify_error}"
+            )
 
         # -------------------------------------------------------------
         # 5. Análise de CICLO (Macro) - CHAMADA DA NOVA FUNÇÃO

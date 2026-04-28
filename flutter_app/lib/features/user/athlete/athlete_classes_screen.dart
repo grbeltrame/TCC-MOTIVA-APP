@@ -2,8 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/class.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:intl/intl.dart';
 
@@ -59,10 +57,6 @@ class _ClassesOfDayScreenState extends State<ClassesOfDayScreen> {
   String _justTime(String s) {
     final m = RegExp(r'(\d{1,2}:\d{2})').firstMatch(s);
     return (m?.group(1) ?? s).trim();
-  }
-
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
   }
 
   @override

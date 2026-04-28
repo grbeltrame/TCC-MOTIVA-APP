@@ -1,11 +1,6 @@
 // lib/shared/screens/athlete_training_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/services/workout/training_service.dart';
-import 'package:flutter_app/shared/models/box.dart';
-import 'package:flutter_app/shared/models/training.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/pre_workout_insights_section.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/training_info_section.dart';
@@ -19,26 +14,10 @@ class AthleteTrainingScreen extends StatefulWidget {
 }
 
 class _AthleteTrainingScreenState extends State<AthleteTrainingScreen> {
-  Box? _currentBox;
   DateTime _currentDate = DateTime.now();
-  List<Training> _trainings = [];
-
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
 
   void _onDateChanged(DateTime date) {
     _currentDate = date;
-    _loadTrainings();
-  }
-
-  Future<void> _loadTrainings() async {
-    if (_currentBox == null) return;
-    final list = await TrainingService.fetchTrainingsForBox(
-      boxId: _currentBox!.id,
-      date: _currentDate,
-    );
-    setState(() => _trainings = list);
   }
 
   @override

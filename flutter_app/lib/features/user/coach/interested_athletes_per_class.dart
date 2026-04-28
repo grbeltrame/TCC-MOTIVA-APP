@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
@@ -16,10 +14,6 @@ class InterestedAthletesScreen extends StatefulWidget {
 }
 
 class _InterestedAthletesScreenState extends State<InterestedAthletesScreen> {
-  void _openRegisterBoxSheet() {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
-
   String _fmtDate(DateTime d) {
     final dd = d.day.toString().padLeft(2, '0');
     final mm = d.month.toString().padLeft(2, '0');
@@ -37,26 +31,26 @@ class _InterestedAthletesScreenState extends State<InterestedAthletesScreen> {
 
     final DateTime date =
         (args != null && args['date'] is DateTime)
-            ? args!['date'] as DateTime
+            ? args['date'] as DateTime
             : DateTime.now();
 
     final String boxId =
         (args != null && args['boxId'] is String)
-            ? args!['boxId'] as String
+            ? args['boxId'] as String
             : '';
 
     final String category =
         (args != null && args['category'] is String)
-            ? args!['category'] as String
+            ? args['category'] as String
             : 'WOD';
 
     final String hour =
         (args != null && args['hour'] is String)
-            ? args!['hour'] as String
+            ? args['hour'] as String
             : '--';
 
     final int count =
-        (args != null && args['count'] is int) ? args!['count'] as int : 0;
+        (args != null && args['count'] is int) ? args['count'] as int : 0;
 
     return Scaffold(
       appBar: const TopNavbar(),

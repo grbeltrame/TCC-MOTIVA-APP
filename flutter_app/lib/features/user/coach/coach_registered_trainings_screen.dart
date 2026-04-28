@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/sections/coach/coach_class_registration_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_registered_trainings_section.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
@@ -24,7 +22,6 @@ class _CoachRegisteredTrainingScreenState
   late DateTime _selectedDate;
   String? _selectedCategory; // 'WOD' | 'LPO' | 'Ginastica' | 'Endurance'
   String? _selectedTrainingId;
-  final String _boxId = 'DEFAULT_BOX';
 
   @override
   void didChangeDependencies() {
@@ -112,9 +109,5 @@ class _CoachRegisteredTrainingScreenState
         ),
       ),
     );
-  }
-
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const Placeholder());
   }
 }

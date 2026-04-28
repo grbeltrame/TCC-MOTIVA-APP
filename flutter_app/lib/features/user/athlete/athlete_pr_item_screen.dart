@@ -6,8 +6,6 @@ import 'package:syncfusion_flutter_charts/charts.dart';
 
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/services/workout/pr_service.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/models/inisght_model.dart';
@@ -106,10 +104,6 @@ class _AthletePrItemScreenState extends State<AthletePrItemScreen> {
     setState(() {});
   }
 
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
-
   Future<void> _onRegisterResult() async {
     await showRegisterPrBottomSheet(context);
     if (!mounted) return;
@@ -162,7 +156,6 @@ class _AthletePrItemScreenState extends State<AthletePrItemScreen> {
                             FutureBuilder<PrBenchmark?>(
                               future: _benchmarkFut,
                               builder: (ctx, snapB) {
-                                final bench = snapB.data;
                                 return FutureBuilder<List<String>>(
                                   future: _wodLinesFut,
                                   builder: (c2, snapLines) {

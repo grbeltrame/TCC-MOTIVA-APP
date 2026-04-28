@@ -1,13 +1,9 @@
 // lib/shared/screens/athlete_home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 import 'package:flutter_app/shared/widgets/cards/daily_training_summary_card.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/home_greeting_section.dart';
 import 'package:flutter_app/shared/widgets/home_primary_actions.dart';
-import 'package:flutter_app/shared/widgets/mocks/near_completion_section.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/pending_actions_section.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/athlete_insights_carousel_loader.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
@@ -21,10 +17,6 @@ class AthleteHomeScreen extends StatefulWidget {
 }
 
 class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
-
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;

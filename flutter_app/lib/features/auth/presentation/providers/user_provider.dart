@@ -1,9 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app/core/services/auth_service.dart';
+import 'package:flutter_app/core/services/notification_service.dart';
+import 'package:flutter_app/shared/models/profile_option.dart';
 
 class UserProvider with ChangeNotifier {
-  String? _uid;
   String? _profileType; // Ex: 'athlete', 'coach', 'athleteCoach'...
   bool _isCoachView = false; // Estado atual da tela (True=Coach, False=Aluno)
   bool _isLoading = false;
@@ -16,56 +17,30 @@ class UserProvider with ChangeNotifier {
   /// Retorna TRUE se o usuário tem permissão para trocar de tela.
   /// Baseado nos tipos definidos no seu SignupScreen.
   bool get canToggleView {
-    return _profileType == 'athleteCoach' ||
-        _profileType == 'athleteIntern' ||
-        _profileType == 'admin';
+    return profileTypeCanToggleView(_profileType);
   }
 
   /// Carrega os dados do Firestore e define o estado inicial
   Future<void> loadUserData(User user) async {
-    _uid = user.uid;
     _isLoading = true;
     notifyListeners();
 
     try {
-      final doc =
-          await FirebaseFirestore.instance.collection('users').doc(_uid).get();
+      final profileType = await AuthService.instance.fetchUserProfileType(
+        user.uid,
+      );
+      await NotificationService.instance.syncMessagingToken();
 
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        _profileType = data['profile']; // A string salva no cadastro
-
+      if (profileType != null) {
+        _profileType = profileType; // A string salva no cadastro
         print("🔍 [DEBUG] Perfil carregado: '$_profileType'");
 
         // LÓGICA DE INICIALIZAÇÃO:
         // Decide qual tela mostrar assim que o app abre.
-
-        switch (_profileType) {
-          case 'coach':
-          case 'intern':
-            // Se for só Coach ou Estagiário, FORÇA a visão de Coach
-            _isCoachView = true;
-            break;
-
-          case 'athlete':
-            // Se for só Atleta, FORÇA a visão de Aluno
-            _isCoachView = false;
-            break;
-
-          case 'athleteCoach':
-          case 'athleteIntern':
-          case 'admin':
-            // Se for Híbrido, começamos como Coach (padrão),
-            // mas o getter 'canToggleView' vai liberar o botão de troca.
-            _isCoachView = true;
-            break;
-
-          default:
-            // Segurança: Se der erro ou for string desconhecida, joga pro Aluno
-            print("⚠️ Perfil desconhecido. Tratando como atleta.");
-            _isCoachView = false;
-        }
+        _isCoachView = profileTypeStartsInCoachView(_profileType);
       } else {
+        _profileType = null;
+        _isCoachView = false;
         print("❌ Usuário sem documento no Firestore.");
       }
     } catch (e) {
@@ -89,7 +64,6 @@ class UserProvider with ChangeNotifier {
 
   /// Limpa os dados ao fazer Logout
   void clear() {
-    _uid = null;
     _profileType = null;
     _isCoachView = false;
     notifyListeners();

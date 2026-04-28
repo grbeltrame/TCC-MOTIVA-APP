@@ -42,7 +42,6 @@ class _CoachDailySummarySectionState extends State<CoachDailySummarySection> {
               child: FutureBuilder<int>(
                 future: _resultsCount,
                 builder: (context, snapshot) {
-                  final value = snapshot.hasData ? '${snapshot.data}' : 'N/A';
                   return MiniCardWidget(
                     iconWidget: const Icon(
                       Icons.fitness_center,
@@ -78,10 +77,6 @@ class _CoachDailySummarySectionState extends State<CoachDailySummarySection> {
               child: FutureBuilder<double>(
                 future: _attendanceRate,
                 builder: (context, snapshot) {
-                  final value =
-                      snapshot.hasData
-                          ? '${snapshot.data!.toStringAsFixed(0)}%'
-                          : 'N/A';
                   return MiniCardWidget(
                     iconWidget: const Icon(
                       Icons.favorite,

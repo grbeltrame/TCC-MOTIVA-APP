@@ -13,8 +13,6 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 
 import 'package:flutter_app/core/services/effort_service.dart';
 
-import 'package:flutter_app/shared/widgets/bottom_sheets/similar_profile_bottom_sheets.dart';
-
 class CategoryTrainingSection extends StatefulWidget {
   final String boxId;
   final DateTime date;
@@ -224,69 +222,6 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
     return null;
   }
 
-  String? _guessPrimaryMovementFromItems(List<String> items) {
-    if (items.isEmpty) return null;
-
-    final line = items.firstWhere(
-      (l) => RegExp(r'[A-Za-zÀ-ú]').hasMatch(l),
-      orElse: () => items.first,
-    );
-
-    var s = line;
-
-    final atIdx = s.indexOf('@');
-    if (atIdx != -1) s = s.substring(0, atIdx);
-
-    final tokens =
-        s.split(RegExp(r'\s+')).where((t) {
-          final hasLetter = RegExp(r'[A-Za-zÀ-ú]').hasMatch(t);
-          final looksCount = RegExp(
-            r'^\d|%|×|x',
-            caseSensitive: false,
-          ).hasMatch(t);
-          return hasLetter && !looksCount;
-        }).toList();
-
-    if (tokens.isEmpty) return null;
-
-    final candidate = tokens.join(' ').trim();
-    return candidate.replaceAll(RegExp(r'[,\.;]+$'), '');
-  }
-
-  Future<void> _openSimilarProfilesForCategory(
-    String category,
-    TrainingBlock? block,
-  ) async {
-    String? benchmarkName;
-    String? movementName;
-
-    if (block != null) {
-      if (category.toLowerCase() == 'wod') {
-        benchmarkName = _extractWodNameFromTitle(block.title);
-      } else {
-        movementName = _guessPrimaryMovementFromItems(block.items);
-      }
-    }
-
-    await showSimilarProfilesBottomSheet(
-      context,
-      benchmarkName: benchmarkName,
-      movementName: movementName,
-      onTapRegister: () async {
-        final existing = await EffortService.fetchTodayResult(
-          date: widget.date,
-          wodType: category,
-        );
-        if (!mounted) return;
-        await showRegisterResultBottomSheet(
-          context,
-          existingRecord: existing,
-          initialDate: widget.date,
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -469,7 +404,7 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
           length: categories.length,
           child: Builder(
             builder: (innerCtx) {
-              final tabController = DefaultTabController.of(innerCtx)!;
+              final tabController = DefaultTabController.of(innerCtx);
               if (!_tabListenerAttached) {
                 tabController.addListener(() => setState(() {}));
                 _tabListenerAttached = true;

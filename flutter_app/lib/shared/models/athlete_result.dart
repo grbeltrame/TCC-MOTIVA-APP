@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 
 /// Resultado registrado por um aluno em uma turma específica (dia/horário).
 class AthleteResult {

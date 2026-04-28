@@ -16,8 +16,6 @@ import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:flutter_app/shared/widgets/utils/athlete_result_list_item.dart';
 
 // Bottom sheet mock
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/box_signup_coach.dart';
 
 class AthleteResultsScreen extends StatefulWidget {
   static const routeName = '/athletes_results';
@@ -68,16 +66,11 @@ class _AthleteResultsScreenState extends State<AthleteResultsScreen>
   String _formatLongDate(DateTime d) {
     final day = DateFormat('dd/MM/yyyy').format(d);
     final raw = DateFormat.EEEE('pt_BR').format(d);
-    final nice =
-        toBeginningOfSentenceCase(raw)?.replaceAll('-feira', ' Feira') ?? raw;
+    final nice = toBeginningOfSentenceCase(raw).replaceAll('-feira', ' Feira');
     return '$nice dia $day';
   }
 
   // Navegações / ações
-  void _openRegisterBoxSheet() {
-    showAppBottomSheet(context, const BoxSignupCoach());
-  }
-
   void _onDateChanged(DateTime d) => _reloadDayData(d);
 
   void _onClassChanged(String? classId) {

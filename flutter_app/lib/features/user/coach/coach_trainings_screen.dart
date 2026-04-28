@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_trainings_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_trainings_actions_section.dart';
-import 'package:flutter_app/shared/widgets/mocks/app_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/date_selector.dart'; // Importante para o seletor funcionar
@@ -17,10 +16,6 @@ class CoachTrainingScreen extends StatefulWidget {
 class _CoachTrainingScreenState extends State<CoachTrainingScreen> {
   // Estado local para a data selecionada
   DateTime _selectedDate = DateTime.now();
-
-  void _openRegisterBoxSheet(BuildContext context) {
-    showAppBottomSheet(context, const Placeholder());
-  }
 
   // Função chamada quando trocamos a data no DateSelector
   void _onDateChanged(DateTime date) {

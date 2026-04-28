@@ -29,8 +29,6 @@ class ConcludedChampListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
-    final fmt = DateFormat('dd/MM/yyyy');
-
     // lado direito: ranking se existir; se não e já passou, botão Registrar
     Widget right;
     if (champ.userRanking != null) {

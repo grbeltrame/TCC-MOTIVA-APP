@@ -5,7 +5,6 @@ import 'package:flutter_app/core/services/mini_card_service.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/weekly_stats_service.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 /// MiniCard que busca valor via service e exibe:
 /// - ícone (Material ou SVG), título, valor e botão opcional.

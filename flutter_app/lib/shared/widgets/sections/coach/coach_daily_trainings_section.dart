@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/widgets/utils/date_selector.dart';
-import 'package:intl/intl.dart';
 
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';

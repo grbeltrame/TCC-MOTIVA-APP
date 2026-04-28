@@ -26,7 +26,8 @@ class _CoachTrainingInsightsScreenState
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
-    final DateTime? initialMonth = args?['month'] as DateTime?;
+    final DateTime? initialMonth =
+        args?['month'] as DateTime? ?? _monthFromKey(args?['monthKey']);
     final String boxId = (args?['boxId'] as String?) ?? '1';
 
     return Scaffold(
@@ -84,5 +85,17 @@ class _CoachTrainingInsightsScreenState
         ),
       ),
     );
+  }
+
+  DateTime? _monthFromKey(dynamic monthKey) {
+    if (monthKey is! String || monthKey.isEmpty) return null;
+    final parts = monthKey.split('-');
+    if (parts.length < 2) return null;
+
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    if (year == null || month == null) return null;
+
+    return DateTime(year, month);
   }
 }

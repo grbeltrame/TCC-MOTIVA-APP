@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/pr_service.dart';
-import 'package:flutter_app/core/services/workout/workout_result_service.dart'; // MovementPreset
+// MovementPreset
 import 'package:flutter_app/shared/widgets/register_result/movements.dart';
 import 'package:flutter_app/shared/widgets/register_result/section_adaptations.dart';
 
