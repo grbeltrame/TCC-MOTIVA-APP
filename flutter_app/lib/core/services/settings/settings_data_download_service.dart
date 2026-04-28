@@ -1,28 +1,18 @@
-class DataDownloadRequest {
-  final String status; // 'idle' | 'requested' | 'processing' | 'ready'
-  final DateTime? requestedAt;
+import 'package:cloud_functions/cloud_functions.dart';
 
-  DataDownloadRequest({required this.status, this.requestedAt});
-
-  factory DataDownloadRequest.defaults() =>
-      DataDownloadRequest(status: 'idle', requestedAt: null);
-}
-
-/// ✅ MOCK
-/// TODO(BACKEND): criar job, armazenar status, gerar link
 class SettingsDataDownloadService {
-  static DataDownloadRequest _cache = DataDownloadRequest.defaults();
+  SettingsDataDownloadService({FirebaseFunctions? functions})
+    : _functions =
+          functions ?? FirebaseFunctions.instanceFor(region: 'us-central1');
 
-  Future<DataDownloadRequest> fetchStatus() async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    return _cache;
-  }
+  final FirebaseFunctions _functions;
 
-  Future<void> requestDownload() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _cache = DataDownloadRequest(
-      status: 'requested',
-      requestedAt: DateTime.now(),
-    );
+  Future<Map<String, dynamic>> exportUserData() async {
+    final response = await _functions.httpsCallable('export_user_data').call();
+    final data = response.data;
+    if (data is Map) {
+      return data.map((key, value) => MapEntry(key.toString(), value));
+    }
+    throw StateError('Exportacao retornou um formato inesperado.');
   }
 }

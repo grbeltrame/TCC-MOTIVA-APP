@@ -49,6 +49,14 @@ class _NotificationsCollection:
         return _NotificationDoc(self._store, doc_id)
 
 
+class _SettingsCollection:
+    def __init__(self, store):
+        self._store = store
+
+    def document(self, doc_id):
+        return _NotificationDoc(self._store, doc_id)
+
+
 class _UserRef:
     def __init__(self, db, uid):
         self._db = db
@@ -60,9 +68,13 @@ class _UserRef:
         return _Snapshot(self._uid, exists=False)
 
     def collection(self, name):
-        if name != "notifications":
-            raise AssertionError(f"unexpected collection {name}")
-        return _NotificationsCollection(self._db.notifications.setdefault(self._uid, {}))
+        if name == "notifications":
+            return _NotificationsCollection(
+                self._db.notifications.setdefault(self._uid, {})
+            )
+        if name == "settings":
+            return _SettingsCollection(self._db.settings.setdefault(self._uid, {}))
+        raise AssertionError(f"unexpected collection {name}")
 
 
 class _UsersQuery:
@@ -150,6 +162,7 @@ class _Db:
     def __init__(self, users):
         self.users = users
         self.notifications = {}
+        self.settings = {}
 
     def collection(self, name):
         if name != "users":
@@ -230,6 +243,49 @@ class NotificationModuleTest(unittest.TestCase):
         max_retention = timedelta(days=NOTIFICATION_RETENTION_DAYS, minutes=1)
         self.assertGreater(retention, min_retention)
         self.assertLessEqual(retention, max_retention)
+
+    def test_create_user_notification_respects_disabled_category(self):
+        db = _Db({"u1": {"profile": "athlete"}})
+        db.settings = {
+            "u1": {
+                "athlete": {
+                    "weeklyInsights": False,
+                }
+            }
+        }
+
+        with patch("notification_module.logic._send_push_to_user") as push:
+            created = create_user_notification(
+                db=db,
+                uid="u1",
+                role="athlete",
+                type_="athlete_weekly_insights_ready",
+                title="Resumo pronto",
+                body="Veja sua semana.",
+                dedupe_key="weekly/u1/2026-W18",
+            )
+
+        self.assertFalse(created)
+        self.assertNotIn("u1", db.notifications)
+        push.assert_not_called()
+
+    def test_create_user_notification_skips_disabled_account(self):
+        db = _Db({"u1": {"profile": "coach", "accountStatus": "disabled"}})
+
+        with patch("notification_module.logic._send_push_to_user") as push:
+            created = create_user_notification(
+                db=db,
+                uid="u1",
+                role="coach",
+                type_="coach_daily_analysis_ready",
+                title="Analise pronta",
+                body="Treino analisado.",
+                dedupe_key="coach/workout-1",
+            )
+
+        self.assertFalse(created)
+        self.assertNotIn("u1", db.notifications)
+        push.assert_not_called()
 
     def test_notify_all_coaches_skips_pure_athletes(self):
         db = _Db(

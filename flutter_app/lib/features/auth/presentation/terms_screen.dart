@@ -26,15 +26,21 @@ class TermsScreen extends StatelessWidget {
         ),
       ),
       backgroundColor: AppColors.offWhite,
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Conteúdo dos Termos de Serviço aqui...',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontFamily: AppFonts.roboto, fontSize: 16),
-          ),
-        ),
+      body: const SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
+        child: Text('''
+Termos de Serviço do Motiva
+
+Ao usar o Motiva, você concorda em utilizar o aplicativo para registrar treinos, acompanhar evolução e acessar análises geradas a partir das informações fornecidas por você ou pelo seu coach.
+
+As análises de IA têm finalidade informativa e de apoio ao treino. Elas não substituem orientação médica, avaliação profissional presencial ou decisões de saúde tomadas com profissionais habilitados.
+
+Você é responsável por manter suas credenciais seguras e por informar dados corretos ao registrar resultados, perfil e preferências. O uso indevido, tentativa de acesso não autorizado ou manipulação de dados pode resultar em bloqueio ou exclusão da conta.
+
+O Motiva pode atualizar funcionalidades, corrigir erros e ajustar estes termos conforme o aplicativo evolui. O uso continuado após mudanças indica concordância com a versão atualizada.
+
+Você pode solicitar download, desativação ou exclusão da sua conta pelas configurações do aplicativo.
+''', style: TextStyle(fontFamily: AppFonts.roboto, fontSize: 16)),
       ),
     );
   }

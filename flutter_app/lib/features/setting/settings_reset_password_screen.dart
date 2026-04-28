@@ -1,12 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/services/settings/accaount_service.dart';
 import 'package:flutter_app/features/setting/settings_scafold.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 
-class SettingsResetPasswordScreen extends StatelessWidget {
+class SettingsResetPasswordScreen extends StatefulWidget {
   static const routeName = '/settings/reset_password';
   const SettingsResetPasswordScreen({super.key});
+
+  @override
+  State<SettingsResetPasswordScreen> createState() =>
+      _SettingsResetPasswordScreenState();
+}
+
+class _SettingsResetPasswordScreenState
+    extends State<SettingsResetPasswordScreen> {
+  final _service = AccountService();
+  bool _loading = false;
+
+  Future<void> _sendReset() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Redefinir senha?'),
+          content: const Text(
+            'Enviaremos um link para o email da sua conta e você será desconectado.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Enviar link'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _loading = true);
+    try {
+      await _service.sendCurrentUserPasswordResetAndSignOut();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (_) => false);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível enviar o email de redefinição.'),
+        ),
+      );
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +75,7 @@ class SettingsResetPasswordScreen extends StatelessWidget {
           children: [
             const SettingsHeader(title: 'Redefinir senha'),
             Text(
-              'Nos informe seu email para enviarmos o link de redefinicao de senha.',
+              'Vamos enviar o link de redefinição para o email da sua conta.',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 12 * scale,
@@ -35,19 +87,17 @@ class SettingsResetPasswordScreen extends StatelessWidget {
               width: double.infinity,
               height: 44 * scale,
               child: ElevatedButton(
-                onPressed:
-                    () =>
-                        Navigator.pushNamed(context, AppRoutes.forgotPassword),
+                onPressed: _loading ? null : _sendReset,
                 style: const ButtonStyle(
                   backgroundColor: WidgetStatePropertyAll(AppColors.baseBlue),
                   elevation: WidgetStatePropertyAll(0),
                 ),
-                child: const Text('Continuar'),
+                child: Text(_loading ? 'Enviando...' : 'Enviar link'),
               ),
             ),
             SizedBox(height: 12 * scale),
             Text(
-              'Se o email estiver cadastrado, o link sera enviado para a caixa de entrada. Vale conferir tambem a pasta de spam.',
+              'Após o envio, entre novamente quando concluir a troca de senha.',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 11 * scale,

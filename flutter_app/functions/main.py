@@ -9,6 +9,7 @@ from firebase_functions import (
     https_fn,
     scheduler_fn,
     options,
+    params,
 )
 
 # inicializa app firebase (leve)
@@ -21,6 +22,7 @@ if not firebase_admin._apps:
 # =============================================================================
 
 _REGION = "us-central1"
+_SUPPORT_EMAIL_SECRET = params.SecretParam("SUPPORT_EMAIL")
 _TASK_QUEUE_ID = os.environ.get("WEEKLY_INSIGHTS_QUEUE", "weekly-insights-queue")
 
 # Janela base de debounce: 5 min. Se o atleta publicar N resultados em até
@@ -400,6 +402,127 @@ def get_athlete_evolution_insights(req: https_fn.CallableRequest):
         return run_evolution_insights_logic(uid, force=force)
     except Exception as e:
         logging.exception("Erro em get_athlete_evolution_insights")
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INTERNAL,
+            message=str(e),
+        )
+
+
+@https_fn.on_call(
+    region=_REGION,
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=60,
+)
+def deactivate_current_user_account(req: https_fn.CallableRequest):
+    if not req.auth or not req.auth.uid:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="Autenticação necessária.",
+        )
+
+    try:
+        from account_module import deactivate_user_account
+        return deactivate_user_account(req.auth.uid)
+    except Exception as e:
+        logging.exception("Erro em deactivate_current_user_account")
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INTERNAL,
+            message=str(e),
+        )
+
+
+@https_fn.on_call(
+    region=_REGION,
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=60,
+)
+def reactivate_current_user_account(req: https_fn.CallableRequest):
+    if not req.auth or not req.auth.uid:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="Autenticação necessária.",
+        )
+
+    try:
+        from account_module import reactivate_user_account
+        return reactivate_user_account(req.auth.uid)
+    except Exception as e:
+        logging.exception("Erro em reactivate_current_user_account")
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INTERNAL,
+            message=str(e),
+        )
+
+
+@https_fn.on_call(
+    region=_REGION,
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=540,
+)
+def delete_current_user_account(req: https_fn.CallableRequest):
+    if not req.auth or not req.auth.uid:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="Autenticação necessária.",
+        )
+
+    try:
+        from account_module import delete_user_account
+        return delete_user_account(req.auth.uid)
+    except Exception as e:
+        logging.exception("Erro em delete_current_user_account")
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INTERNAL,
+            message=str(e),
+        )
+
+
+@https_fn.on_call(
+    region=_REGION,
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=120,
+)
+def export_user_data(req: https_fn.CallableRequest):
+    if not req.auth or not req.auth.uid:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="Autenticação necessária.",
+        )
+
+    try:
+        from export_module import export_user_data as _export_user_data
+        return _export_user_data(req.auth.uid)
+    except Exception as e:
+        logging.exception("Erro em export_user_data")
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INTERNAL,
+            message=str(e),
+        )
+
+
+@https_fn.on_call(
+    region=_REGION,
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=60,
+    secrets=[_SUPPORT_EMAIL_SECRET],
+)
+def submit_support_ticket(req: https_fn.CallableRequest):
+    if not req.auth or not req.auth.uid:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="Autenticação necessária.",
+        )
+
+    try:
+        from support_module import submit_support_ticket as _submit_support_ticket
+        return _submit_support_ticket(req.auth.uid, req.data or {})
+    except ValueError as e:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message=str(e),
+        )
+    except Exception as e:
+        logging.exception("Erro em submit_support_ticket")
         raise https_fn.HttpsError(
             code=https_fn.FunctionsErrorCode.INTERNAL,
             message=str(e),

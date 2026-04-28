@@ -27,14 +27,21 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
   Future<void> _send() async {
     if (_ctrl.text.trim().isEmpty) return;
     setState(() => _loading = true);
-    await _service.sendFeedback(_ctrl.text.trim(), _rating);
-    setState(() => _loading = false);
-
-    if (!mounted) return;
-    _ctrl.clear();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Feedback enviado (mock).')));
+    try {
+      await _service.sendFeedback(_ctrl.text.trim(), _rating);
+      if (!mounted) return;
+      _ctrl.clear();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Feedback enviado.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível enviar o feedback.')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -95,8 +102,8 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
               child: ElevatedButton(
                 onPressed: _loading ? null : _send,
                 style: const ButtonStyle(
-                  backgroundColor: MaterialStatePropertyAll(AppColors.baseBlue),
-                  elevation: MaterialStatePropertyAll(0),
+                  backgroundColor: WidgetStatePropertyAll(AppColors.baseBlue),
+                  elevation: WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Enviando...' : 'Enviar feedback'),
               ),
@@ -104,7 +111,7 @@ class _SettingsFeedbackScreenState extends State<SettingsFeedbackScreen> {
 
             SizedBox(height: 12 * scale),
             Text(
-              'TODO(BACKEND): armazenar feedback + rating + versão do app + device.',
+              'Seu feedback será enviado para o suporte do projeto.',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 11 * scale,

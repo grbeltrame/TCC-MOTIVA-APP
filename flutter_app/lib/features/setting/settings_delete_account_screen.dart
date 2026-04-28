@@ -33,14 +33,43 @@ class _SettingsDeleteAccountScreenState
       return;
     }
 
-    setState(() => _loading = true);
-    await _service.requestDeleteAccount();
-    setState(() => _loading = false);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Solicitação enviada (mock).')),
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Excluir permanentemente?'),
+          content: const Text(
+            'Essa ação apaga sua conta e seus dados de forma permanente.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Excluir'),
+            ),
+          ],
+        );
+      },
     );
+
+    if (ok != true) return;
+
+    setState(() => _loading = true);
+    try {
+      await _service.deleteCurrentAccount();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível excluir a conta.')),
+      );
+    }
   }
 
   @override
@@ -82,12 +111,13 @@ class _SettingsDeleteAccountScreenState
               child: ElevatedButton(
                 onPressed: _loading ? null : _requestDelete,
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.resolveWith((states) {
-                    if (states.contains(MaterialState.disabled))
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.disabled)) {
                       return AppColors.lightGray;
+                    }
                     return Colors.red.shade700;
                   }),
-                  elevation: const MaterialStatePropertyAll(0),
+                  elevation: const WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Enviando...' : 'Solicitar exclusão'),
               ),
@@ -95,7 +125,7 @@ class _SettingsDeleteAccountScreenState
 
             SizedBox(height: 12 * scale),
             Text(
-              'TODO(BACKEND): registrar solicitação, prazos, LGPD e remoção de dados.',
+              'Ao confirmar, seus dados serão removidos permanentemente.',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 11 * scale,

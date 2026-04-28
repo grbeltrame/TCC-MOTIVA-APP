@@ -311,6 +311,9 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
     for user_doc in users_ref.stream():
         if not _is_athlete_user(user_doc, db):
             continue
+        from user_settings_module import athlete_ai_enabled
+        if not athlete_ai_enabled(db, user_doc.id):
+            continue
         athlete_count += 1
 
         result = _generate_insights_for_athlete(

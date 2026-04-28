@@ -1,22 +1,46 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_app/core/services/auth_service.dart';
+
 class AccountService {
-  /// TODO(BACKEND): disparar reset password via backend/auth provider
-  Future<void> requestPasswordReset({required String email}) async {
-    await Future.delayed(const Duration(milliseconds: 250));
+  AccountService({
+    FirebaseAuth? auth,
+    FirebaseFunctions? functions,
+    AuthService? authService,
+  }) : _auth = auth ?? FirebaseAuth.instance,
+       _functions =
+           functions ?? FirebaseFunctions.instanceFor(region: 'us-central1'),
+       _authService = authService ?? AuthService.instance;
+
+  final FirebaseAuth _auth;
+  final FirebaseFunctions _functions;
+  final AuthService _authService;
+
+  Future<void> requestPasswordReset({required String email}) {
+    return _authService.sendPasswordResetEmail(email);
   }
 
-  /// TODO(BACKEND): criar request de download e retornar protocolo
-  Future<String> requestDataDownload() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return 'REQ-${DateTime.now().millisecondsSinceEpoch}';
+  Future<void> sendCurrentUserPasswordResetAndSignOut() async {
+    final email = _auth.currentUser?.email;
+    if (email == null || email.trim().isEmpty) {
+      throw StateError('Usuario logado nao possui email cadastrado.');
+    }
+
+    await requestPasswordReset(email: email);
+    await _authService.signOut();
   }
 
-  /// TODO(BACKEND): desativar conta (soft delete / suspensão)
-  Future<void> requestDeactivateAccount() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+  Future<void> deactivateCurrentAccount() async {
+    await _functions.httpsCallable('deactivate_current_user_account').call();
+    await _authService.signOut();
   }
 
-  /// TODO(BACKEND): solicitar exclusão permanente (LGPD)
-  Future<void> requestDeleteAccount() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+  Future<void> reactivateCurrentAccount() async {
+    await _functions.httpsCallable('reactivate_current_user_account').call();
+  }
+
+  Future<void> deleteCurrentAccount() async {
+    await _functions.httpsCallable('delete_current_user_account').call();
+    await _authService.signOut();
   }
 }

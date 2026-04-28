@@ -42,13 +42,17 @@ class _SettingsDeactivateAccountScreenState
     if (ok != true) return;
 
     setState(() => _loading = true);
-    await _service.requestDeactivateAccount();
-    setState(() => _loading = false);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Solicitação enviada (mock).')),
-    );
+    try {
+      await _service.deactivateCurrentAccount();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível desativar a conta.')),
+      );
+    }
   }
 
   @override
@@ -81,12 +85,13 @@ class _SettingsDeactivateAccountScreenState
               child: ElevatedButton(
                 onPressed: _loading ? null : _confirmDeactivate,
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.resolveWith((states) {
-                    if (states.contains(MaterialState.disabled))
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.disabled)) {
                       return AppColors.lightGray;
+                    }
                     return Colors.orange.shade700;
                   }),
-                  elevation: const MaterialStatePropertyAll(0),
+                  elevation: const WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Enviando...' : 'Desativar conta'),
               ),
@@ -94,7 +99,7 @@ class _SettingsDeactivateAccountScreenState
 
             SizedBox(height: 12 * scale),
             Text(
-              'TODO(BACKEND): marcar conta como desativada + validar login.',
+              'Você poderá reativar a conta no próximo login.',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 11 * scale,

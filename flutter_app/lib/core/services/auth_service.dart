@@ -70,6 +70,7 @@ class AuthService {
       'photoURL': user.photoURL ?? '',
       'profile': profile.storageValue,
       'provider': 'email',
+      'accountStatus': 'active',
       'createdAt': FieldValue.serverTimestamp(),
     });
 
@@ -139,6 +140,7 @@ class AuthService {
       'photoURL': user.photoURL ?? '',
       'profile': profile.storageValue,
       'provider': 'google',
+      'accountStatus': 'active',
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -151,6 +153,15 @@ class AuthService {
       return profile;
     }
     return null;
+  }
+
+  Future<Map<String, dynamic>?> fetchUserData(String uid) async {
+    final doc = await _users.doc(uid).get();
+    return doc.data();
+  }
+
+  bool isAccountDisabled(Map<String, dynamic>? userData) {
+    return userData?['accountStatus'] == 'disabled';
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
@@ -177,6 +188,7 @@ class AuthService {
         'email': user.email ?? '',
         'photoURL': user.photoURL ?? '',
         'provider': 'google',
+        'accountStatus': 'active',
         'createdAt': FieldValue.serverTimestamp(),
       });
       return false;

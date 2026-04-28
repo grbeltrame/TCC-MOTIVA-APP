@@ -29,18 +29,25 @@ class _SettingsBugReportScreenState extends State<SettingsBugReportScreen> {
   Future<void> _send() async {
     if (_desc.text.trim().isEmpty) return;
     setState(() => _loading = true);
-    await _service.sendBugReport(
-      _desc.text.trim(),
-      steps: _steps.text.trim().isEmpty ? null : _steps.text.trim(),
-    );
-    setState(() => _loading = false);
-
-    if (!mounted) return;
-    _desc.clear();
-    _steps.clear();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Relato enviado (mock).')));
+    try {
+      await _service.sendBugReport(
+        _desc.text.trim(),
+        steps: _steps.text.trim().isEmpty ? null : _steps.text.trim(),
+      );
+      if (!mounted) return;
+      _desc.clear();
+      _steps.clear();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Relato enviado.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível enviar o relato.')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -92,8 +99,8 @@ class _SettingsBugReportScreenState extends State<SettingsBugReportScreen> {
               child: ElevatedButton(
                 onPressed: _loading ? null : _send,
                 style: const ButtonStyle(
-                  backgroundColor: MaterialStatePropertyAll(AppColors.baseBlue),
-                  elevation: MaterialStatePropertyAll(0),
+                  backgroundColor: WidgetStatePropertyAll(AppColors.baseBlue),
+                  elevation: WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Enviando...' : 'Enviar relatório'),
               ),
@@ -101,7 +108,7 @@ class _SettingsBugReportScreenState extends State<SettingsBugReportScreen> {
 
             SizedBox(height: 12 * scale),
             Text(
-              'TODO(BACKEND): anexar logs, versão do app, device, screenshot (se tiver).',
+              'O relato será enviado para o suporte do projeto.',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 11 * scale,

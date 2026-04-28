@@ -26,15 +26,23 @@ class PrivacyPolicyScreen extends StatelessWidget {
         ),
       ),
       backgroundColor: AppColors.offWhite,
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Conteúdo da Política de Privacidade aqui...',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontFamily: AppFonts.roboto, fontSize: 16),
-          ),
-        ),
+      body: const SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
+        child: Text('''
+Política de Privacidade do Motiva
+
+Coletamos dados necessários para criar sua conta, identificar seu perfil, registrar treinos, resultados, PRs, preferências, notificações e informações usadas para gerar análises do aplicativo.
+
+Quando a personalização por IA estiver ativa, seus dados de treino e evolução poderão ser usados para gerar insights semanais, análises de evolução e informações pré-treino. Você pode desativar novas análises personalizadas nas configurações de privacidade.
+
+Dados técnicos de diagnóstico podem ser usados para melhorar estabilidade e corrigir problemas, conforme sua preferência nas configurações.
+
+Suporte, feedback e relatos de erro enviados pelo app podem ser encaminhados ao email de suporte do projeto e armazenados para acompanhamento.
+
+Você pode solicitar o download dos seus dados, desativar temporariamente sua conta ou solicitar exclusão permanente pelas configurações do aplicativo.
+
+Não vendemos seus dados pessoais. O uso de provedores como Firebase, serviços de autenticação, armazenamento, notificações e funções em nuvem ocorre para operar o aplicativo.
+''', style: TextStyle(fontFamily: AppFonts.roboto, fontSize: 16)),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/auth_service.dart';
+import 'package:flutter_app/core/services/settings/accaount_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
@@ -16,10 +17,10 @@ import 'package:flutter_app/features/auth/presentation/providers/user_provider.d
 /// Tela de Login com inputs de email e senha, botões de ação e opções de login social.
 class LoginScreen extends StatefulWidget {
   static const String routeName = '/login';
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -52,6 +53,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final User? user = userCredential.user;
 
       if (user != null) {
+        final canContinue = await _ensureAccountActive(user);
+        if (!canContinue) return;
+        if (!mounted) return;
+
         // 2. A MÁGICA: Carrega os dados no Provider (Memória Global)
         // Usamos listen: false porque estamos numa função, não desenhando tela
         await Provider.of<UserProvider>(
@@ -118,6 +123,10 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
+      final canContinue = await _ensureAccountActive(user);
+      if (!canContinue) return;
+      if (!mounted) return;
+
       // 2. Tenta carregar perfil no Provider
       try {
         await Provider.of<UserProvider>(
@@ -155,6 +164,43 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // --- FIM DA ADIÇÃO DE CÓDIGO ---
+
+  Future<bool> _ensureAccountActive(User user) async {
+    final userData = await AuthService.instance.fetchUserData(user.uid);
+    if (!AuthService.instance.isAccountDisabled(userData)) return true;
+    if (!mounted) return false;
+
+    final reactivate = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Reativar conta?'),
+          content: const Text(
+            'Sua conta está desativada. Deseja reativá-la para continuar usando o aplicativo?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Reativar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (reactivate == true) {
+      await AccountService().reactivateCurrentAccount();
+      return true;
+    }
+
+    await AuthService.instance.signOut();
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
 // Imports do projeto
@@ -376,6 +377,7 @@ class TrainingService {
             'pt_BR',
           ).format(date).toUpperCase().replaceAll('-FEIRA', ' FEIRA'),
           'criadoEm': FieldValue.serverTimestamp(),
+          'createdByUid': FirebaseAuth.instance.currentUser?.uid,
           'partes': partesMap,
           'statusAnalise': 'pendente',
           'uploadedBy': 'COACH_APP',

@@ -1,28 +1,18 @@
-class SettingsPrivacyState {
-  bool shareAnalytics;
-  bool shareCrashReports;
+import 'package:flutter_app/core/services/settings/general_settings_service.dart';
 
-  SettingsPrivacyState({
-    required this.shareAnalytics,
-    required this.shareCrashReports,
-  });
+typedef SettingsPrivacyState = PrivacySettingsState;
 
-  factory SettingsPrivacyState.defaults() =>
-      SettingsPrivacyState(shareAnalytics: true, shareCrashReports: true);
-}
-
-/// ✅ MOCK
-/// TODO(BACKEND): persistir por usuário
 class SettingsPrivacyService {
-  static SettingsPrivacyState _cache = SettingsPrivacyState.defaults();
+  SettingsPrivacyService({UserSettingsService? settingsService})
+    : _settingsService = settingsService ?? UserSettingsService.instance;
 
-  Future<SettingsPrivacyState> fetch() async {
-    await Future.delayed(const Duration(milliseconds: 180));
-    return _cache;
+  final UserSettingsService _settingsService;
+
+  Future<SettingsPrivacyState> fetch() {
+    return _settingsService.fetchPrivacySettings();
   }
 
-  Future<void> update(SettingsPrivacyState next) async {
-    await Future.delayed(const Duration(milliseconds: 120));
-    _cache = next;
+  Future<void> update(SettingsPrivacyState next) {
+    return _settingsService.updatePrivacySettings(next);
   }
 }

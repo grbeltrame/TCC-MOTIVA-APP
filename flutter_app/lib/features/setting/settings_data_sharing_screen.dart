@@ -66,25 +66,30 @@ class _SettingsDataSharingScreenState extends State<SettingsDataSharingScreen> {
                 SizedBox(height: 12 * scale),
 
                 _SwitchRow(
-                  title: 'Compartilhar dados de uso (analytics)',
-                  value: _state.shareAnalytics,
+                  title: 'Permitir análises personalizadas por IA',
+                  value: _state.aiPersonalizationEnabled,
                   onChanged: (v) async {
-                    setState(() => _state.shareAnalytics = v);
+                    setState(
+                      () =>
+                          _state = _state.copyWith(aiPersonalizationEnabled: v),
+                    );
                     await _save();
                   },
                 ),
                 _SwitchRow(
-                  title: 'Enviar relatórios de falhas (crash reports)',
-                  value: _state.shareCrashReports,
+                  title: 'Enviar dados técnicos de diagnóstico',
+                  value: _state.diagnosticsEnabled,
                   onChanged: (v) async {
-                    setState(() => _state.shareCrashReports = v);
+                    setState(
+                      () => _state = _state.copyWith(diagnosticsEnabled: v),
+                    );
                     await _save();
                   },
                 ),
                 SizedBox(height: 10 * scale),
 
                 Text(
-                  'TODO(BACKEND): persistir por usuário e respeitar no tracking.',
+                  'Ao desativar a IA, novas análises personalizadas deixam de ser geradas. Seus treinos e sua conta continuam funcionando.',
                   style: TextStyle(
                     fontFamily: AppFonts.roboto,
                     fontSize: 11 * scale,
@@ -138,7 +143,7 @@ class _SwitchRow extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.baseBlue,
+            activeThumbColor: AppColors.baseBlue,
           ),
         ],
       ),

@@ -562,6 +562,7 @@ def run_pdf_parser_logic(event):
         treino_json = {
             "arquivoFonte": file_path,
             "uploadedBy": user_id,
+            "createdByUid": user_id,
             "boxId": box_id,
             "criadoEm": firestore.SERVER_TIMESTAMP,
             "dataDoTreinoTexto": data_str,

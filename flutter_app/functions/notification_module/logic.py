@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from firebase_admin import firestore, messaging
+from user_settings_module import notification_enabled
 
 _TZ_BRAZIL = ZoneInfo("America/Sao_Paulo")
 _HYBRID_PROFILES = {"athleteCoach", "athleteIntern"}
@@ -95,7 +96,11 @@ def create_user_notification(
     if not user_doc.exists:
         return False
 
-    profile = (user_doc.to_dict() or {}).get("profile")
+    user_data = user_doc.to_dict() or {}
+    if not notification_enabled(db, uid, role, type_, user_data=user_data):
+        return False
+
+    profile = user_data.get("profile")
     notification_ref = user_ref.collection("notifications").document(
         _safe_doc_id(dedupe_key)
     )

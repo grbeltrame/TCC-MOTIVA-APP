@@ -87,6 +87,11 @@ def run_weekly_insights_logic(uid: str) -> dict:
     db = firestore.client()
     logging.info(f"[weekly-insights] iniciando para uid={uid}")
 
+    from user_settings_module import athlete_ai_enabled
+    if not athlete_ai_enabled(db, uid):
+        logging.info(f"[weekly-insights] {uid}: IA desativada ou conta inativa.")
+        return {"skipped": "ai_disabled"}
+
     # 1) stats/summary
     stats_ref = db.collection("users").document(uid) \
                   .collection("stats").document("summary")
@@ -316,6 +321,11 @@ def run_evolution_insights_logic(uid: str, force: bool = False) -> dict:
     ):
         logging.info(f"[evolution-insights] cache quente para {uid}, reusando.")
         return {**existing_data, "fromCache": True}
+
+    from user_settings_module import athlete_ai_enabled
+    if not athlete_ai_enabled(db, uid):
+        logging.info(f"[evolution-insights] {uid}: IA desativada ou conta inativa.")
+        return {"skipped": "ai_disabled"}
 
     # stats/summary
     stats_doc = db.collection("users").document(uid) \

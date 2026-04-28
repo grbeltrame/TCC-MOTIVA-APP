@@ -26,14 +26,21 @@ class _SettingsSupportScreenState extends State<SettingsSupportScreen> {
   Future<void> _send() async {
     if (_ctrl.text.trim().isEmpty) return;
     setState(() => _loading = true);
-    await _service.sendSupportMessage(_ctrl.text.trim());
-    setState(() => _loading = false);
-
-    if (!mounted) return;
-    _ctrl.clear();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Mensagem enviada (mock).')));
+    try {
+      await _service.sendSupportMessage(_ctrl.text.trim());
+      if (!mounted) return;
+      _ctrl.clear();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Mensagem enviada.')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível enviar a mensagem.')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -76,8 +83,8 @@ class _SettingsSupportScreenState extends State<SettingsSupportScreen> {
               child: ElevatedButton(
                 onPressed: _loading ? null : _send,
                 style: const ButtonStyle(
-                  backgroundColor: MaterialStatePropertyAll(AppColors.baseBlue),
-                  elevation: MaterialStatePropertyAll(0),
+                  backgroundColor: WidgetStatePropertyAll(AppColors.baseBlue),
+                  elevation: WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Enviando...' : 'Enviar'),
               ),
@@ -85,7 +92,7 @@ class _SettingsSupportScreenState extends State<SettingsSupportScreen> {
 
             SizedBox(height: 12 * scale),
             Text(
-              'TODO(BACKEND): abrir ticket em helpdesk / salvar histórico por usuário.',
+              'A mensagem será enviada para o suporte do projeto.',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 11 * scale,
