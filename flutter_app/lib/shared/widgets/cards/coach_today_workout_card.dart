@@ -37,11 +37,13 @@ class _DropdownOption {
   final String label; // ex: "WOD", "WOD (2)", "ENDURANCE"
   final String category; // chave da parte: "WOD", "ENDURANCE" …
   final String? trainingId; // ID do documento (para múltiplos WODs no dia)
+  final String status;
 
   const _DropdownOption({
     required this.label,
     required this.category,
     this.trainingId,
+    this.status = 'publicado',
   });
 
   @override
@@ -49,10 +51,11 @@ class _DropdownOption {
       other is _DropdownOption &&
       label == other.label &&
       category == other.category &&
-      trainingId == other.trainingId;
+      trainingId == other.trainingId &&
+      status == other.status;
 
   @override
-  int get hashCode => Object.hash(label, category, trainingId);
+  int get hashCode => Object.hash(label, category, trainingId, status);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,6 +150,7 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
     final trainings = await TrainingService.fetchTrainingsListForDate(
       boxId: widget.boxId,
       date: widget.date,
+      includeDrafts: true,
     );
 
     final List<_DropdownOption> opts = [];
@@ -159,9 +163,13 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
       final count = typeCount[type]!;
       opts.add(
         _DropdownOption(
-          label: count == 1 ? type : '$type ($count)',
+          label:
+              count == 1
+                  ? type
+                  : '$type ($count)',
           category: type,
           trainingId: t.id,
+          status: t.status,
         ),
       );
     }
@@ -183,6 +191,7 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
     final trainings = await TrainingService.fetchTrainingsListForDate(
       boxId: widget.boxId,
       date: widget.date,
+      includeDrafts: true,
     );
 
     // Encontra o Training correto: por ID se disponível, senão por categoria
@@ -313,7 +322,9 @@ class _CoachTodayWorkoutCardState extends State<CoachTodayWorkoutCard> {
                             (opt) => DropdownMenuItem<_DropdownOption>(
                               value: opt,
                               child: Text(
-                                opt.label,
+                                opt.status == 'publicado'
+                                    ? opt.label
+                                    : '${opt.label} - Rascunho',
                                 style: textTheme.titleMedium?.copyWith(
                                   color: AppColors.baseBlue,
                                   fontSize: 18 * scale,

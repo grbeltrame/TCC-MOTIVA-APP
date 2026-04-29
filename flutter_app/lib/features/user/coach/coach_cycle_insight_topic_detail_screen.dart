@@ -57,7 +57,7 @@ class _CoachCycleInsightTopicDetailScreenState
     if (_isStaticMode) {
       final staticMessages = List<String>.from(staticMessagesArg as List);
       final refDate = _staticDate ?? DateTime.now();
-      _month = DateTime(refDate.year, refDate.month);
+      _month = _safeMonth(refDate);
       _future ??= Future.value(
         staticMessages
             .map(
@@ -69,10 +69,11 @@ class _CoachCycleInsightTopicDetailScreenState
       return;
     }
 
-    final DateTime? initialMonthArg = args['month'] as DateTime?;
+    final monthArg = args['month'];
+    final DateTime? initialMonthArg = monthArg is DateTime ? monthArg : null;
     final now = DateTime.now();
     final initialMonth = initialMonthArg ?? DateTime(now.year, now.month);
-    _month = DateTime(initialMonth.year, initialMonth.month);
+    _month = _safeMonth(initialMonth);
 
     _future ??= _service.fetchCycleTopicInsights(
       boxId: _boxId,
@@ -86,7 +87,7 @@ class _CoachCycleInsightTopicDetailScreenState
     if (_isStaticMode) return;
 
     setState(() {
-      _month = DateTime(newMonth.year, newMonth.month);
+      _month = _safeMonth(newMonth);
       _future = _service.fetchCycleTopicInsights(
         boxId: _boxId,
         month: _month,
@@ -94,6 +95,15 @@ class _CoachCycleInsightTopicDetailScreenState
         topicKey: _topicKey,
       );
     });
+  }
+
+  DateTime _safeMonth(DateTime date) {
+    final now = DateTime.now();
+    final normalized = DateTime(date.year, date.month);
+    if (normalized.year < 2020 || normalized.year > now.year + 2) {
+      return DateTime(now.year, now.month);
+    }
+    return normalized;
   }
 
   String _formatMonthLabel(DateTime m) {

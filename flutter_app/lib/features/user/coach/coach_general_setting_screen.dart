@@ -169,6 +169,7 @@ class _CoachGeneralSettingsScreenState
                 _NavRow(
                   scale: scale,
                   title: 'Solicitar exclusão permanente da conta',
+                  isDestructive: true,
                   onTap:
                       () => Navigator.pushNamed(
                         context,
@@ -317,7 +318,7 @@ class _NavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDestructive ? Colors.red.shade700 : AppColors.darkText;
+    final color = isDestructive ? AppColors.baseMagenta : AppColors.darkText;
 
     return InkWell(
       onTap: onTap,

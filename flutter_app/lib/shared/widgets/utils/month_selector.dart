@@ -19,11 +19,24 @@ class MonthSelector extends StatefulWidget {
 
 class _MonthSelectorState extends State<MonthSelector> {
   late DateTime _month; // sempre normalizado para dia 1
+  static const int _firstAllowedYear = 2020;
+
+  DateTime get _defaultMonth {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month);
+  }
+
+  DateTime get _firstAllowedMonth => DateTime(_firstAllowedYear);
+
+  DateTime get _lastAllowedMonth {
+    final now = DateTime.now();
+    return DateTime(now.year + 2, 12);
+  }
 
   @override
   void initState() {
     super.initState();
-    _normalizeDate(widget.initialMonth);
+    _month = _safeMonth(widget.initialMonth);
   }
 
   // Garante que se a data mudar externamente, o widget atualiza
@@ -36,24 +49,30 @@ class _MonthSelectorState extends State<MonthSelector> {
   }
 
   void _normalizeDate(DateTime date) {
+    final normalized = _safeMonth(date);
     setState(() {
-      _month = DateTime(date.year, date.month);
+      _month = normalized;
     });
   }
 
   void _changeMonth(int delta) {
     final newDate = DateTime(_month.year, _month.month + delta);
+    if (!_isAllowedMonth(newDate)) return;
     _updateDate(newDate);
   }
 
   // Abre o calendário nativo já no modo de Ano para facilitar
   Future<void> _pickMonth() async {
     final now = DateTime.now();
+    final firstDate = _firstAllowedMonth;
+    final lastDate = DateTime(now.year + 2, 12, 31);
+    final initialDate = _isAllowedMonth(_month) ? _month : _defaultMonth;
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: _month,
-      firstDate: DateTime(2020), // Ajuste conforme necessidade do projeto
-      lastDate: DateTime(now.year + 2),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
       initialDatePickerMode:
           DatePickerMode.year, // Abre mostrando os Anos primeiro
       builder: (context, child) {
@@ -77,11 +96,23 @@ class _MonthSelectorState extends State<MonthSelector> {
   }
 
   void _updateDate(DateTime date) {
-    final normalized = DateTime(date.year, date.month);
+    final normalized = _safeMonth(date);
     setState(() {
       _month = normalized;
     });
     widget.onMonthChanged?.call(normalized);
+  }
+
+  DateTime _safeMonth(DateTime date) {
+    final normalized = DateTime(date.year, date.month);
+    if (_isAllowedMonth(normalized)) return normalized;
+    return _defaultMonth;
+  }
+
+  bool _isAllowedMonth(DateTime date) {
+    final normalized = DateTime(date.year, date.month);
+    return !normalized.isBefore(_firstAllowedMonth) &&
+        !normalized.isAfter(_lastAllowedMonth);
   }
 
   @override
@@ -92,6 +123,10 @@ class _MonthSelectorState extends State<MonthSelector> {
     var label = formatter.format(_month);
     // Primeira letra maiúscula (ex: fevereiro -> Fevereiro)
     label = toBeginningOfSentenceCase(label) ?? label;
+    final canGoPrevious = _isAllowedMonth(
+      DateTime(_month.year, _month.month - 1),
+    );
+    final canGoNext = _isAllowedMonth(DateTime(_month.year, _month.month + 1));
 
     return Center(
       child: Container(
@@ -115,7 +150,7 @@ class _MonthSelectorState extends State<MonthSelector> {
                 height: 24 * scale,
               ),
               icon: Icon(Icons.navigate_before, size: 24 * scale),
-              onPressed: () => _changeMonth(-1),
+              onPressed: canGoPrevious ? () => _changeMonth(-1) : null,
             ),
 
             SizedBox(width: 8 * scale),
@@ -145,7 +180,7 @@ class _MonthSelectorState extends State<MonthSelector> {
                 height: 24 * scale,
               ),
               icon: Icon(Icons.navigate_next, size: 24 * scale),
-              onPressed: () => _changeMonth(1),
+              onPressed: canGoNext ? () => _changeMonth(1) : null,
             ),
           ],
         ),

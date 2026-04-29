@@ -3,7 +3,8 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 // AppDialog fica em mocks (mantendo seu padrão)
 import 'package:flutter_app/shared/widgets/mocks/app_dialog.dart';
 
-/// Sucesso no envio do PDF — fecha o dialog E o bottom sheet.
+/// Sucesso no envio do PDF — fecha apenas o dialog.
+/// O bottom sheet decide se deve fechar e qual resultado retornar.
 Future<void> showPdfUploadSuccessDialog(BuildContext context) async {
   await showDialog(
     context: context,
@@ -14,16 +15,9 @@ Future<void> showPdfUploadSuccessDialog(BuildContext context) async {
         iconColor: AppColors.darkBlue,
         title: 'PDF enviado com sucesso!',
         message:
-            'Recebemos o seu arquivo. Em instantes a IA irá processar os treinos.',
+            'Recebemos o seu arquivo. Os treinos serão importados como rascunho para revisão do coach.',
         primaryAction: TextButton(
-          onPressed: () {
-            // fecha o dialog
-            Navigator.of(ctx).pop();
-            // fecha o bottom sheet (se ainda estiver aberto)
-            if (Navigator.of(ctx).canPop()) {
-              Navigator.of(ctx).pop();
-            }
-          },
+          onPressed: () => Navigator.of(ctx).pop(),
           child: const Text('OK'),
         ),
       );

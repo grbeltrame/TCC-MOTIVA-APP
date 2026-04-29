@@ -9,6 +9,7 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/training.dart';
+import 'package:flutter_app/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/cards/coach_today_workout_card.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
@@ -54,34 +55,31 @@ class _HomeData {
 
 class CoachHomeScreen extends StatefulWidget {
   static const routeName = '/coach_home';
-  const CoachHomeScreen({Key? key}) : super(key: key);
+  const CoachHomeScreen({super.key});
 
   @override
   State<CoachHomeScreen> createState() => _CoachHomeScreenState();
 }
 
 class _CoachHomeScreenState extends State<CoachHomeScreen> {
-  late Future<_HomeData> _futureData;
+  late Stream<_HomeData> _homeDataStream;
   final String _boxId = 'BOX_PRINCIPAL';
 
   @override
   void initState() {
     super.initState();
-    _futureData = _loadHomeData();
+    _homeDataStream = _watchHomeData();
   }
 
-  Future<_HomeData> _loadHomeData() async {
+  Stream<_HomeData> _watchHomeData() {
     final now = DateTime.now();
-
-    // Busca em paralelo: treinos do dia + ciclo mensal
-    final results = await Future.wait([
-      TrainingService.fetchTrainingsListForDate(boxId: _boxId, date: now),
-      _fetchCycleData(now),
-    ]);
-
-    return _HomeData(
-      trainings: results[0] as List<Training>,
-      cycle: results[1] as Map<String, dynamic>?,
+    return TrainingService.watchTrainingsListForDate(
+      boxId: _boxId,
+      date: now,
+      includeDrafts: true,
+    ).asyncMap(
+      (trainings) async =>
+          _HomeData(trainings: trainings, cycle: await _fetchCycleData(now)),
     );
   }
 
@@ -96,9 +94,20 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     }
   }
 
-  void _refresh() => setState(() {
-    _futureData = _loadHomeData();
+  void _reload() => setState(() {
+    _homeDataStream = _watchHomeData();
   });
+
+  Future<void> _refresh() async {
+    _reload();
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+  }
+
+  void _openRegisterTraining() {
+    showRegisterTrainingBottomSheet(context).then((uploaded) {
+      if (uploaded == true && mounted) _reload();
+    });
+  }
 
   // ── Texto de saudação pelo horário ──────────────────────────────────────────
   String get _greeting {
@@ -135,7 +144,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       appBar: const TopNavbar(),
       bottomNavigationBar: const BottomNavBar(),
       body: RefreshIndicator(
-        onRefresh: () async => _refresh(),
+        onRefresh: _refresh,
         color: AppColors.baseBlue,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -159,10 +168,11 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
               SizedBox(height: 4 * scale),
 
               // ── Treino de Hoje + dados da IA ─────────────────────────────
-              FutureBuilder<_HomeData>(
-                future: _futureData,
+              StreamBuilder<_HomeData>(
+                stream: _homeDataStream,
                 builder: (context, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
+                  if (snap.connectionState == ConnectionState.waiting &&
+                      !snap.hasData) {
                     return const Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 40),
@@ -172,20 +182,17 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                   }
 
                   if (snap.hasError) {
-                    return _ErrorState(onRetry: _refresh, scale: scale);
+                    return _ErrorState(onRetry: _reload, scale: scale);
                   }
 
-                  final data = snap.data!;
+                  final data =
+                      snap.data ?? const _HomeData(trainings: [], cycle: null);
 
                   // ── Item 5: Estado vazio inteligente ─────────────────────
                   if (!data.hasTraining) {
                     return _EmptyTrainingState(
                       scale: scale,
-                      onCadastrar:
-                          () => Navigator.pushNamed(
-                            context,
-                            AppRoutes.coachTrainings,
-                          ),
+                      onCadastrar: _openRegisterTraining,
                     );
                   }
 
@@ -384,10 +391,10 @@ class _AIMetricsChips extends StatelessWidget {
                     vertical: 5 * scale,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.baseBlue.withOpacity(0.08),
+                    color: AppColors.baseBlue.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20 * scale),
                     border: Border.all(
-                      color: AppColors.baseBlue.withOpacity(0.2),
+                      color: AppColors.baseBlue.withValues(alpha: 0.2),
                       width: 0.8,
                     ),
                   ),
@@ -507,7 +514,7 @@ class _AIAlertCarouselState extends State<_AIAlertCarousel> {
                     color: const Color(0xFFFFF8E1),
                     borderRadius: BorderRadius.circular(10 * s),
                     border: Border.all(
-                      color: const Color(0xFFFFB300).withOpacity(0.6),
+                      color: const Color(0xFFFFB300).withValues(alpha: 0.6),
                       width: 1.0,
                     ),
                   ),
@@ -565,7 +572,7 @@ class _AIAlertCarouselState extends State<_AIAlertCarousel> {
                   color:
                       active
                           ? const Color(0xFFFFB300)
-                          : const Color(0xFFFFB300).withOpacity(0.3),
+                          : const Color(0xFFFFB300).withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(3 * s),
                 ),
               );
@@ -635,7 +642,7 @@ class _CycleCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFF224DFF), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF224DFF).withOpacity(0.06),
+            color: const Color(0xFF224DFF).withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -670,10 +677,10 @@ class _CycleCard extends StatelessWidget {
                   vertical: 3 * scale,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.baseBlue.withOpacity(0.08),
+                  color: AppColors.baseBlue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20 * scale),
                   border: Border.all(
-                    color: AppColors.baseBlue.withOpacity(0.2),
+                    color: AppColors.baseBlue.withValues(alpha: 0.2),
                     width: 0.8,
                   ),
                 ),
@@ -721,7 +728,10 @@ class _CycleCard extends StatelessWidget {
           ),
 
           SizedBox(height: 12 * scale),
-          Divider(color: AppColors.mediumGray.withOpacity(0.15), height: 1),
+          Divider(
+            color: AppColors.mediumGray.withValues(alpha: 0.15),
+            height: 1,
+          ),
           SizedBox(height: 8 * scale),
 
           // ── CTA: Ver Ciclo Mensal ─────────────────────────────────────────
@@ -815,10 +825,10 @@ class _EmptyTrainingState extends StatelessWidget {
         horizontal: 20 * scale,
       ),
       decoration: BoxDecoration(
-        color: AppColors.lightGray.withOpacity(0.4),
+        color: AppColors.lightGray.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12 * scale),
         border: Border.all(
-          color: AppColors.mediumGray.withOpacity(0.3),
+          color: AppColors.mediumGray.withValues(alpha: 0.3),
           width: 1,
         ),
       ),

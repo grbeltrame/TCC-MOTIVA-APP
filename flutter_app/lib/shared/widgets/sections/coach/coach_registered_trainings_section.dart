@@ -42,7 +42,7 @@ class _CoachRegisteredTrainingsSectionState
   late DateTime _date;
   late String _category;
 
-  Future<Map<String, TrainingBlock?>>? _fut;
+  Stream<Map<String, TrainingBlock?>>? _stream;
 
   @override
   void initState() {
@@ -86,8 +86,8 @@ class _CoachRegisteredTrainingsSectionState
 
   void _reload() {
     setState(() {
-      // Busca TODOS os documentos do dia, independente do ID ou Tipo
-      _fut = TrainingService.getAllTrainingBlocksRaw(
+      // Observa TODOS os documentos do dia, independente do ID ou Tipo.
+      _stream = TrainingService.watchAllTrainingBlocksRaw(
         boxId: 'DEFAULT_BOX',
         date: _date,
       );
@@ -100,24 +100,12 @@ class _CoachRegisteredTrainingsSectionState
     final target = _category.toUpperCase().trim();
     final List<TrainingBlock> list = [];
 
-    print("--- 🕵️‍♀️ FILTRANDO NA TELA ---");
-    print("Alvo: $target");
-    print("Total de blocos recebidos do Service: ${map.length}");
-
     for (var block in map.values) {
       if (block == null) continue;
 
       final contentToCheck = block.subtitle.toUpperCase();
-      print(
-        " > Checando bloco '${block.title}' com Subtitulo: '$contentToCheck'",
-      );
-
-      // Aumentei a segurança: verifica se contem o alvo
       if (contentToCheck.contains(target)) {
-        print("   ✅ MATCH!");
         list.add(block);
-      } else {
-        print("   ⛔ Ignorado");
       }
     }
 
@@ -140,6 +128,7 @@ class _CoachRegisteredTrainingsSectionState
         'category': _category,
         'blockId': block.id,
         'expectedTitle': block.title,
+        'status': block.status,
       },
     );
   }
@@ -193,6 +182,7 @@ class _CoachRegisteredTrainingsSectionState
       },
     ).then((saved) {
       if (saved == true) {
+        if (!mounted) return;
         _reload();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Treino atualizado com sucesso.')),
@@ -215,7 +205,7 @@ class _CoachRegisteredTrainingsSectionState
         border: Border.all(color: AppColors.mediumGray),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 3 * scale,
             offset: Offset(0, 1 * scale),
           ),
@@ -245,8 +235,26 @@ class _CoachRegisteredTrainingsSectionState
                         ),
                       ),
                     ),
-                    // Badge opcional para debug (pode remover depois)
-                    // Text(block.id.substring(0,4), style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    if (block.status != 'publicado')
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8 * scale,
+                          vertical: 4 * scale,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.lightGray,
+                          borderRadius: BorderRadius.circular(8 * scale),
+                        ),
+                        child: Text(
+                          'Rascunho',
+                          style: TextStyle(
+                            fontFamily: AppFonts.roboto,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10 * scale,
+                            color: AppColors.darkText,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
                 SizedBox(height: 4 * scale),
@@ -320,7 +328,10 @@ class _CoachRegisteredTrainingsSectionState
             ),
           ),
 
-          Container(height: 1, color: AppColors.lightGray.withOpacity(0.6)),
+          Container(
+            height: 1,
+            color: AppColors.lightGray.withValues(alpha: 0.6),
+          ),
 
           // Footer Linha 2: Ver detalhes
           Padding(
@@ -353,7 +364,10 @@ class _CoachRegisteredTrainingsSectionState
           ),
 
           // --- RODAPÉ: APAGAR E EDITAR ---
-          Container(height: 1, color: AppColors.lightGray.withOpacity(0.6)),
+          Container(
+            height: 1,
+            color: AppColors.lightGray.withValues(alpha: 0.6),
+          ),
           Padding(
             padding: EdgeInsets.all(8.0 * scale),
             child: Row(
@@ -363,7 +377,7 @@ class _CoachRegisteredTrainingsSectionState
                     onPressed: () => _onTapApagarTreino(block),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: Colors.red.shade700, width: 1.2),
-                      backgroundColor: Colors.red.withOpacity(0.05),
+                      backgroundColor: Colors.red.withValues(alpha: 0.05),
                       minimumSize: Size(0, 32 * scale),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6 * scale),
@@ -457,10 +471,11 @@ class _CoachRegisteredTrainingsSectionState
         SizedBox(height: 12 * scale),
 
         // 4) LISTA DE CARDS
-        FutureBuilder<Map<String, TrainingBlock?>>(
-          future: _fut,
+        StreamBuilder<Map<String, TrainingBlock?>>(
+          stream: _stream,
           builder: (ctx, snap) {
-            if (snap.connectionState != ConnectionState.done) {
+            if (snap.connectionState == ConnectionState.waiting &&
+                !snap.hasData) {
               return SizedBox(
                 height: 140 * scale,
                 child: const Center(child: CircularProgressIndicator()),
@@ -476,9 +491,9 @@ class _CoachRegisteredTrainingsSectionState
                 padding: EdgeInsets.all(16 * scale),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.05),
+                  color: Colors.grey.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                 ),
                 child: Column(
                   children: [

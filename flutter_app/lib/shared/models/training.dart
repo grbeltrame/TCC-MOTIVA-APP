@@ -62,6 +62,7 @@ class Training {
   final String title;
   final String? description;
   final DateTime date;
+  final String status;
 
   // Guarda a estrutura crua das partes (WOD, Skill, LPO, etc)
   final Map<String, dynamic> partes;
@@ -74,6 +75,7 @@ class Training {
     required this.title,
     this.description,
     required this.date,
+    this.status = 'publicado',
     this.partes = const {},
     this.analysis, // Adicionado como opcional
   });

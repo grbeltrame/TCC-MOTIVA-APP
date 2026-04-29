@@ -28,10 +28,17 @@ class _SettingsDeactivateAccountScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar'),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: AppColors.mediumGray),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.baseMagenta,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Confirmar'),
             ),
           ],
@@ -89,8 +96,9 @@ class _SettingsDeactivateAccountScreenState
                     if (states.contains(WidgetState.disabled)) {
                       return AppColors.lightGray;
                     }
-                    return Colors.orange.shade700;
+                    return AppColors.baseMagenta;
                   }),
+                  foregroundColor: const WidgetStatePropertyAll(Colors.white),
                   elevation: const WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Enviando...' : 'Desativar conta'),

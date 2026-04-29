@@ -9,7 +9,7 @@ import 'package:flutter_app/shared/widgets/sections/coach/coach_cycle_insights_s
 
 class CoachTrainingInsightsScreen extends StatefulWidget {
   static const routeName = '/coach_training_insights';
-  const CoachTrainingInsightsScreen({Key? key}) : super(key: key);
+  const CoachTrainingInsightsScreen({super.key});
 
   @override
   State<CoachTrainingInsightsScreen> createState() =>
@@ -26,8 +26,11 @@ class _CoachTrainingInsightsScreenState
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
+    final monthArg = args?['month'];
+    final DateTime? monthFromArg =
+        monthArg is DateTime ? _validMonth(monthArg) : null;
     final DateTime? initialMonth =
-        args?['month'] as DateTime? ?? _monthFromKey(args?['monthKey']);
+        monthFromArg ?? _monthFromKey(args?['monthKey']);
     final String boxId = (args?['boxId'] as String?) ?? '1';
 
     return Scaffold(
@@ -88,14 +91,35 @@ class _CoachTrainingInsightsScreenState
   }
 
   DateTime? _monthFromKey(dynamic monthKey) {
-    if (monthKey is! String || monthKey.isEmpty) return null;
-    final parts = monthKey.split('-');
+    if (monthKey is! String || monthKey.trim().isEmpty) return null;
+    final parts = monthKey.trim().split(RegExp(r'[-/]'));
     if (parts.length < 2) return null;
 
-    final year = int.tryParse(parts[0]);
-    final month = int.tryParse(parts[1]);
-    if (year == null || month == null) return null;
+    final first = int.tryParse(parts[0]);
+    final second = int.tryParse(parts[1]);
+    if (first == null || second == null) return null;
 
-    return DateTime(year, month);
+    if (_isSupportedYear(first) && _isValidMonth(second)) {
+      return DateTime(first, second);
+    }
+
+    if (_isValidMonth(first) && _isSupportedYear(second)) {
+      return DateTime(second, first);
+    }
+
+    return null;
+  }
+
+  DateTime? _validMonth(DateTime date) {
+    final normalized = DateTime(date.year, date.month);
+    if (!_isSupportedYear(normalized.year)) return null;
+    return normalized;
+  }
+
+  bool _isValidMonth(int month) => month >= 1 && month <= 12;
+
+  bool _isSupportedYear(int year) {
+    final now = DateTime.now();
+    return year >= 2020 && year <= now.year + 2;
   }
 }

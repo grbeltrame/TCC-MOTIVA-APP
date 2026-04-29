@@ -31,10 +31,17 @@ class _SettingsResetPasswordScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar'),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: AppColors.mediumGray),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.baseBlue,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Enviar link'),
             ),
           ],
@@ -90,6 +97,7 @@ class _SettingsResetPasswordScreenState
                 onPressed: _loading ? null : _sendReset,
                 style: const ButtonStyle(
                   backgroundColor: WidgetStatePropertyAll(AppColors.baseBlue),
+                  foregroundColor: WidgetStatePropertyAll(Colors.white),
                   elevation: WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Enviando...' : 'Enviar link'),

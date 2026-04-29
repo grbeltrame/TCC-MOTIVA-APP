@@ -373,6 +373,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
       date: date,
       category: category,
       trainingId: highlightBlockId,
+      includeDrafts: true,
     );
 
     if (highlightBlockId != null && highlightBlockId.isNotEmpty) {

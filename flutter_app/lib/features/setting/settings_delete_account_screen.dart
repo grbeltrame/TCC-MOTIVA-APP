@@ -44,11 +44,17 @@ class _SettingsDeleteAccountScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar'),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: AppColors.mediumGray),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.baseMagenta,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Excluir'),
             ),
           ],
@@ -115,8 +121,9 @@ class _SettingsDeleteAccountScreenState
                     if (states.contains(WidgetState.disabled)) {
                       return AppColors.lightGray;
                     }
-                    return Colors.red.shade700;
+                    return AppColors.baseMagenta;
                   }),
+                  foregroundColor: const WidgetStatePropertyAll(Colors.white),
                   elevation: const WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Enviando...' : 'Solicitar exclusão'),

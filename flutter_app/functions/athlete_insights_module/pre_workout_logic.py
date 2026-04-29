@@ -285,6 +285,10 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
     """
     db = firestore.client()
 
+    if workout_data.get('status') != 'publicado':
+        logging.info(f'[pre-workout] {workout_id}: treino não publicado — skip.')
+        return {'skipped': 'not_published'}
+
     workout_hash = _compute_workout_hash(workout_data)
     last_hash = workout_data.get('_preWorkoutInsightsHash')
 

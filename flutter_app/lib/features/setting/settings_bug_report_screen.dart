@@ -100,6 +100,7 @@ class _SettingsBugReportScreenState extends State<SettingsBugReportScreen> {
                 onPressed: _loading ? null : _send,
                 style: const ButtonStyle(
                   backgroundColor: WidgetStatePropertyAll(AppColors.baseBlue),
+                  foregroundColor: WidgetStatePropertyAll(Colors.white),
                   elevation: WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Enviando...' : 'Enviar relatório'),

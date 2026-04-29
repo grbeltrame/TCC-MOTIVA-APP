@@ -24,6 +24,28 @@ service cloud.firestore {
       return isOwner(userId) && !isDisabledUser(userId);
     }
 
+    function currentUserProfile() {
+      return isSignedIn()
+        && exists(userDocPath(request.auth.uid))
+        ? get(userDocPath(request.auth.uid)).data.profile
+        : null;
+    }
+
+    function isCoachProfile() {
+      return currentUserProfile() in [
+        'coach',
+        'intern',
+        'athleteCoach',
+        'athleteIntern',
+        'admin'
+      ];
+    }
+
+    function isPublishedExercise(data) {
+      return !data.keys().hasAny(['status'])
+        || data.status in ['publicado', 'processado'];
+    }
+
     match /users/{userId} {
       allow create: if isOwner(userId);
       allow read: if isOwner(userId);
@@ -99,7 +121,9 @@ service cloud.firestore {
     }
 
     match /exercises/{document=**} {
-      allow read, write: if true;
+      allow read: if isSignedIn()
+        && (isCoachProfile() || isPublishedExercise(resource.data));
+      allow create, update, delete: if isCoachProfile();
     }
 
     match /cycles/{document=**} {

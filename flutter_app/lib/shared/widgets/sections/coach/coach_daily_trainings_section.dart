@@ -23,53 +23,30 @@ class CoachDailyTrainingsSection extends StatefulWidget {
 
 class _CoachDailyTrainingsSectionState
     extends State<CoachDailyTrainingsSection> {
-  bool _loading = true;
-
-  // MUDANÇA 1: Agora trabalhamos com uma LISTA de documentos, não um Mapa de categorias
-  List<Training> _dailyTrainings = [];
+  late Stream<List<Training>> _trainingsStream;
 
   @override
   void initState() {
     super.initState();
-    _load(widget.date);
+    _trainingsStream = _watchTrainings(widget.date);
   }
 
   @override
   void didUpdateWidget(covariant CoachDailyTrainingsSection oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.date != widget.date) {
-      _load(widget.date);
+      setState(() {
+        _trainingsStream = _watchTrainings(widget.date);
+      });
     }
   }
 
-  Future<void> _load(DateTime d) async {
-    setState(() {
-      _loading = true;
-      _dailyTrainings = []; // Limpa antes de carregar
-    });
-
-    try {
-      // MUDANÇA 2: Chama o método que traz a LISTA de documentos (JSONs inteiros)
-      // Você precisa garantir que esse método exista no seu Service conforme expliquei acima
-      final list = await TrainingService.fetchTrainingsListForDate(
-        boxId: widget.boxId,
-        date: d,
-      );
-
-      if (mounted) {
-        setState(() {
-          _dailyTrainings = list;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
-      print("Erro ao carregar treinos: $e");
-    }
+  Stream<List<Training>> _watchTrainings(DateTime date) {
+    return TrainingService.watchTrainingsListForDate(
+      boxId: widget.boxId,
+      date: date,
+      includeDrafts: true,
+    );
   }
 
   void _openDetail(Training training) {
@@ -92,63 +69,84 @@ class _CoachDailyTrainingsSectionState
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
-    if (_loading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    // Se a lista estiver vazia
-    if (_dailyTrainings.isEmpty) {
-      return Padding(
-        padding: EdgeInsets.symmetric(vertical: 20 * scale),
-        child: Center(
-          child: Text(
-            "Nenhum treino programado para este dia.",
-            style: TextStyle(
-              color: AppColors.mediumGray,
-              fontSize: 14 * scale,
-              fontFamily: AppFonts.roboto,
+    return StreamBuilder<List<Training>>(
+      stream: _trainingsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: CircularProgressIndicator(),
             ),
-          ),
-        ),
-      );
-    }
+          );
+        }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Treinos do Dia',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        SizedBox(height: 4 * scale),
-        Text(
-          'Toque para ver detalhes e registrar resultados.',
-          style: TextStyle(
-            fontFamily: AppFonts.roboto,
-            fontSize: 12 * scale,
-            color: AppColors.mediumGray,
-          ),
-        ),
-        SizedBox(height: 12 * scale),
+        if (snapshot.hasError) {
+          return Padding(
+            padding: EdgeInsets.symmetric(vertical: 20 * scale),
+            child: Center(
+              child: Text(
+                'Não foi possível carregar os treinos agora.',
+                style: TextStyle(
+                  color: AppColors.mediumGray,
+                  fontSize: 14 * scale,
+                  fontFamily: AppFonts.roboto,
+                ),
+              ),
+            ),
+          );
+        }
 
-        // MUDANÇA 3: Iteramos sobre a LISTA de documentos encontrados
-        // Se tiver 1 JSON no banco -> cria 1 Card.
-        // Se tiver 2 JSONs no banco -> cria 2 Cards.
-        Column(
-          children:
-              _dailyTrainings.map((training) {
-                return _TrainingTypeButton(
-                  label: _generateButtonTitle(training),
-                  onPressed: () => _openDetail(training),
-                );
-              }).toList(),
-        ),
-      ],
+        final dailyTrainings = snapshot.data ?? const <Training>[];
+
+        if (dailyTrainings.isEmpty) {
+          return Padding(
+            padding: EdgeInsets.symmetric(vertical: 20 * scale),
+            child: Center(
+              child: Text(
+                'Nenhum treino programado para este dia.',
+                style: TextStyle(
+                  color: AppColors.mediumGray,
+                  fontSize: 14 * scale,
+                  fontFamily: AppFonts.roboto,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Treinos do Dia',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            SizedBox(height: 4 * scale),
+            Text(
+              'Toque para ver detalhes e registrar resultados.',
+              style: TextStyle(
+                fontFamily: AppFonts.roboto,
+                fontSize: 12 * scale,
+                color: AppColors.mediumGray,
+              ),
+            ),
+            SizedBox(height: 12 * scale),
+
+            Column(
+              children:
+                  dailyTrainings.map((training) {
+                    return _TrainingTypeButton(
+                      label: _generateButtonTitle(training),
+                      status: training.status,
+                      onPressed: () => _openDetail(training),
+                    );
+                  }).toList(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -207,9 +205,14 @@ class _CoachDailyTrainingsSectionState
 // O BOTÃO AZUL (MANTIDO INTACTO)
 class _TrainingTypeButton extends StatelessWidget {
   final String label;
+  final String status;
   final VoidCallback onPressed;
 
-  const _TrainingTypeButton({required this.label, required this.onPressed});
+  const _TrainingTypeButton({
+    required this.label,
+    required this.status,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -251,6 +254,28 @@ class _TrainingTypeButton extends StatelessWidget {
                 color: Colors.white,
                 size: 16 * scale,
               ),
+              if (status != 'publicado') ...[
+                SizedBox(width: 8 * scale),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 8 * scale,
+                    vertical: 3 * scale,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(8 * scale),
+                  ),
+                  child: Text(
+                    'Rascunho',
+                    style: TextStyle(
+                      fontFamily: AppFonts.roboto,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10 * scale,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

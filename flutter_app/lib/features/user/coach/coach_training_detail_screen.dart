@@ -28,6 +28,7 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
   late String _category;
   String? _blockId;
   String? _expectedTitle;
+  String _trainingStatus = 'publicado';
 
   // 1. Armazena o objeto Treino para passar para a tela de Insights depois
   Training? _trainingObject;
@@ -45,6 +46,7 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
     _category = (args['category'] ?? 'WOD') as String;
     _expectedTitle = args['expectedTitle'] as String?;
     _blockId = args['blockId'] as String?;
+    _trainingStatus = (args['status'] ?? 'publicado') as String;
 
     final rawDate = args['date'];
     _date = (rawDate is DateTime) ? rawDate : DateTime.now();
@@ -52,6 +54,7 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
     // 2. RECUPERA O TREINO E O ID
     if (args['training'] is Training) {
       _trainingObject = args['training'];
+      _trainingStatus = _trainingObject!.status;
     }
     final String? trainingId = _trainingObject?.id;
 
@@ -61,6 +64,7 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
       date: _date,
       category: _category,
       trainingId: trainingId, // <--- AQUI ESTÁ A CORREÇÃO
+      includeDrafts: true,
     );
 
     _bootstrapped = true;
@@ -95,6 +99,45 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
 
   void _onTapVerResultados() {}
   void _onTapRegistrarResultado() {}
+
+  Future<void> _onTapPublicarTreino() async {
+    final docId = _trainingObject?.id ?? _blockId;
+    if (docId == null || docId.isEmpty) return;
+
+    try {
+      await TrainingService.publishTraining(docId);
+      if (!mounted) return;
+      setState(() {
+        _trainingObject = _trainingObject == null
+            ? null
+            : Training(
+                id: _trainingObject!.id,
+                title: _trainingObject!.title,
+                description: _trainingObject!.description,
+                date: _trainingObject!.date,
+                status: 'publicado',
+                partes: _trainingObject!.partes,
+                analysis: _trainingObject!.analysis,
+              );
+        _trainingStatus = 'publicado';
+        _blocksFut = TrainingService.fetchFullTrainingBlocks(
+          boxId: _boxId,
+          date: _date,
+          category: _category,
+          trainingId: docId,
+          includeDrafts: true,
+        );
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Treino publicado com sucesso.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao publicar treino: $e')),
+      );
+    }
+  }
 
   // 4. Novo método para navegar para os Insights da IA
   void _onTapVerInsightsAI() {
@@ -136,14 +179,21 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
                 const AppBackButton(),
                 // Botão de Atalho para Insights (Opcional, mas útil)
                 TextButton.icon(
-                  onPressed: _onTapVerInsightsAI,
+                  onPressed:
+                      _trainingStatus == 'rascunho'
+                          ? _onTapPublicarTreino
+                          : _onTapVerInsightsAI,
                   icon: Icon(
-                    Icons.auto_awesome,
+                    _trainingStatus == 'rascunho'
+                        ? Icons.publish
+                        : Icons.auto_awesome,
                     size: 16 * scale,
                     color: AppColors.baseBlue,
                   ),
                   label: Text(
-                    "Insights IA",
+                    _trainingStatus == 'rascunho'
+                        ? "Publicar"
+                        : "Insights IA",
                     style: TextStyle(
                       fontSize: 12 * scale,
                       color: AppColors.baseBlue,

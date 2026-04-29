@@ -201,6 +201,10 @@ def generate_pre_workout_insights(event):
 
     workout_data = after.to_dict() or {}
 
+    if workout_data.get("status") != "publicado":
+        logging.info(f"{workout_id}: status != publicado — skip pre-workout.")
+        return
+
     # Skip se ainda não tem partes (PDF não foi processado).
     if not workout_data.get("partes"):
         logging.info(f"{workout_id}: sem `partes` ainda — skip.")

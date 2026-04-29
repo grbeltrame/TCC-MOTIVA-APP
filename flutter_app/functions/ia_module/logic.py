@@ -172,7 +172,8 @@ def run_cycle_analysis(db, current_workout, api_key, class_context=None):
         # 2. Buscar Treinos do Mês Atual
         exercises_ref = db.collection("exercises") 
         
-        # Filtro: >= 01/Mês E < 01/Próximo Mês
+        # Filtro por data apenas; status é filtrado em memória para evitar
+        # exigir índice composto na Cloud Function.
         docs = exercises_ref.where("dataTreinoIso", ">=", start_date_str)\
                             .where("dataTreinoIso", "<", end_date_str)\
                             .stream()
@@ -184,7 +185,9 @@ def run_cycle_analysis(db, current_workout, api_key, class_context=None):
             # Proteção contra duplicidade
             if current_id and doc.id == current_id:
                 continue
-            month_workouts.append(doc.to_dict())
+            data = doc.to_dict()
+            if data.get("status") == "publicado":
+                month_workouts.append(data)
 
         # Adiciona o treino atual (garantido na memória)
         month_workouts.append(current_workout)
@@ -341,6 +344,10 @@ def run_ai_analysis_logic(event):
 
     current_data = document_snapshot.to_dict() or {}
 
+    if current_data.get('status') != 'publicado':
+        logging.info(f"Treino {workout_id} ignorado (não publicado).")
+        return
+
     # 2. Validações iniciais
     status = current_data.get('statusAnalise')
     if status in ['concluida', 'processando', 'erro']:
@@ -356,16 +363,27 @@ def run_ai_analysis_logic(event):
 
     try:
         # Marca como processando
-        workout_ref.update({"statusAnalise": "processando"})
+        workout_ref.update({
+            "statusAnalise": "processando",
+            "erroMsg": firestore.DELETE_FIELD,
+        })
         
         # Busca histórico (últimos 15) para a análise diária
         history_docs = (
             firestore_client.collection("exercises")
             .order_by("dataTreinoIso", direction=firestore.Query.DESCENDING)
-            .limit(15)
+            .limit(30)
             .stream()
         )
-        past_workouts = [d.to_dict() for d in history_docs if d.id != workout_id]
+        past_workouts = []
+        for d in history_docs:
+            if d.id == workout_id:
+                continue
+            data = d.to_dict()
+            if data.get("status") == "publicado":
+                past_workouts.append(data)
+            if len(past_workouts) >= 15:
+                break
 
         # 3. Base de exercícios (Movimentos)
         exercises_ref = firestore_client.collection("movimentos")
@@ -422,7 +440,8 @@ def run_ai_analysis_logic(event):
         workout_ref.update({
             "analise": structured_analysis,
             "statusAnalise": "concluida",
-            "analisadoEm": firestore.SERVER_TIMESTAMP
+            "analisadoEm": firestore.SERVER_TIMESTAMP,
+            "erroMsg": firestore.DELETE_FIELD,
         })
         logging.info(f"Sucesso! Treino {workout_id} analisado (Micro).")
 

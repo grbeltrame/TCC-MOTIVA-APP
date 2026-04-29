@@ -36,6 +36,9 @@ class ExerciseItem {
   /// Ex: "15 KTB swing (24Kg|18Kg)"
   final String raw;
 
+  /// Tipo do item no parser novo: exercise, note, segment, penalty.
+  final String kind;
+
   // --- Campos estruturados (disponíveis apenas no schema novo) ---
 
   /// Nome do exercício sem quantidade/carga. Ex: "KTB swing"
@@ -58,6 +61,7 @@ class ExerciseItem {
 
   const ExerciseItem({
     required this.raw,
+    this.kind = 'exercise',
     this.nome,
     this.quantidade,
     this.quantidadeRatio,
@@ -92,6 +96,7 @@ class ExerciseItem {
 
       return ExerciseItem(
         raw: raw,
+        kind: json['kind']?.toString() ?? 'exercise',
         nome: json['nome']?.toString(),
         quantidade: quantidade,
         quantidadeRatio: quantidadeRatio,

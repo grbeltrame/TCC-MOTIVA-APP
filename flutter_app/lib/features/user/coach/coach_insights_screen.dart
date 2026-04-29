@@ -90,6 +90,7 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
       final list = await TrainingService.fetchTrainingsListForDate(
         boxId: '1',
         date: date,
+        includeDrafts: true,
       );
 
       if (mounted) {

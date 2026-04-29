@@ -18,6 +18,8 @@ import 'package:flutter_app/core/services/workout/workout_result_service.dart';
 import 'package:flutter_app/core/services/users/coach/coach_service.dart';
 
 class TrainingService {
+  static const _publishedStatuses = ['publicado', 'processado'];
+
   // ===========================================================================
   // 1. LEITURA DE DADOS (FETCH)
   // ===========================================================================
@@ -29,9 +31,11 @@ class TrainingService {
         await FirebaseFirestore.instance
             .collection('exercises')
             .where('dataTreinoIso', isEqualTo: dataFormatada)
-            .limit(1)
+            .where('status', whereIn: _publishedStatuses)
             .get();
-    if (snap.docs.isNotEmpty) return snap.docs.first.id;
+    for (final doc in snap.docs) {
+      if (_isPublished(doc.data())) return doc.id;
+    }
     return null;
   }
 
@@ -39,41 +43,85 @@ class TrainingService {
   static Future<List<Training>> fetchTrainingsListForDate({
     required String boxId,
     required DateTime date,
+    bool includeDrafts = false,
   }) async {
     try {
       final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
 
-      final snapshot =
-          await FirebaseFirestore.instance
-              .collection('exercises')
-              .where('dataTreinoIso', isEqualTo: dataFormatada)
-              .get();
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+          .collection('exercises')
+          .where('dataTreinoIso', isEqualTo: dataFormatada);
+
+      if (!includeDrafts) {
+        query = query.where('status', whereIn: _publishedStatuses);
+      }
+
+      final snapshot = await query.get();
 
       if (snapshot.docs.isEmpty) return [];
 
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        Map<String, dynamic> partesMap = {};
-        if (data['partes'] != null && data['partes'] is Map) {
-          partesMap = Map<String, dynamic>.from(data['partes']);
-        }
-
-        return Training(
-          id: doc.id,
-          title: 'Treino do Dia',
-          date: date,
-          description: null,
-          partes: partesMap,
-          analysis:
-              data['analise'] != null
-                  ? TrainingAnalysis.fromJson(data['analise'])
-                  : null,
-        );
-      }).toList();
+      return snapshot.docs
+          .where((doc) {
+            return includeDrafts || _isPublished(doc.data());
+          })
+          .map((doc) => _trainingFromDoc(doc, date))
+          .toList();
     } catch (e) {
       print('ERRO FETCH LIST (COACH): $e');
       return [];
     }
+  }
+
+  /// Observa TODOS os documentos de treino do dia como lista de Training.
+  /// Usado nas telas de coach para atualizar automaticamente quando a Function
+  /// terminar de importar o PDF para o Firestore.
+  static Stream<List<Training>> watchTrainingsListForDate({
+    required String boxId,
+    required DateTime date,
+    bool includeDrafts = false,
+  }) {
+    final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
+
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('exercises')
+        .where('dataTreinoIso', isEqualTo: dataFormatada);
+
+    if (!includeDrafts) {
+      query = query.where('status', whereIn: _publishedStatuses);
+    }
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs
+          .where((doc) {
+            return includeDrafts || _isPublished(doc.data());
+          })
+          .map((doc) => _trainingFromDoc(doc, date))
+          .toList();
+    });
+  }
+
+  static Training _trainingFromDoc(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+    DateTime date,
+  ) {
+    final data = doc.data();
+    Map<String, dynamic> partesMap = {};
+    if (data['partes'] != null && data['partes'] is Map) {
+      partesMap = Map<String, dynamic>.from(data['partes']);
+    }
+
+    return Training(
+      id: doc.id,
+      title: 'Treino do Dia',
+      date: date,
+      description: null,
+      partes: partesMap,
+      status: _normalizeStatus(data['status']),
+      analysis:
+          data['analise'] != null
+              ? TrainingAnalysis.fromJson(data['analise'])
+              : null,
+    );
   }
 
   /// Resolve o workoutId (`exercises/{id}`) para uma data. Útil para
@@ -86,10 +134,12 @@ class TrainingService {
           await FirebaseFirestore.instance
               .collection('exercises')
               .where('dataTreinoIso', isEqualTo: dataFormatada)
-              .limit(1)
+              .where('status', whereIn: _publishedStatuses)
               .get();
-      if (snap.docs.isEmpty) return null;
-      return snap.docs.first.id;
+      for (final doc in snap.docs) {
+        if (_isPublished(doc.data())) return doc.id;
+      }
+      return null;
     } catch (e) {
       print('ERRO fetchWorkoutIdForDate: $e');
       return null;
@@ -103,6 +153,7 @@ class TrainingService {
     required DateTime date,
     required String category,
     String? trainingId,
+    bool includeDrafts = false,
   }) async {
     try {
       Map<String, dynamic>? data;
@@ -124,6 +175,9 @@ class TrainingService {
 
         if (docSnapshot.exists) {
           data = docSnapshot.data();
+          if (!includeDrafts && !_isPublished(data)) {
+            return [];
+          }
         } else {
           print('⚠️ Documento $currentDocId não encontrado!');
           return [];
@@ -134,16 +188,22 @@ class TrainingService {
       if (data == null && (trainingId == null || trainingId.isEmpty)) {
         print('🔍 Buscando treino na data: $date');
         final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
-        final snapshot =
-            await FirebaseFirestore.instance
-                .collection('exercises')
-                .where('dataTreinoIso', isEqualTo: dataFormatada)
-                .limit(1)
-                .get();
+        Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+            .collection('exercises')
+            .where('dataTreinoIso', isEqualTo: dataFormatada);
 
-        if (snapshot.docs.isNotEmpty) {
-          data = snapshot.docs.first.data();
-          currentDocId = snapshot.docs.first.id;
+        if (!includeDrafts) {
+          query = query.where('status', whereIn: _publishedStatuses);
+        }
+
+        final snapshot = await query.get();
+
+        for (final doc in snapshot.docs) {
+          if (includeDrafts || _isPublished(doc.data())) {
+            data = doc.data();
+            currentDocId = doc.id;
+            break;
+          }
         }
       }
 
@@ -152,6 +212,7 @@ class TrainingService {
       // Converte via DailyWorkoutModel (suporta schema antigo e novo)
       final workoutData = DailyWorkoutModel.fromJson(data);
       final List<TrainingBlock> blocks = [];
+      final String documentStatus = _normalizeStatus(data['status']);
 
       // Ordem correta do CrossFit: Warm Up → Extra Training → Skill → WOD
       const sectionOrder = ['WARM UP', 'EXTRA TRAINING', 'SKILL', 'WOD'];
@@ -182,6 +243,7 @@ class TrainingService {
             title: title,
             subtitle: subtitle,
             items: items,
+            status: documentStatus,
           ),
         );
       });
@@ -363,7 +425,17 @@ class TrainingService {
 
       // 4. Salva no Firestore
       if (exists) {
-        await docRef.update({'partes': partesMap, 'statusAnalise': 'pendente'});
+        final current = await docRef.get();
+        final currentStatus = _normalizeStatus(
+          (current.data() as Map<String, dynamic>?)?['status'],
+        );
+        await docRef.update({
+          'partes': partesMap,
+          'statusAnalise':
+              currentStatus == 'publicado'
+                  ? 'pendente'
+                  : 'aguardando_publicacao',
+        });
         print('✅ Treino atualizado com sucesso.');
       } else {
         final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
@@ -379,9 +451,9 @@ class TrainingService {
           'criadoEm': FieldValue.serverTimestamp(),
           'createdByUid': FirebaseAuth.instance.currentUser?.uid,
           'partes': partesMap,
-          'statusAnalise': 'pendente',
+          'statusAnalise': 'aguardando_publicacao',
           'uploadedBy': 'COACH_APP',
-          'status': 'processado',
+          'status': 'rascunho',
         });
         print('✅ Novo treino criado com sucesso.');
       }
@@ -401,6 +473,28 @@ class TrainingService {
     if (t.contains('SKILL')) return 'SKILL';
     if (t.contains('EXTRA')) return 'EXTRA TRAINING';
     return 'WOD';
+  }
+
+  static String _normalizeStatus(dynamic status) {
+    final raw = status?.toString().trim();
+    if (raw == null || raw.isEmpty || raw == 'processado') {
+      return 'publicado';
+    }
+    return raw;
+  }
+
+  static bool _isPublished(Map<String, dynamic>? data) {
+    return _normalizeStatus(data?['status']) == 'publicado';
+  }
+
+  static Future<void> publishTraining(String docId) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    await FirebaseFirestore.instance.collection('exercises').doc(docId).update({
+      'status': 'publicado',
+      'publishedAt': FieldValue.serverTimestamp(),
+      'publishedByUid': uid,
+      'statusAnalise': 'pendente',
+    });
   }
 
   // ===========================================================================
@@ -472,6 +566,7 @@ class TrainingService {
       boxId: '1',
       date: date,
       category: 'ANY',
+      includeDrafts: false,
     );
     return blocks.isNotEmpty ? ['treino_existe'] : [];
   }
@@ -493,65 +588,7 @@ class TrainingService {
 
       if (snapshot.docs.isEmpty) return {};
 
-      final Map<String, TrainingBlock?> result = {};
-
-      for (var doc in snapshot.docs) {
-        final docData = doc.data();
-        final docId = doc.id;
-
-        if (docData['partes'] != null && docData['partes'] is Map) {
-          final Map<String, dynamic> partes = Map<String, dynamic>.from(
-            docData['partes'],
-          );
-
-          final String mainKey = partes.keys.firstWhere(
-            (k) => k.contains('WOD'),
-            orElse: () => partes.keys.first,
-          );
-
-          final mainPart = Map<String, dynamic>.from(partes[mainKey]);
-
-          // Suporta schema antigo ('nomeWod') e novo ('nomeWod') — mesma chave
-          final String title = mainPart['nomeWod']?.toString() ?? mainKey;
-
-          // Subtitle precisa conter a SEÇÃO (ex: "WOD") para o filtro da
-          // CoachRegisteredTrainingsSection funcionar — ela usa
-          // block.subtitle.contains("WOD") para categorizar os cards.
-          //
-          // Schema novo: 'secao' = "WOD", 'modalidade' = "3 ROUNDS FOR TIME"
-          //   → subtitle = "WOD • 3 ROUNDS FOR TIME"
-          // Schema antigo: 'tipo' = "WOD" (já continha a seção)
-          //   → subtitle = "WOD"
-          final String secao = mainPart['secao']?.toString() ?? mainKey;
-          final String? modalidade =
-              mainPart['modalidade']?.toString() ??
-              mainPart['tipo']?.toString();
-          final String subtitle =
-              (modalidade != null && modalidade.isNotEmpty)
-                  ? '$secao • $modalidade'
-                  : secao;
-
-          // Exercícios: extrai 'raw' se for Map, usa direto se for String
-          final List<String> items = [];
-          if (mainPart['exercicios'] != null) {
-            for (final e in mainPart['exercicios']) {
-              if (e is String) {
-                items.add(e);
-              } else if (e is Map) {
-                final raw = e['raw']?.toString() ?? e['nome']?.toString() ?? '';
-                if (raw.isNotEmpty) items.add(raw);
-              }
-            }
-          }
-
-          result[docId] = TrainingBlock(
-            id: docId,
-            title: title,
-            subtitle: subtitle,
-            items: items,
-          );
-        }
-      }
+      final result = _trainingBlocksFromDocs(snapshot.docs);
 
       print('✅ [SERVICE] Cards gerados: ${result.length}');
       return result;
@@ -559,6 +596,85 @@ class TrainingService {
       print('❌ [SERVICE ERROR]: $e');
       return {};
     }
+  }
+
+  static Stream<Map<String, TrainingBlock?>> watchAllTrainingBlocksRaw({
+    required String boxId,
+    required DateTime date,
+  }) {
+    final String dataFormatada = DateFormat('yyyy-MM-dd').format(date);
+    return FirebaseFirestore.instance
+        .collection('exercises')
+        .where('dataTreinoIso', isEqualTo: dataFormatada)
+        .snapshots()
+        .map((snapshot) => _trainingBlocksFromDocs(snapshot.docs));
+  }
+
+  static Map<String, TrainingBlock?> _trainingBlocksFromDocs(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    final Map<String, TrainingBlock?> result = {};
+
+    for (var doc in docs) {
+      final docData = doc.data();
+      final docId = doc.id;
+
+      if (docData['partes'] != null && docData['partes'] is Map) {
+        final Map<String, dynamic> partes = Map<String, dynamic>.from(
+          docData['partes'],
+        );
+        if (partes.isEmpty) continue;
+
+        final String mainKey = partes.keys.firstWhere(
+          (k) => k.contains('WOD'),
+          orElse: () => partes.keys.first,
+        );
+
+        final mainPart = Map<String, dynamic>.from(partes[mainKey]);
+
+        // Suporta schema antigo ('nomeWod') e novo ('nomeWod') — mesma chave
+        final String title = mainPart['nomeWod']?.toString() ?? mainKey;
+
+        // Subtitle precisa conter a SEÇÃO (ex: "WOD") para o filtro da
+        // CoachRegisteredTrainingsSection funcionar — ela usa
+        // block.subtitle.contains("WOD") para categorizar os cards.
+        //
+        // Schema novo: 'secao' = "WOD", 'modalidade' = "3 ROUNDS FOR TIME"
+        //   → subtitle = "WOD • 3 ROUNDS FOR TIME"
+        // Schema antigo: 'tipo' = "WOD" (já continha a seção)
+        //   → subtitle = "WOD"
+        final String secao = mainPart['secao']?.toString() ?? mainKey;
+        final String? modalidade =
+            mainPart['modalidade']?.toString() ?? mainPart['tipo']?.toString();
+        final String subtitle =
+            (modalidade != null && modalidade.isNotEmpty)
+                ? '$secao • $modalidade'
+                : secao;
+
+        // Exercícios: extrai 'raw' se for Map, usa direto se for String
+        final List<String> items = [];
+        if (mainPart['exercicios'] != null) {
+          for (final e in mainPart['exercicios']) {
+            if (e is String) {
+              items.add(e);
+            } else if (e is Map) {
+              final raw = e['raw']?.toString() ?? e['nome']?.toString() ?? '';
+              if (raw.isNotEmpty) items.add(raw);
+            }
+          }
+        }
+
+        result[docId] = TrainingBlock(
+          id: docId,
+          title: title,
+          subtitle: subtitle,
+          items: items,
+          status: _normalizeStatus(docData['status']),
+        );
+      }
+    }
+
+    return result;
   }
 
   static Future<Map<String, TrainingBlock?>>
@@ -570,6 +686,7 @@ class TrainingService {
       boxId: boxId,
       date: date,
       category: 'ANY',
+      includeDrafts: false,
     );
     final Map<String, TrainingBlock?> resultMap = {};
 
@@ -595,6 +712,7 @@ class TrainingService {
       boxId: boxId,
       date: date,
       category: 'ANY',
+      includeDrafts: false,
     );
     final Map<String, Training?> resultMap = {};
 

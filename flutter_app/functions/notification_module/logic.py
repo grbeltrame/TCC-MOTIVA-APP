@@ -232,10 +232,9 @@ def _has_training_for_date(db, date_key: str) -> bool:
     docs = (
         db.collection("exercises")
         .where("dataTreinoIso", "==", date_key)
-        .limit(1)
         .stream()
     )
-    return any(True for _ in docs)
+    return any((doc.to_dict() or {}).get("status") == "publicado" for doc in docs)
 
 
 def _athlete_reminder_copy(now: datetime, week_start_key: str, has_week_result: bool):

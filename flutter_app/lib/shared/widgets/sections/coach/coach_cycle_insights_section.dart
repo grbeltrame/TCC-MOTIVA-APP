@@ -38,7 +38,7 @@ class _CoachCycleInsightsSectionState extends State<CoachCycleInsightsSection> {
     super.initState();
     final now = DateTime.now();
     final initial = widget.initialMonth ?? DateTime(now.year, now.month);
-    _month = DateTime(initial.year, initial.month);
+    _month = _safeMonth(initial);
     _future = _service.fetchCycleOverviewInsights(
       boxId: widget.boxId,
       month: _month,
@@ -47,12 +47,21 @@ class _CoachCycleInsightsSectionState extends State<CoachCycleInsightsSection> {
 
   void _onMonthChanged(DateTime newMonth) {
     setState(() {
-      _month = DateTime(newMonth.year, newMonth.month);
+      _month = _safeMonth(newMonth);
       _future = _service.fetchCycleOverviewInsights(
         boxId: widget.boxId,
         month: _month,
       );
     });
+  }
+
+  DateTime _safeMonth(DateTime date) {
+    final now = DateTime.now();
+    final normalized = DateTime(date.year, date.month);
+    if (normalized.year < 2020 || normalized.year > now.year + 2) {
+      return DateTime(now.year, now.month);
+    }
+    return normalized;
   }
 
   String _formatMonthLabel(DateTime m) {

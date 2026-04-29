@@ -91,6 +91,7 @@ class _SettingsDataDownloadScreenState
                 onPressed: _loading ? null : _download,
                 style: const ButtonStyle(
                   backgroundColor: WidgetStatePropertyAll(AppColors.baseBlue),
+                  foregroundColor: WidgetStatePropertyAll(Colors.white),
                   elevation: WidgetStatePropertyAll(0),
                 ),
                 child: Text(_loading ? 'Gerando...' : 'Baixar JSON'),

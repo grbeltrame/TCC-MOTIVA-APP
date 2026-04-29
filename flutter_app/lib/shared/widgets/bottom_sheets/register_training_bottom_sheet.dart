@@ -64,8 +64,10 @@ class _RegisterTrainingBottomSheetState
         _uploading = false;
       });
 
-      // ⬇️ Sucesso: dialog fecha a si e o bottom sheet
+      // Sucesso: confirma para o usuário e fecha o bottom sheet com resultado.
       await showPdfUploadSuccessDialog(context);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       setState(() => _uploading = false);
@@ -99,7 +101,7 @@ class _RegisterTrainingBottomSheetState
 
             // 2) Descrição
             Text(
-              'Envie o PDF dos treinos no botão abaixo e a IA irá avaliá-los',
+              'Envie o PDF dos treinos para importar rascunhos e revisar antes de publicar',
               style: TextStyle(
                 fontFamily: AppFonts.roboto,
                 fontSize: 14 * scale,
@@ -153,25 +155,25 @@ class _RegisterTrainingBottomSheetState
               child: ElevatedButton.icon(
                 onPressed: hasFile ? _uploadPdf : null,
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.resolveWith((states) {
-                    if (states.contains(MaterialState.disabled)) {
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.disabled)) {
                       return AppColors.lightGray; // cinza sem arquivo/disable
                     }
                     return AppColors.baseBlue; // azul com arquivo selecionado
                   }),
-                  foregroundColor: MaterialStateProperty.resolveWith((states) {
-                    if (states.contains(MaterialState.disabled)) {
+                  foregroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.disabled)) {
                       return AppColors.mediumGray;
                     }
                     return Colors.white; // texto/ícone brancos quando ativo
                   }),
-                  shape: MaterialStateProperty.all(
+                  shape: WidgetStateProperty.all(
                     RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10 * scale),
                     ),
                   ),
-                  elevation: const MaterialStatePropertyAll(0),
-                  padding: MaterialStatePropertyAll(
+                  elevation: const WidgetStatePropertyAll(0),
+                  padding: WidgetStatePropertyAll(
                     EdgeInsets.symmetric(horizontal: 12 * scale),
                   ),
                 ),
@@ -201,7 +203,8 @@ class _RegisterTrainingBottomSheetState
   }
 }
 
-/// Helper para abrir o bottom sheet (continua igual).
-Future<void> showRegisterTrainingBottomSheet(BuildContext context) {
-  return showAppBottomSheet(context, const RegisterTrainingBottomSheet());
+/// Helper para abrir o bottom sheet.
+/// Retorna true quando o PDF foi enviado para processamento.
+Future<bool?> showRegisterTrainingBottomSheet(BuildContext context) {
+  return showAppBottomSheet<bool>(context, const RegisterTrainingBottomSheet());
 }
