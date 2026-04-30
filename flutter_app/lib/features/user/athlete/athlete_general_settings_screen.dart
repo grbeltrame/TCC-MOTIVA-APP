@@ -104,7 +104,7 @@ class _AthleteGeneralSettingsScreenState
                 ),
                 _SwitchRow(
                   scale: scale,
-                  title: 'Insights de treino publicado',
+                  title: 'Análise de treino publicada',
                   value: _settings.preWorkoutInsights,
                   onChanged:
                       (v) => _save(_settings.copyWith(preWorkoutInsights: v)),

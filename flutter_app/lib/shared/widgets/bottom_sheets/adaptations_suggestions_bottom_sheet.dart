@@ -146,7 +146,7 @@ class _AdaptationsSheetState extends State<_AdaptationsSheet> {
             SizedBox(height: 16 * scale),
 
             Text(
-              'Insights Inteligentes',
+              'Análise inteligente',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             SizedBox(height: 6 * scale),

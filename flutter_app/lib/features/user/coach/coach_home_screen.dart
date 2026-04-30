@@ -585,7 +585,7 @@ class _AIAlertCarouselState extends State<_AIAlertCarousel> {
               child: Row(
                 children: [
                   Text(
-                    'Ver Insights completos',
+                    'Ver análises completas',
                     style: TextStyle(
                       fontFamily: AppFonts.roboto,
                       fontSize: 11 * s,

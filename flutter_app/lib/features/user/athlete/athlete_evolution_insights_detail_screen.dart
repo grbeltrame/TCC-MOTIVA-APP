@@ -22,7 +22,19 @@ class _AthleteEvolutionInsightsDetailScreenState
   @override
   void initState() {
     super.initState();
-    _future = AthleteInsightsService.fetchEvolutionCached();
+    _future = _loadInsights();
+  }
+
+  Future<AthleteEvolutionInsights?> _loadInsights() async {
+    final cached = await AthleteInsightsService.fetchEvolutionCached();
+    if (cached != null && !cached.isEmpty) return cached;
+
+    try {
+      final fresh = await AthleteInsightsService.fetchEvolution();
+      return fresh.isEmpty ? cached : fresh;
+    } catch (_) {
+      return cached;
+    }
   }
 
   @override
@@ -51,7 +63,7 @@ class _AthleteEvolutionInsightsDetailScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Insights de Evolução',
+                  'Análise de evolução',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 if (data.weeksAnalyzed != null) ...[
@@ -99,29 +111,29 @@ class _AthleteEvolutionInsightsDetailScreenState
   }
 
   Widget _sectionTitle(String txt, double scale) => Text(
-        txt,
-        style: TextStyle(
-          fontFamily: AppFonts.roboto,
-          fontWeight: FontWeight.bold,
-          fontSize: 15 * scale,
-          color: AppColors.darkText,
-        ),
-      );
+    txt,
+    style: TextStyle(
+      fontFamily: AppFonts.roboto,
+      fontWeight: FontWeight.bold,
+      fontSize: 15 * scale,
+      color: AppColors.darkText,
+    ),
+  );
 
   Widget _empty(double scale) => Center(
-        child: Padding(
-          padding: EdgeInsets.all(24 * scale),
-          child: Text(
-            'Nenhum insight de evolução disponível ainda.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: AppFonts.roboto,
-              fontSize: 14 * scale,
-              color: AppColors.mediumGray,
-            ),
-          ),
+    child: Padding(
+      padding: EdgeInsets.all(24 * scale),
+      child: Text(
+        'Nenhuma análise de evolução disponível ainda.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: AppFonts.roboto,
+          fontSize: 14 * scale,
+          color: AppColors.mediumGray,
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _InsightTile extends StatelessWidget {

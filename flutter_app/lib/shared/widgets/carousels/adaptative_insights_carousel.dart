@@ -57,7 +57,7 @@ class _AdaptiveInsightsCarouselState extends State<AdaptiveInsightsCarousel>
     final scale = MediaQuery.of(context).size.width / 375.0;
     final hasMessages = widget.messages.isNotEmpty;
     final currentText =
-        hasMessages ? widget.messages[_index] : 'Nenhum insight disponível.';
+        hasMessages ? widget.messages[_index] : 'Nenhuma análise disponível.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

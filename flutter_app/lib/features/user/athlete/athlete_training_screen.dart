@@ -15,9 +15,15 @@ class AthleteTrainingScreen extends StatefulWidget {
 
 class _AthleteTrainingScreenState extends State<AthleteTrainingScreen> {
   DateTime _currentDate = DateTime.now();
+  int _refreshTick = 0;
 
   void _onDateChanged(DateTime date) {
     _currentDate = date;
+  }
+
+  Future<void> _onRefresh() async {
+    setState(() => _refreshTick++);
+    await Future<void>.delayed(const Duration(milliseconds: 400));
   }
 
   @override
@@ -29,27 +35,31 @@ class _AthleteTrainingScreenState extends State<AthleteTrainingScreen> {
 
       bottomNavigationBar: const BottomNavBar(),
 
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          vertical: 8 * scale,
-          horizontal: 12 * scale,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Treinos do dia
-            TrainingInfoSection(onDateChanged: _onDateChanged),
-            const SizedBox(height: 40),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            vertical: 8 * scale,
+            horizontal: 12 * scale,
+          ),
+          child: KeyedSubtree(
+            key: ValueKey('athlete_training_$_refreshTick'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Treinos do dia
+                TrainingInfoSection(onDateChanged: _onDateChanged),
+                const SizedBox(height: 40),
 
-            // Insights pré-treino — carrossel real (Gemini) com link
-            // "Ver todos" pra tela de detalhe. Resolve workoutId pela
-            // data atual; se não houver treino publicado ou insights
-            // ainda, a seção fica oculta.
-            PreWorkoutInsightsSection(date: _currentDate),
-
-            // // Metas proximas de serem concluidas
-            // const NearCompletionSection(),
-          ],
+                // Análise pré-treino — carrossel real (Gemini) com link
+                // "Ver todos" pra tela de detalhe. Resolve workoutId pela
+                // data atual; se não houver treino publicado ou análise
+                // ainda, a seção fica oculta.
+                PreWorkoutInsightsSection(date: _currentDate),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -155,6 +155,15 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
     return (t, null);
   }
 
+  int? _extractMinutesFromSubtitle(String subtitle) {
+    final match = RegExp(
+      r'\((\d{1,3})\s*min\)|\b(\d{1,3})\s*min\b',
+      caseSensitive: false,
+    ).firstMatch(subtitle);
+    if (match == null) return null;
+    return int.tryParse(match.group(1) ?? match.group(2) ?? '');
+  }
+
   // ---------------------------------------------------------------------------
   // Parsing de linha em movements
   // ---------------------------------------------------------------------------
@@ -221,6 +230,25 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
               (setM.group(3)?.trim().isEmpty ?? true)
                   ? null
                   : setM.group(3)!.trim(),
+        ),
+      ];
+    }
+
+    // "50 D.U. | 70 S.U." — opções RX/Scaled ou double/single unders.
+    final altRepsRe = RegExp(
+      r'^\s*(\d+)\s+(.+?)\s*\|\s*(\d+)\s+(.+?)(?:\s*\(([^)]+)\))?\s*$',
+      caseSensitive: false,
+    );
+    final altRepsM = altRepsRe.firstMatch(s);
+    if (altRepsM != null) {
+      return [
+        EditableMovement(
+          reps: '${altRepsM.group(1)!.trim()}|${altRepsM.group(3)!.trim()}',
+          name: '${altRepsM.group(2)!.trim()} | ${altRepsM.group(4)!.trim()}',
+          load:
+              (altRepsM.group(5)?.trim().isEmpty ?? true)
+                  ? null
+                  : altRepsM.group(5)!.trim(),
         ),
       ];
     }
@@ -292,6 +320,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
       final id = b.id.isNotEmpty ? b.id : 'section_$i';
       final inferredType = _inferTypeFromTitle(b.title);
       final (nameOnly, minutes) = _splitTitleNameAndTime(b.title);
+      final subtitleMinutes = _extractMinutesFromSubtitle(b.subtitle);
 
       // Extrai nome limpo (remove prefixo da seção: "WOD - " → "")
       String? cleanName = nameOnly;
@@ -321,7 +350,7 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
           id: id,
           type: inferredType,
           name: cleanName,
-          timeMinutes: minutes,
+          timeMinutes: minutes ?? subtitleMinutes,
           modalidade: modalidade,
           rounds: rounds,
           movements: movements,
@@ -338,17 +367,20 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
 
   /// Extrai modalidade e rounds do subtitle do TrainingBlock.
   /// Ex: "3 ROUNDS FOR TIME (20 min)" → ("ROUNDS FOR TIME", 3)
-  /// Ex: "AMRAP (5 min)"              → ("AMRAP", null)
+  /// Ex: "2 ROUNDS"                    → ("ROUNDS FOR TIME", 2)
+  /// Ex: "2 ROUNDS (5 min)"            → ("ROUNDS FOR TIME", 2)
+  /// Ex: "AMRAP (5 min)"               → ("AMRAP", null)
   (String? modalidade, int? rounds) _inferModalidadeFromSubtitle(
     String subtitle,
   ) {
     final s = subtitle.trim().toUpperCase();
 
-    final roundsForTime = RegExp(
-      r'^(\d+)\s+ROUNDS?\s+FOR\s+TIME',
-    ).firstMatch(s);
-    if (roundsForTime != null) {
-      return ('ROUNDS FOR TIME', int.tryParse(roundsForTime.group(1)!));
+    // Qualquer variante "X ROUNDS" (com ou sem "FOR TIME") vira ROUNDS FOR TIME.
+    // Regra confirmada: tudo que tem rounds é tratado como ROUNDS FOR TIME;
+    // se não houver tempo, o campo de tempo fica vazio.
+    final rounds = RegExp(r'^(\d+)\s+ROUNDS?\b').firstMatch(s);
+    if (rounds != null) {
+      return ('ROUNDS FOR TIME', int.tryParse(rounds.group(1)!));
     }
 
     if (s.contains('AMRAP')) return ('AMRAP', null);
@@ -641,6 +673,26 @@ class _SectionEditorCard extends StatefulWidget {
 }
 
 class _SectionEditorCardState extends State<_SectionEditorCard> {
+  TextStyle _fieldTextStyle(double scale) {
+    return TextStyle(
+      fontFamily: AppFonts.roboto,
+      fontWeight: FontWeight.w600,
+      fontSize: 14 * scale,
+      color: AppColors.darkText,
+    );
+  }
+
+  InputDecoration _fieldDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(
+        fontFamily: AppFonts.roboto,
+        fontWeight: FontWeight.w500,
+        color: AppColors.darkText.withValues(alpha: 0.78),
+      ),
+    );
+  }
+
   List<String> _typesWithCurrent(String current) {
     final set = <String>{..._kSectionTypes, current};
     return set.toList();
@@ -689,16 +741,29 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
 
+    final fieldTextStyle = _fieldTextStyle(scale);
+
     final typeItems =
         _typesWithCurrent(widget.section.type)
-            .map((e) => DropdownMenuItem<String>(value: e, child: Text(e)))
+            .map(
+              (e) => DropdownMenuItem<String>(
+                value: e,
+                child: Text(e, style: fieldTextStyle),
+              ),
+            )
             .toList();
 
     // Opções de modalidade: null (Nenhuma) + lista de modalidades
     final modalidadeItems = <DropdownMenuItem<String?>>[
-      const DropdownMenuItem<String?>(value: null, child: Text('— Nenhuma —')),
+      DropdownMenuItem<String?>(
+        value: null,
+        child: Text('— Nenhuma —', style: fieldTextStyle),
+      ),
       ..._kModalidades.map(
-        (e) => DropdownMenuItem<String?>(value: e, child: Text(e)),
+        (e) => DropdownMenuItem<String?>(
+          value: e,
+          child: Text(e, style: fieldTextStyle),
+        ),
       ),
     ];
 
@@ -728,12 +793,15 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
                 child: DropdownButtonFormField<String>(
                   value: widget.section.type,
                   items: typeItems,
+                  style: fieldTextStyle,
+                  iconEnabledColor: AppColors.darkText,
+                  dropdownColor: Colors.white,
                   onChanged: (val) {
                     if (val == null) return;
                     setState(() => widget.section.type = val);
                     widget.onChanged?.call();
                   },
-                  decoration: const InputDecoration(labelText: 'Tipo da seção'),
+                  decoration: _fieldDecoration('Tipo da seção'),
                 ),
               ),
               SizedBox(width: 8 * scale),
@@ -755,9 +823,8 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
               );
               widget.onChanged?.call();
             },
-            decoration: const InputDecoration(
-              labelText: 'Nome da seção (opcional)',
-            ),
+            style: fieldTextStyle,
+            decoration: _fieldDecoration('Nome da seção (opcional)'),
           ),
           SizedBox(height: 8 * scale),
 
@@ -773,9 +840,8 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
             },
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: const InputDecoration(
-              labelText: 'Tempo (min, opcional)',
-            ),
+            style: fieldTextStyle,
+            decoration: _fieldDecoration('Tempo (min, opcional)'),
           ),
           SizedBox(height: 8 * scale),
 
@@ -783,6 +849,9 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
           DropdownButtonFormField<String?>(
             value: widget.section.modalidade,
             items: modalidadeItems,
+            style: fieldTextStyle,
+            iconEnabledColor: AppColors.darkText,
+            dropdownColor: Colors.white,
             onChanged: (val) {
               setState(() {
                 widget.section.modalidade = val;
@@ -793,9 +862,7 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
               });
               widget.onChanged?.call();
             },
-            decoration: const InputDecoration(
-              labelText: 'Modalidade (ex: AMRAP, FOR TIME)',
-            ),
+            decoration: _fieldDecoration('Modalidade (ex: AMRAP, FOR TIME)'),
           ),
           SizedBox(height: 8 * scale),
 
@@ -812,10 +879,10 @@ class _SectionEditorCardState extends State<_SectionEditorCard> {
               },
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Número de rounds',
-                hintText: 'Ex: 3',
-              ),
+              style: fieldTextStyle,
+              decoration: _fieldDecoration(
+                'Número de rounds',
+              ).copyWith(hintText: 'Ex: 3'),
             ),
             SizedBox(height: 8 * scale),
           ],

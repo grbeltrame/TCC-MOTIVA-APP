@@ -237,7 +237,7 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
                     Expanded(
                       child: MiniCardWidget(
                         iconWidget: const Icon(Icons.people_outline),
-                        title: 'Alunos Ativos',
+                        title: 'Alunos ativos',
                         valueFontSize: 12,
                         customValue: 'Em breve',
                         backgroundColor: AppColors.baseBlue,
@@ -291,7 +291,7 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
                           ),
                           SizedBox(width: 4 * scale),
                           Text(
-                            'Ver todos Insights',
+                            'Ver todas as análises',
                             style: TextStyle(
                               fontFamily: AppFonts.roboto,
                               fontSize: 12 * scale,

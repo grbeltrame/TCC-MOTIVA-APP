@@ -220,7 +220,7 @@ class _AthletePrItemScreenState extends State<AthletePrItemScreen> {
 
                           // ====== INSIGHTS ======
                           Text(
-                            'Insights Inteligentes',
+                            'Análise inteligente',
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           FutureBuilder<List<InsightsModel>>(

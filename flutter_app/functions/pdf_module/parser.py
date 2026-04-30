@@ -202,6 +202,22 @@ def parse_materiais(text: str) -> list:
 # SEÇÃO 4: PARSING DE EXERCÍCIOS
 # ==============================================================================
 
+def _strip_ordinal_prefix(linha: str) -> tuple[str, bool]:
+    """
+    Remove marcadores de ordem usados em EMOM/estações:
+    "1º- 16 Box jump", "1o - 16 Box jump", "1O: 16 Box jump".
+    Retorna (linha_limpa, removeu_prefixo).
+    """
+    cleaned = linha.strip()
+    without_prefix = re.sub(
+        r'^\s*\d+\s*(?:[°º]|[oO])\s*[-:\u2013\u2014]\s*',
+        '',
+        cleaned,
+        count=1,
+    ).strip()
+    return without_prefix, without_prefix != cleaned
+
+
 def parse_exercicio(linha: str) -> dict:
     """
     Converte uma linha de exercício em objeto estruturado.
@@ -217,7 +233,7 @@ def parse_exercicio(linha: str) -> dict:
 
     # Strip prefixo de rounds/EMOM numerados: "1º- " / "1o- " / "2°- "
     # O PDF normaliza 'º' para 'o' após unicode normalize
-    linha = re.sub(r'^\d+[°ºo]\s*[-\u2013]\s*', '', linha)
+    linha, stripped_ordinal = _strip_ordinal_prefix(linha)
     linha = re.sub(r'^\s*[-•*]\s*', '', linha).strip()
 
     prefix_match = re.match(r'^(Buy\s+(?:in|out))\s*[-:]\s*(.+)$', linha, re.IGNORECASE)
@@ -227,7 +243,7 @@ def parse_exercicio(linha: str) -> dict:
         linha = prefix_match.group(2).strip()
 
     result = {
-        "raw": original_linha,
+        "raw": linha if stripped_ordinal else original_linha,
         "kind": "exercise",
         "quantidade": None,
         "nome": None,
@@ -273,6 +289,14 @@ def parse_exercicio(linha: str) -> dict:
         result["quantidade"] = int(seg_match.group(1))
         result["unidade"] = "segundos"
         result["nome"] = seg_match.group(2).strip()
+        return result
+
+    # 3c. Alternativas com quantidade dos dois lados:
+    #     "50 D.U. | 70 S.U." → quantidade "50|70", nome "D.U. | S.U."
+    alt_reps_match = re.match(r'^(\d+)\s+(.+?)\s*\|\s*(\d+)\s+(.+)$', linha)
+    if alt_reps_match:
+        result["quantidade"] = f"{alt_reps_match.group(1)}|{alt_reps_match.group(3)}"
+        result["nome"] = f"{alt_reps_match.group(2).strip()} | {alt_reps_match.group(4).strip()}"
         return result
 
     # 4. Padrão padrão: "20 Box jump", "05 Burpees"
@@ -348,7 +372,8 @@ def is_linha_exercicio(ln: str) -> bool:
         return True
     # Formato EMOM/rounds numerados: "1º- 04 Power clean", "2o- 30\" Handstand hold"
     # O PDF normaliza 'º' para 'o', então checamos ambos
-    if re.match(r'^\d+[°ºo]\s*[-\u2013]\s*\d+', ln_check, re.IGNORECASE):
+    ordinal_cleaned, had_ordinal = _strip_ordinal_prefix(ln_check)
+    if had_ordinal and re.match(r'^\d+', ordinal_cleaned):
         return True
     return False
 

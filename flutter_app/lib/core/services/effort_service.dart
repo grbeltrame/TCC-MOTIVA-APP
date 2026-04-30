@@ -235,6 +235,24 @@ class EffortService {
     }
   }
 
+  /// Retorna a data do primeiro resultado registrado pelo atleta.
+  /// Usado no filtro de data da tela de evolução, para que o limite
+  /// inferior do período se fixe no início real do histórico — em vez
+  /// de avançar 1 dia a cada login.
+  static Future<DateTime?> getFirstResultDate() async {
+    try {
+      final snap =
+          await _resultsRef.orderBy('date').limit(1).get();
+      if (snap.docs.isEmpty) return null;
+      final dateStr = snap.docs.first.data()['date'] as String?;
+      if (dateStr == null || dateStr.isEmpty) return null;
+      return DateTime.tryParse(dateStr);
+    } catch (e) {
+      print('ERRO getFirstResultDate: $e');
+      return null;
+    }
+  }
+
   /// Retorna todos os registros de uma data (WOD, REST, OTHER, etc.)
   static Future<List<TodayRecord>> fetchAllRecordsForDate(DateTime date) async {
     try {

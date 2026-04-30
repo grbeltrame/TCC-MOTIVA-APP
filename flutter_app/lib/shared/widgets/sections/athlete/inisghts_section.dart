@@ -48,7 +48,7 @@ class InsightsSection extends StatelessWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6 * scale),
                   child: Text(
-                    'Insights do Treino do Dia',
+                    'Análise do treino do dia',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                 ),

@@ -17,6 +17,17 @@ class AthleteHomeScreen extends StatefulWidget {
 }
 
 class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
+  // Tick incrementa a cada pull-to-refresh; usado como ValueKey para forçar
+  // os widgets filhos a refazerem seus FutureBuilders/StreamBuilders.
+  int _refreshTick = 0;
+
+  Future<void> _onRefresh() async {
+    setState(() => _refreshTick++);
+    // Pequena espera dá feedback visual do indicador antes de o conteúdo
+    // reaparecer; os fetches dos filhos rodam em paralelo.
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -26,39 +37,38 @@ class _AthleteHomeScreenState extends State<AthleteHomeScreen> {
 
       bottomNavigationBar: const BottomNavBar(),
 
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          vertical: 16 * scale,
-          horizontal: 12 * scale,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Saudação inicial
-            const HomeGreetingSection(),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            vertical: 16 * scale,
+            horizontal: 12 * scale,
+          ),
+          child: KeyedSubtree(
+            key: ValueKey('athlete_home_$_refreshTick'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Saudação inicial
+                const HomeGreetingSection(),
 
-            // Insights do atleta (2 semanais + 2 de evolução, sorteados)
-            const AthleteInsightsCarouselLoader(
-              mode: AthleteInsightsMode.homeMix,
+                // Insights do atleta (2 semanais + 2 de evolução, sorteados)
+                const AthleteInsightsCarouselLoader(
+                  mode: AthleteInsightsMode.homeMix,
+                ),
+
+                // Navegação incial
+                const HomePrimaryActions(),
+
+                // Resumo do Treino
+                const DailyTrainingSummaryCard(),
+
+                // Ações Pendentes
+                const PendingActionsSection(),
+              ],
             ),
-
-            // Navegação incial
-            const HomePrimaryActions(),
-
-            // Resumo do Treino
-            const DailyTrainingSummaryCard(),
-
-            // Ações Pendentes
-            const PendingActionsSection(),
-
-            // Metas quase atingidas
-            // AlmostReachedGoalsSection(
-            //   title: 'Metas Próximas',
-            //   buttonLabel: 'Ver todas as metas',
-            //   onButtonPressed:
-            //       () => Navigator.pushNamed(context, AppRoutes.athleteGoals),
-            // ),
-          ],
+          ),
         ),
       ),
     );

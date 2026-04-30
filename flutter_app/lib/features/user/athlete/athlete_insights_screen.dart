@@ -32,6 +32,13 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
     _futureSummary = AthleteStatsService.fetchSummary();
   }
 
+  Future<void> _onRefresh() async {
+    setState(() {
+      _futureSummary = AthleteStatsService.fetchSummary();
+    });
+    await _futureSummary;
+  }
+
   String _weekCountdownText() {
     final now = DateTime.now();
     final daysUntilSaturday = (6 - now.weekday + 7) % 7;
@@ -54,21 +61,24 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
     return Scaffold(
       appBar: const TopNavbar(),
       bottomNavigationBar: const BottomNavBar(),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          vertical: 16 * scale,
-          horizontal: 12 * scale,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            vertical: 16 * scale,
+            horizontal: 12 * scale,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 6 * scale),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Resumo Semanal',
+                    'Resumo semanal',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   SizedBox(height: 2 * scale),
@@ -108,7 +118,7 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Insights da Semana',
+                          'Análise da semana',
                           style: TextStyle(
                             fontFamily: AppFonts.roboto,
                             fontWeight: FontWeight.bold,
@@ -162,7 +172,8 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
                 );
               },
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

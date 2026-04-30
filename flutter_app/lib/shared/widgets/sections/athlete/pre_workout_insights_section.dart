@@ -86,7 +86,7 @@ class _PreWorkoutInsightsSectionState extends State<PreWorkoutInsightsSection> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                'Insights do Treino',
+                'Análise do treino',
                 style: TextStyle(
                   fontFamily: AppFonts.roboto,
                   fontWeight: FontWeight.bold,

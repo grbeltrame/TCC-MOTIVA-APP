@@ -5,6 +5,7 @@ import 'package:flutter_app/shared/models/training.dart'; // <--- IMPORTANTE
 import 'package:flutter_app/shared/widgets/sections/athlete/worked_muscles_section.dart';
 // import 'package:flutter_app/shared/widgets/sections/coach/coach_interested_per_class_section.dart'; // (Se não estiver usando, pode manter comentado)
 import 'package:flutter_app/core/services/workout/training_service.dart';
+import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/widgets/cards/training_blocks_card.dart';
 import 'package:flutter_app/shared/widgets/footers/coach_training_footer.dart';
@@ -156,6 +157,34 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
     }
   }
 
+  // Navega para a tela de edição com os campos preenchidos do treino atual.
+  // Disponível apenas quando o treino é rascunho (ainda não publicado).
+  Future<void> _onTapEditarTreino() async {
+    final docId = _trainingObject?.id ?? _blockId;
+    final result = await Navigator.pushNamed(
+      context,
+      AppRoutes.coachTrainingEdit,
+      arguments: {
+        'boxId': _boxId,
+        'date': _date,
+        'category': _category,
+        'blockId': docId,
+      },
+    );
+    if (!mounted) return;
+    if (result == true) {
+      setState(() {
+        _blocksFut = TrainingService.fetchFullTrainingBlocks(
+          boxId: _boxId,
+          date: _date,
+          category: _category,
+          trainingId: docId,
+          includeDrafts: true,
+        );
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -177,43 +206,89 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const AppBackButton(),
-                // Botão de Atalho para Insights (Opcional, mas útil)
-                TextButton.icon(
-                  onPressed:
-                      _trainingStatus == 'rascunho'
-                          ? _onTapPublicarTreino
-                          : _onTapVerInsightsAI,
-                  icon: Icon(
-                    _trainingStatus == 'rascunho'
-                        ? Icons.publish
-                        : Icons.auto_awesome,
-                    size: 16 * scale,
-                    color: AppColors.baseBlue,
-                  ),
-                  label: Text(
-                    _trainingStatus == 'rascunho'
-                        ? "Publicar"
-                        : "Insights IA",
-                    style: TextStyle(
-                      fontSize: 12 * scale,
+                if (_trainingStatus == 'rascunho')
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton.icon(
+                        onPressed: _onTapEditarTreino,
+                        icon: Icon(
+                          Icons.edit,
+                          size: 16 * scale,
+                          color: AppColors.baseBlue,
+                        ),
+                        label: Text(
+                          'Editar',
+                          style: TextStyle(
+                            fontSize: 12 * scale,
+                            color: AppColors.baseBlue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _onTapPublicarTreino,
+                        icon: Icon(
+                          Icons.publish,
+                          size: 16 * scale,
+                          color: AppColors.baseBlue,
+                        ),
+                        label: Text(
+                          'Publicar',
+                          style: TextStyle(
+                            fontSize: 12 * scale,
+                            color: AppColors.baseBlue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: _onTapVerInsightsAI,
+                    icon: Icon(
+                      Icons.auto_awesome,
+                      size: 16 * scale,
                       color: AppColors.baseBlue,
-                      fontWeight: FontWeight.bold,
+                    ),
+                    label: Text(
+                      'Análise IA',
+                      style: TextStyle(
+                        fontSize: 12 * scale,
+                        color: AppColors.baseBlue,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
 
           Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: 12 * scale,
-                vertical: 10 * scale,
-              ),
-              child: FutureBuilder<List<TrainingBlock>>(
-                future: _blocksFut,
-                builder: (ctx, snap) {
+            child: RefreshIndicator(
+              onRefresh: () async {
+                final docId = _trainingObject?.id ?? _blockId;
+                setState(() {
+                  _blocksFut = TrainingService.fetchFullTrainingBlocks(
+                    boxId: _boxId,
+                    date: _date,
+                    category: _category,
+                    trainingId: docId,
+                    includeDrafts: true,
+                  );
+                });
+                await _blocksFut;
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 12 * scale,
+                  vertical: 10 * scale,
+                ),
+                child: FutureBuilder<List<TrainingBlock>>(
+                  future: _blocksFut,
+                  builder: (ctx, snap) {
                   if (!snap.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
@@ -241,6 +316,7 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
                     ],
                   );
                 },
+              ),
               ),
             ),
           ),

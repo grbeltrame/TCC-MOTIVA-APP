@@ -34,8 +34,8 @@ class TopNavbar extends StatelessWidget implements PreferredSizeWidget {
     final isCoachView = userProvider.isCoachView;
     final canSwitch = userProvider.canToggleView;
 
-    // Define o texto atual (Voltei para o inglês como você pediu)
-    final String currentLabel = isCoachView ? 'Coach' : 'Athlete';
+    // Rótulo do papel atual exibido no AppBar (e usado como value do menu).
+    final String currentLabel = isCoachView ? 'Coach' : 'Atleta';
 
     final scale = MediaQuery.of(context).size.width / 375.0;
 
@@ -134,9 +134,9 @@ class TopNavbar extends StatelessWidget implements PreferredSizeWidget {
       itemBuilder:
           (BuildContext context) => <PopupMenuEntry<String>>[
             PopupMenuItem<String>(
-              value: 'Athlete',
+              value: 'Atleta',
               child: Text(
-                'Athlete',
+                'Atleta',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                 ),

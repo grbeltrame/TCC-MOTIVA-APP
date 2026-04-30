@@ -72,7 +72,7 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 6 * scale),
               child: Text(
-                'Resumo Semanal',
+                'Resumo semanal',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
             ),
@@ -466,7 +466,7 @@ class _WeeklySummaryWidgetState extends State<WeeklySummaryWidget> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'INSIGHTS DA SEMANA',
+                                  'ANÁLISE DA SEMANA',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14 * scale,

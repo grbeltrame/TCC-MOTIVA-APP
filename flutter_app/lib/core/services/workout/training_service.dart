@@ -375,7 +375,7 @@ class TrainingService {
           if (raw.isEmpty) continue;
 
           // Detecta distância: "500m Run"
-          int? quantidade;
+          Object? quantidade;
           String unidade = 'reps';
           final distMatch = RegExp(
             r'^(\d+)m\s',
@@ -384,6 +384,8 @@ class TrainingService {
           if (distMatch != null) {
             quantidade = int.tryParse(distMatch.group(1)!);
             unidade = 'metros';
+          } else if (reps.contains('|') || reps.contains(':')) {
+            quantidade = reps;
           } else {
             final numMatch = RegExp(r'^(\d+)').firstMatch(reps);
             if (numMatch != null) quantidade = int.tryParse(numMatch.group(1)!);

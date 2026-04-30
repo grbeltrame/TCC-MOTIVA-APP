@@ -58,6 +58,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "430412921098-n4p5idu830q9tc63p6huddl5d8vo6s25.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.projetofinal.motivaapp",
+            "certificate_hash": "6bcb6807956f2028f4e311509bcb30d880734e2c"
+          }
+        },
+        {
           "client_id": "430412921098-2c7uaur967aij1p6qs5h76r2h1ftkn3o.apps.googleusercontent.com",
           "client_type": 3
         }

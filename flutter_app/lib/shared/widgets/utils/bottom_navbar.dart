@@ -12,7 +12,10 @@ class BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final isCoachView = userProvider.isCoachView;
-    final scale = MediaQuery.of(context).size.width / 375.0;
+    final scale =
+        (MediaQuery.of(context).size.width / 375.0)
+            .clamp(0.88, 1.12)
+            .toDouble();
 
     final items = <_NavItem>[
       _NavItem(
@@ -22,8 +25,10 @@ class BottomNavBar extends StatelessWidget {
         routeCoach: AppRoutes.coachHome,
       ),
       _NavItem(
-        icon: Icons.lightbulb_outline,
-        label: 'Insights',
+        icon: Icons.calendar_today_outlined,
+        iconCoach: Icons.lightbulb_outline,
+        label: 'Semana',
+        labelCoach: 'Análise',
         routeAthlete: AppRoutes.athleteInsight,
         routeCoach: AppRoutes.coachInsights,
       ),
@@ -79,65 +84,86 @@ class BottomNavBar extends StatelessWidget {
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          top: BorderSide(color: AppColors.mediumGray, width: 0.5 * scale),
+    return SafeArea(
+      top: false,
+      minimum: EdgeInsets.only(bottom: 4 * scale),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: AppColors.mediumGray, width: 0.5 * scale),
+          ),
         ),
-      ),
-      padding: EdgeInsets.only(top: 6 * scale, bottom: 20 * scale),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(items.length, (i) {
-          final item = items[i];
-          final selected = i == selectedIndex;
+        padding: EdgeInsets.only(top: 6 * scale, bottom: 6 * scale),
+        child: Row(
+          children: List.generate(items.length, (i) {
+            final item = items[i];
+            final selected = i == selectedIndex;
 
-          return GestureDetector(
-            onTap: () => onTap(i),
-            behavior: HitTestBehavior.translucent,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Fundo do ícone anima suavemente ao selecionar
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12 * scale,
-                    vertical: 6 * scale,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        selected
-                            ? AppColors.baseBlue.withOpacity(0.15)
-                            : Colors.transparent,
-                    borderRadius: BorderRadius.circular(16 * scale),
-                  ),
-                  child: Icon(
-                    item.icon,
-                    size: 24 * scale,
-                    color: selected ? AppColors.baseBlue : AppColors.darkText,
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onTap(i),
+                behavior: HitTestBehavior.translucent,
+                child: SizedBox(
+                  height: 58 * scale,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Fundo do ícone anima suavemente ao selecionar
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12 * scale,
+                          vertical: 5 * scale,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              selected
+                                  ? AppColors.baseBlue.withOpacity(0.15)
+                                  : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16 * scale),
+                        ),
+                        child: Icon(
+                          isCoachView
+                              ? (item.iconCoach ?? item.icon)
+                              : item.icon,
+                          size: 23 * scale,
+                          color:
+                              selected
+                                  ? AppColors.baseBlue
+                                  : AppColors.darkText,
+                        ),
+                      ),
+                      SizedBox(height: 3 * scale),
+                      // Texto anima peso e cor ao selecionar
+                      AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        style: TextStyle(
+                          fontSize: 11.5 * scale,
+                          fontWeight:
+                              selected ? FontWeight.bold : FontWeight.w400,
+                          color:
+                              selected
+                                  ? AppColors.baseBlue
+                                  : AppColors.darkText,
+                        ),
+                        child: Text(
+                          isCoachView
+                              ? (item.labelCoach ?? item.label)
+                              : item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 4 * scale),
-                // Texto anima peso e cor ao selecionar
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  style: TextStyle(
-                    fontSize: 12 * scale,
-                    fontWeight: selected ? FontWeight.bold : FontWeight.w400,
-                    color: selected ? AppColors.baseBlue : AppColors.darkText,
-                  ),
-                  child: Text(
-                    isCoachView ? (item.labelCoach ?? item.label) : item.label,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -200,6 +226,7 @@ class _NavPageRoute extends PageRouteBuilder {
 
 class _NavItem {
   final IconData icon;
+  final IconData? iconCoach; // se null, usa icon para ambos os perfis
   final String label;
   final String? labelCoach; // se null, usa label para ambos os perfis
   final String routeAthlete;
@@ -207,6 +234,7 @@ class _NavItem {
 
   const _NavItem({
     required this.icon,
+    this.iconCoach,
     required this.label,
     this.labelCoach,
     required this.routeAthlete,

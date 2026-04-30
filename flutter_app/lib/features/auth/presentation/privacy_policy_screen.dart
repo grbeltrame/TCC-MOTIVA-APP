@@ -20,7 +20,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       title: 'Personalização por IA',
       body:
           'Quando a personalização por IA estiver ativa, seus dados de treino e '
-          'evolução podem ser usados para gerar insights semanais, análises de '
+          'evolução podem ser usados para gerar análises semanais, análises de '
           'evolução e informações pré-treino. Você pode desativar novas análises '
           'personalizadas nas configurações de privacidade do app.',
     ),

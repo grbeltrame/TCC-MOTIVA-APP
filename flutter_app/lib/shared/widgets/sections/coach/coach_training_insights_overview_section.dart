@@ -56,12 +56,12 @@ class CoachTrainingInsightsOverviewSection extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Insights do Treino',
+                  'Análise do treino',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),
               TextActionButton(
-                text: 'Ver Insights do Ciclo',
+                text: 'Ver análise do ciclo',
                 icon: Icons.add,
                 fontSize: 10 * scale,
                 color: AppColors.baseBlue,
@@ -268,11 +268,11 @@ class CoachTrainingInsightsOverviewSection extends StatelessWidget {
       case 'analysis':
         return 'Visão Geral Completa';
       case 'alerts':
-        return 'Todos os Alertas';
+        return 'Todos os alertas';
       case 'suggestions':
-        return 'Todas as Dicas';
+        return 'Todas as dicas';
       default:
-        return 'Todos os Insights';
+        return 'Todas as análises';
     }
   }
 }

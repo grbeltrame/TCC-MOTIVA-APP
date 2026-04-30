@@ -14,6 +14,13 @@ class AthleteProfileScreen extends StatefulWidget {
 }
 
 class _AthleteProfileScreenState extends State<AthleteProfileScreen> {
+  int _refreshTick = 0;
+
+  Future<void> _onRefresh() async {
+    setState(() => _refreshTick++);
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
@@ -23,26 +30,27 @@ class _AthleteProfileScreenState extends State<AthleteProfileScreen> {
 
       bottomNavigationBar: const BottomNavBar(),
 
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          vertical: 16 * scale,
-          horizontal: 8 * scale,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Informações sobre o perfil
-            AthleteInfoSection(),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            vertical: 16 * scale,
+            horizontal: 8 * scale,
+          ),
+          child: KeyedSubtree(
+            key: ValueKey('athlete_profile_$_refreshTick'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Informações sobre o perfil
+                AthleteInfoSection(),
 
-            // Informações de Resumo de Registros do Usuario
-            ProfileSummarySection(),
-
-            // // Hub de navegação
-            // ProfileNavHubSection(),
-
-            // // Metas concluidas
-            // AchievementsBadgesSection(),
-          ],
+                // Informações de Resumo de Registros do Usuario
+                ProfileSummarySection(),
+              ],
+            ),
+          ),
         ),
       ),
     );

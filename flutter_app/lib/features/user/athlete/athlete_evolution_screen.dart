@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/services/effort_service.dart';
 import 'package:flutter_app/features/user/athlete/athlete_evolution_insights_detail_screen.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/athlete_insights_carousel_loader.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/evolution_charts_section.dart';
@@ -23,20 +24,49 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
   late DateTime _from;
   late DateTime _to;
 
+  /// Data do primeiro treino registrado do atleta — usada como limite
+  /// inferior do date picker. Carregada uma vez no initState; se o
+  /// atleta ainda não tiver registros, cai no fallback DateTime(2020).
+  DateTime? _firstAvailableDate;
+
+  /// Tick incrementado no pull-to-refresh; usado como ValueKey nos
+  /// widgets pesados para forçar recarregamento dos Futures internos.
+  int _refreshTick = 0;
+
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
     _to = now;
-    // Padrão: últimas 12 semanas — mostra evolução real ao invés de só o mês atual.
+    // Default temporário enquanto carrega o primeiro registro real.
     _from = now.subtract(const Duration(days: 84));
+    _loadFirstResultDate();
+  }
+
+  Future<void> _onRefresh() async {
+    await _loadFirstResultDate();
+    if (!mounted) return;
+    setState(() => _refreshTick++);
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+  }
+
+  Future<void> _loadFirstResultDate() async {
+    final firstDate = await EffortService.getFirstResultDate();
+    if (!mounted || firstDate == null) return;
+    setState(() {
+      _firstAvailableDate = firstDate;
+      // Fixa o início do período no primeiro registro real do atleta,
+      // evitando que o filtro avance 1 dia a cada novo dia (que é o
+      // comportamento de uma janela relativa de 84 dias).
+      _from = firstDate;
+    });
   }
 
   Future<void> _pickDate({required bool isFrom}) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: isFrom ? _from : _to,
-      firstDate: DateTime(2020),
+      firstDate: _firstAvailableDate ?? DateTime(2020),
       lastDate: DateTime.now(),
     );
     if (picked == null) return;
@@ -59,14 +89,19 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
     return Scaffold(
       appBar: const TopNavbar(),
       bottomNavigationBar: const BottomNavBar(),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          vertical: 16 * scale,
-          horizontal: 12 * scale,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            vertical: 16 * scale,
+            horizontal: 12 * scale,
+          ),
+          child: KeyedSubtree(
+            key: ValueKey('athlete_evolution_$_refreshTick'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
             // ── Título + seletor de período ─────────────────────────────────
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 6 * scale),
@@ -122,7 +157,7 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  'Insights de Evolução',
+                  'Análise de evolução',
                   style: TextStyle(
                     fontFamily: AppFonts.roboto,
                     fontWeight: FontWeight.bold,
@@ -179,7 +214,9 @@ class _AthleteEvolutionScreenState extends State<AthleteEvolutionScreen> {
 
             // ── Gráficos de evolução (PRs + Volume) ─────────────────────────
             EvolutionChartsSection(from: _from, to: _to),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

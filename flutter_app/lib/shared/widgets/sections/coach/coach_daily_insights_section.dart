@@ -35,7 +35,7 @@ class CoachDailyInsightsSection extends StatelessWidget {
       showWeeklyAnalysisButton || showCycleProjectionButton;
 
   String _defaultTitle() =>
-      title ?? (_isTrainingScoped ? 'Insights do Treino' : 'Insights do dia');
+      title ?? (_isTrainingScoped ? 'Análise do treino' : 'Análise do dia');
 
   VoidCallback _resolveSeeAll(BuildContext context) {
     if (onSeeAll != null) return onSeeAll!;
@@ -104,7 +104,8 @@ class CoachDailyInsightsSection extends StatelessWidget {
                   title: _defaultTitle(),
                   showSeeAllButton: showSeeAllButton,
                   onSeeAll: _resolveSeeAll(context),
-                  emptyText: 'Sem insights para $cat em ${_fmtDateLong(date)}.',
+                  emptyText:
+                      'Sem análises para $cat em ${_fmtDateLong(date)}.',
                   showWeeklyAnalysisButton: showWeeklyAnalysisButton,
                   showCycleProjectionButton: showCycleProjectionButton,
                 );
@@ -199,7 +200,7 @@ class CoachDailyInsightsSection extends StatelessWidget {
                     showSeeAllButton: showSeeAllButton,
                     onSeeAll: _resolveSeeAll(context),
                     emptyText:
-                        'Sem insights gerados para ${_fmtDateLong(date)}.',
+                        'Sem análises geradas para ${_fmtDateLong(date)}.',
                     showWeeklyAnalysisButton: showWeeklyAnalysisButton,
                     showCycleProjectionButton: showCycleProjectionButton,
                   );
@@ -281,7 +282,7 @@ class _TitleRow extends StatelessWidget {
           ),
           if (showSeeAllButton)
             TextActionButton(
-              text: 'Ver todos os insights',
+              text: 'Ver todas as análises',
               onPressed: onSeeAll,
               icon: Icons.add,
               color: AppColors.baseBlue,

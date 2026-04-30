@@ -62,7 +62,7 @@ class _AthletePreWorkoutInsightsDetailScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Insights do Treino',
+                  'Análise do treino',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 SizedBox(height: 2 * scale),
@@ -123,8 +123,8 @@ class _AthletePreWorkoutInsightsDetailScreenState
         child: Padding(
           padding: EdgeInsets.all(24 * scale),
           child: Text(
-            'Ainda não há insights pré-treino para este treino.\n'
-            'Eles aparecem assim que o coach publica e seu histórico é processado.',
+            'Ainda não há análise pré-treino para este treino.\n'
+            'Ela aparece assim que o coach publica e seu histórico é processado.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppFonts.roboto,

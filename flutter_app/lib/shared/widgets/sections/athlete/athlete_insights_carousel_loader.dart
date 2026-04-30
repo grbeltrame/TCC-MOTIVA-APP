@@ -54,6 +54,7 @@ class AthleteInsightsCarouselLoaderState
   AthletePreWorkoutInsights? _preWorkout;
 
   bool _loadingEvolution = false;
+  bool _evolutionLoadFailed = false;
 
   @override
   void initState() {
@@ -77,22 +78,33 @@ class AthleteInsightsCarouselLoaderState
 
     if (widget.mode == AthleteInsightsMode.evolutionOnly ||
         widget.mode == AthleteInsightsMode.homeMix) {
-      setState(() => _loadingEvolution = true);
+      if (mounted) {
+        setState(() {
+          _loadingEvolution = true;
+          _evolutionLoadFailed = false;
+        });
+      }
       try {
-        final cached =
-            await AthleteInsightsService.fetchEvolutionCached();
+        final cached = await AthleteInsightsService.fetchEvolutionCached();
         if (mounted && cached != null) {
           setState(() => _evolution = cached);
         }
 
         if (widget.mode == AthleteInsightsMode.evolutionOnly) {
-          debugPrint('[InsightsLoader] chamando onCall get_athlete_evolution_insights...');
+          debugPrint(
+            '[InsightsLoader] chamando onCall get_athlete_evolution_insights...',
+          );
           final fresh = await AthleteInsightsService.fetchEvolution();
-          debugPrint('[InsightsLoader] onCall retornou: alertas=${fresh.alertas.length} infos=${fresh.informacoes.length}');
-          if (mounted) setState(() => _evolution = fresh);
+          debugPrint(
+            '[InsightsLoader] onCall retornou: alertas=${fresh.alertas.length} infos=${fresh.informacoes.length}',
+          );
+          if (mounted && (!fresh.isEmpty || _evolution == null)) {
+            setState(() => _evolution = fresh);
+          }
         }
       } catch (e, st) {
         debugPrint('[InsightsLoader] evolution falhou: $e\n$st');
+        if (mounted) setState(() => _evolutionLoadFailed = true);
       } finally {
         if (mounted) setState(() => _loadingEvolution = false);
       }
@@ -101,9 +113,7 @@ class AthleteInsightsCarouselLoaderState
     if (widget.mode == AthleteInsightsMode.preWorkoutOnly) {
       final id = widget.workoutId;
       if (id == null || id.isEmpty) {
-        debugPrint(
-          '[InsightsLoader] preWorkoutOnly sem workoutId — skip.',
-        );
+        debugPrint('[InsightsLoader] preWorkoutOnly sem workoutId — skip.');
         return;
       }
       try {
@@ -122,30 +132,31 @@ class AthleteInsightsCarouselLoaderState
     if (widget.mode == AthleteInsightsMode.evolutionOnly &&
         _loadingEvolution &&
         (_evolution == null || _evolution!.isEmpty)) {
-      return const AthleteInsightsCarousel(
-        items: [],
-        loading: true,
-      );
+      return const AthleteInsightsCarousel(items: [], loading: true);
     }
 
     final List<InsightCardItem> items = switch (widget.mode) {
       AthleteInsightsMode.homeMix => AthleteInsightsService.buildHomeMix(
-          weekly: _weekly,
-          evolution: _evolution,
-          seed: widget.seed,
-        ),
+        weekly: _weekly,
+        evolution: _evolution,
+        seed: widget.seed,
+      ),
       AthleteInsightsMode.weeklyOnly => _weekly?.toCards() ?? const [],
-      AthleteInsightsMode.evolutionOnly =>
-        _evolution?.toCards() ?? const [],
-      AthleteInsightsMode.preWorkoutOnly =>
-        _preWorkout?.toCards() ?? const [],
+      AthleteInsightsMode.evolutionOnly => _evolution?.toCards() ?? const [],
+      AthleteInsightsMode.preWorkoutOnly => _preWorkout?.toCards() ?? const [],
     };
 
+    if (items.isEmpty && widget.mode == AthleteInsightsMode.evolutionOnly) {
+      return AthleteInsightsCarousel(
+        items: const [],
+        emptyMessage:
+            _evolutionLoadFailed
+                ? 'Não foi possível carregar suas análises de evolução agora.'
+                : 'Ainda não há dados suficientes para gerar análise de evolução.',
+      );
+    }
     if (items.isEmpty) return const SizedBox.shrink();
 
-    return AthleteInsightsCarousel(
-      items: items,
-      onTap: widget.onTap,
-    );
+    return AthleteInsightsCarousel(items: items, onTap: widget.onTap);
   }
 }

@@ -7,6 +7,7 @@ import 'package:flutter_app/shared/widgets/bottom_sheets/add_certification_botto
 import 'package:flutter_app/shared/widgets/bottom_sheets/add_speciality_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_certifications_section.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_specialities_section.dart';
+import 'package:flutter_app/shared/widgets/utils/brazilian_date_input_formatter.dart';
 import 'package:intl/intl.dart';
 
 import 'package:flutter_app/core/constants/app_colors.dart';
@@ -30,6 +31,7 @@ class EditProfileCoachScreen extends StatefulWidget {
 class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
   final _nameCtrl = TextEditingController();
   final _crefCtrl = TextEditingController();
+  final _birthdayCtrl = TextEditingController();
 
   final _picker = ImagePicker();
   final _dateFmt = DateFormat('dd/MM/yyyy');
@@ -41,6 +43,7 @@ class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
   String? _localPhotoPath;
 
   bool _saving = false;
+  bool _didBootstrapProfile = false;
 
   @override
   void initState() {
@@ -52,6 +55,7 @@ class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
   void dispose() {
     _nameCtrl.dispose();
     _crefCtrl.dispose();
+    _birthdayCtrl.dispose();
     super.dispose();
   }
 
@@ -87,7 +91,11 @@ class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
 
   Future<void> _pickBirthday() async {
     final now = DateTime.now();
-    final initial = _birthday ?? DateTime(now.year - 20, now.month, now.day);
+    final typedBirthday = _parseBirthdayText(_birthdayCtrl.text);
+    final initial =
+        typedBirthday ??
+        _birthday ??
+        DateTime(now.year - 20, now.month, now.day);
 
     final picked = await showDatePicker(
       context: context,
@@ -101,8 +109,51 @@ class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
     if (picked != null) {
       setState(() {
         _birthday = DateTime(picked.year, picked.month, picked.day);
+        _birthdayCtrl.text = _dateFmt.format(_birthday!);
       });
     }
+  }
+
+  DateTime? _parseBirthdayText(String value) {
+    final text = value.trim();
+    if (text.isEmpty || text.length != 10) return null;
+
+    try {
+      final parsed = _dateFmt.parseStrict(text);
+      final birthday = DateTime(parsed.year, parsed.month, parsed.day);
+      final now = DateTime.now();
+      final minDate = DateTime(now.year - 90, now.month, now.day);
+      final maxDate = DateTime(now.year, now.month, now.day);
+
+      if (birthday.isBefore(minDate) || birthday.isAfter(maxDate)) return null;
+      return birthday;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _syncBirthdayFromText({bool showError = false}) {
+    final text = _birthdayCtrl.text.trim();
+    if (text.isEmpty) {
+      _birthday = null;
+      return true;
+    }
+
+    final parsed = _parseBirthdayText(text);
+    if (parsed == null) {
+      if (showError && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Informe o aniversário no formato dd/mm/aaaa.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return false;
+    }
+
+    _birthday = parsed;
+    return true;
   }
 
   Future<void> _pickAndCropPhoto() async {
@@ -141,6 +192,7 @@ class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
 
   Future<void> _saveAndClose() async {
     if (_editable == null) return;
+    if (!_syncBirthdayFromText(showError: true)) return;
 
     setState(() => _saving = true);
 
@@ -186,17 +238,22 @@ class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
               return const Center(child: Text('Falha ao carregar perfil.'));
             }
 
-            _editable ??= snap.data!;
+            if (!_didBootstrapProfile) {
+              _editable = snap.data!;
+              final initialProfile = _editable!;
+
+              _nameCtrl.text = initialProfile.name;
+              _crefCtrl.text = initialProfile.cref ?? '';
+              _birthday = initialProfile.birthday;
+              if (_birthday != null) {
+                _birthdayCtrl.text = _dateFmt.format(_birthday!);
+              }
+              _localPhotoPath = initialProfile.localPhotoPath;
+
+              _didBootstrapProfile = true;
+            }
+
             final editable = _editable!;
-
-            // bootstrap controllers uma vez
-            if (_nameCtrl.text.isEmpty) _nameCtrl.text = editable.name;
-            if (_crefCtrl.text.isEmpty) _crefCtrl.text = (editable.cref ?? '');
-            _birthday ??= editable.birthday;
-            _localPhotoPath ??= editable.localPhotoPath;
-
-            final birthdayLabel =
-                (_birthday == null) ? '' : _dateFmt.format(_birthday!);
 
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
@@ -277,10 +334,10 @@ class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
 
                   SizedBox(height: 18 * scale),
 
-                  // ✅ Título "Dados Pessoais"
+                  // Título "Dados pessoais"
                   Center(
                     child: Text(
-                      'Dados Pessoais',
+                      'Dados pessoais',
                       style: TextStyle(
                         fontFamily: AppFonts.montserrat,
                         fontWeight: AppFontWeight.bold,
@@ -335,24 +392,35 @@ class _EditProfileCoachScreenState extends State<EditProfileCoachScreen> {
                             ),
                             SizedBox(height: 10 * scale),
 
-                            InkWell(
-                              onTap: _pickBirthday,
-                              borderRadius: BorderRadius.circular(10),
-                              child: IgnorePointer(
-                                child: TextFormField(
-                                  controller: TextEditingController(
-                                    text: birthdayLabel,
-                                  ),
-                                  decoration: _inputDec(
-                                    label: 'Aniversário',
-                                    suffixIcon: Icon(
-                                      Icons.calendar_today_outlined,
-                                      size: 18 * scale,
-                                      color: AppColors.mediumGray,
-                                    ),
+                            TextFormField(
+                              controller: _birthdayCtrl,
+                              keyboardType: TextInputType.number,
+                              textInputAction: TextInputAction.done,
+                              inputFormatters: const [
+                                BrazilianDateInputFormatter(),
+                              ],
+                              decoration: _inputDec(
+                                label: 'Aniversário',
+                                hint: 'dd/mm/aaaa',
+                                suffixIcon: IconButton(
+                                  onPressed: _pickBirthday,
+                                  icon: Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 18 * scale,
+                                    color: AppColors.mediumGray,
                                   ),
                                 ),
                               ),
+                              onChanged: (value) {
+                                setState(() {
+                                  _birthday =
+                                      value.trim().isEmpty
+                                          ? null
+                                          : _parseBirthdayText(value);
+                                });
+                              },
+                              onFieldSubmitted:
+                                  (_) => _syncBirthdayFromText(showError: true),
                             ),
                           ],
                         ),

@@ -65,15 +65,28 @@ class CoachProfileEditable {
     final raw = sharedData['birthDate'];
     if (raw is Timestamp) birthday = raw.toDate();
 
+    final name = sharedData['name']?.toString().trim() ?? '';
+    final certifications = _cleanProfileList(
+      coachData['certifications'],
+      excludedValue: name,
+    );
+    final specialties = _cleanProfileList(
+      coachData['specialties'],
+      excludedValue: name,
+    );
+
     return CoachProfileEditable(
-      name: sharedData['name']?.toString().trim() ?? '',
+      name: name,
       photoUrl: sharedData['photoURL']?.toString(),
       birthday: birthday,
       cref: coachData['cref']?.toString(),
-      certifications: List<String>.from(coachData['certifications'] ?? []),
-      specialties: List<String>.from(coachData['specialties'] ?? []),
-      availableCertifications: _defaultAvailableCertifications,
-      specialtiesByCategory: _defaultSpecialtiesByCategory,
+      certifications: certifications,
+      specialties: specialties,
+      availableCertifications: _mergeUnique(
+        _defaultAvailableCertifications,
+        certifications,
+      ),
+      specialtiesByCategory: _withCustomSpecialties(specialties),
     );
   }
 
@@ -88,8 +101,8 @@ class CoachProfileEditable {
   /// Campos a salvar em users/{uid}/profiles/coach.
   Map<String, dynamic> toCoachMap() => {
     'cref': cref,
-    'certifications': certifications,
-    'specialties': specialties,
+    'certifications': _cleanProfileList(certifications, excludedValue: name),
+    'specialties': _cleanProfileList(specialties, excludedValue: name),
   };
 
   // ── CopyWith ───────────────────────────────────────────────────────────────
@@ -157,11 +170,53 @@ const Map<String, List<String>> _defaultSpecialtiesByCategory = {
     'Motivação de alunos',
     'Feedback individual',
   ],
-  'Saude e Bem estar': [
-    'Treinamento para terceira idade',
-    'Reabilitação',
-  ],
+  'Saude e Bem estar': ['Treinamento para terceira idade', 'Reabilitação'],
 };
+
+List<String> _cleanProfileList(dynamic raw, {String? excludedValue}) {
+  final excluded = excludedValue?.trim().toLowerCase();
+  final values = raw is Iterable ? raw : const [];
+  final seen = <String>{};
+  final result = <String>[];
+
+  for (final item in values) {
+    final value = item.toString().trim();
+    if (value.isEmpty) continue;
+    if (excluded != null && excluded.isNotEmpty) {
+      if (value.toLowerCase() == excluded) continue;
+    }
+    if (seen.add(value.toLowerCase())) result.add(value);
+  }
+
+  return result;
+}
+
+List<String> _mergeUnique(List<String> defaults, List<String> custom) {
+  return _cleanProfileList([...defaults, ...custom]);
+}
+
+Map<String, List<String>> _withCustomSpecialties(List<String> specialties) {
+  final categories = <String, List<String>>{
+    for (final entry in _defaultSpecialtiesByCategory.entries)
+      entry.key: [...entry.value],
+  };
+
+  final defaultItems =
+      categories.values
+          .expand((items) => items)
+          .map((e) => e.toLowerCase())
+          .toSet();
+  final custom =
+      specialties
+          .where((item) => !defaultItems.contains(item.toLowerCase()))
+          .toList();
+
+  if (custom.isNotEmpty) {
+    categories['Outras Especialidades'] = custom;
+  }
+
+  return categories;
+}
 
 // =============================================================================
 // 4. SERVICE
@@ -173,8 +228,7 @@ class CoachProfileService {
   final _auth = FirebaseAuth.instance;
   final _db = FirebaseFirestore.instance;
 
-  DocumentReference _userDoc(String uid) =>
-      _db.collection('users').doc(uid);
+  DocumentReference _userDoc(String uid) => _db.collection('users').doc(uid);
 
   DocumentReference _coachDoc(String uid) =>
       _db.collection('users').doc(uid).collection('profiles').doc('coach');
@@ -194,12 +248,14 @@ class CoachProfileService {
       final sharedSnap = results[0];
       final coachSnap = results[1];
 
-      final sharedData = sharedSnap.exists
-          ? (sharedSnap.data() as Map<String, dynamic>)
-          : <String, dynamic>{};
-      final coachData = coachSnap.exists
-          ? (coachSnap.data() as Map<String, dynamic>)
-          : <String, dynamic>{};
+      final sharedData =
+          sharedSnap.exists
+              ? (sharedSnap.data() as Map<String, dynamic>)
+              : <String, dynamic>{};
+      final coachData =
+          coachSnap.exists
+              ? (coachSnap.data() as Map<String, dynamic>)
+              : <String, dynamic>{};
 
       // Fallback para displayName do Auth se o doc não tiver nome
       if ((sharedData['name'] ?? '').toString().trim().isEmpty) {
@@ -227,12 +283,14 @@ class CoachProfileService {
 
     try {
       // 1. Campos compartilhados → users/{uid} (merge para não apagar email, profile, etc.)
-      await _userDoc(user.uid)
-          .set(updated.toSharedMap(), SetOptions(merge: true));
+      await _userDoc(
+        user.uid,
+      ).set(updated.toSharedMap(), SetOptions(merge: true));
 
       // 2. Campos do coach → users/{uid}/profiles/coach
-      await _coachDoc(user.uid)
-          .set(updated.toCoachMap(), SetOptions(merge: true));
+      await _coachDoc(
+        user.uid,
+      ).set(updated.toCoachMap(), SetOptions(merge: true));
 
       // 3. Atualiza displayName no Auth se mudou
       if (updated.name.isNotEmpty && updated.name != user.displayName) {

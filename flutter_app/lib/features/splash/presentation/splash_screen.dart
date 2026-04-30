@@ -1,8 +1,15 @@
 import 'dart:ui';
 import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/core/services/auth_service.dart';
 import 'package:flutter_app/features/auth/presentation/login_screen.dart';
+import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart';
+import 'package:flutter_app/features/auth/presentation/select_profile_screen.dart';
+import 'package:flutter_app/features/user/athlete/athlete_home_screen.dart';
+import 'package:flutter_app/features/user/coach/coach_home_screen.dart';
+import 'package:provider/provider.dart';
 
 /// SplashScreen com animação de expansão lenta da mancha vermelha
 /// e flip vertical do logo,  atrasando o inicio.
@@ -19,6 +26,7 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _controller;
   late final Animation<double> _blobPercent;
   late final Animation<double> _rotateX;
+  bool _navigated = false;
 
   @override
   void initState() {
@@ -38,25 +46,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const LoginScreen(),
-            transitionDuration: const Duration(milliseconds: 800),
-            transitionsBuilder: (_, animation, __, child) {
-              // Fade in + deslizamento suave de baixo pra cima
-              final slide = Tween<Offset>(
-                begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOut),
-              );
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(position: slide, child: child),
-              );
-            },
-          ),
-        );
+        _goToInitialScreen();
       }
     });
 
@@ -72,6 +62,85 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _goToInitialScreen() async {
+    if (_navigated) return;
+    _navigated = true;
+
+    final destination = await _resolveInitialScreen();
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        settings: RouteSettings(name: destination.routeName),
+        pageBuilder: (_, __, ___) => destination.screen,
+        transitionDuration: const Duration(milliseconds: 800),
+        transitionsBuilder: (_, animation, __, child) {
+          final slide = Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(position: slide, child: child),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<_SplashDestination> _resolveInitialScreen() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const _SplashDestination(
+        screen: LoginScreen(),
+        routeName: LoginScreen.routeName,
+      );
+    }
+
+    try {
+      final userData = await AuthService.instance.fetchUserData(user.uid);
+      if (AuthService.instance.isAccountDisabled(userData)) {
+        await AuthService.instance.signOut();
+        return const _SplashDestination(
+          screen: LoginScreen(),
+          routeName: LoginScreen.routeName,
+        );
+      }
+
+      if (!mounted) {
+        return const _SplashDestination(
+          screen: LoginScreen(),
+          routeName: LoginScreen.routeName,
+        );
+      }
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.loadUserData(user);
+
+      if (userProvider.profileType == null) {
+        return const _SplashDestination(
+          screen: SelectProfileScreen(),
+          routeName: SelectProfileScreen.routeName,
+        );
+      }
+
+      return userProvider.isCoachView
+          ? const _SplashDestination(
+            screen: CoachHomeScreen(),
+            routeName: CoachHomeScreen.routeName,
+          )
+          : const _SplashDestination(
+            screen: AthleteHomeScreen(),
+            routeName: AthleteHomeScreen.routeName,
+          );
+    } catch (_) {
+      await AuthService.instance.signOut();
+      return const _SplashDestination(
+        screen: LoginScreen(),
+        routeName: LoginScreen.routeName,
+      );
+    }
   }
 
   @override
@@ -140,4 +209,11 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
+}
+
+class _SplashDestination {
+  final Widget screen;
+  final String routeName;
+
+  const _SplashDestination({required this.screen, required this.routeName});
 }

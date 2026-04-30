@@ -25,6 +25,7 @@ class AthleteInsightsCarousel extends StatefulWidget {
   /// de evolução enquanto a IA roda).
   final bool loading;
   final String? loadingMessage;
+  final String? emptyMessage;
 
   const AthleteInsightsCarousel({
     Key? key,
@@ -32,6 +33,7 @@ class AthleteInsightsCarousel extends StatefulWidget {
     this.onTap,
     this.loading = false,
     this.loadingMessage,
+    this.emptyMessage,
   }) : super(key: key);
 
   @override
@@ -82,13 +84,24 @@ class _AthleteInsightsCarouselState extends State<AthleteInsightsCarousel> {
         height: height,
         child: _LoadingCard(
           scale: scale,
-          message: widget.loadingMessage ??
+          message:
+              widget.loadingMessage ??
               'Gerando sua análise, isso leva alguns segundos...',
         ),
       );
     }
 
-    if (widget.items.isEmpty) return const SizedBox.shrink();
+    if (widget.items.isEmpty) {
+      final message = widget.emptyMessage;
+      if (message == null || message.trim().isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return SizedBox(
+        height: height,
+        child: _StatusCard(scale: scale, message: message),
+      );
+    }
 
     _startAutoScroll(widget.items.length);
 
@@ -118,6 +131,55 @@ class _AthleteInsightsCarouselState extends State<AthleteInsightsCarousel> {
   }
 }
 
+class _StatusCard extends StatelessWidget {
+  final double scale;
+  final String message;
+
+  const _StatusCard({required this.scale, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4 * scale),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          vertical: 12 * scale,
+          horizontal: 16 * scale,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: AppColors.baseBlue.withValues(alpha: 0.35)),
+          borderRadius: BorderRadius.circular(12 * scale),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.trending_up,
+              size: 24 * scale,
+              color: AppColors.baseBlue,
+            ),
+            SizedBox(width: 12 * scale),
+            Expanded(
+              child: Text(
+                message,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppFonts.roboto,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13 * scale,
+                  color: AppColors.darkBlue,
+                  height: 1.25,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // =============================================================================
 // Card unitário
 // =============================================================================
@@ -127,11 +189,7 @@ class _InsightCard extends StatelessWidget {
   final double scale;
   final VoidCallback? onTap;
 
-  const _InsightCard({
-    required this.item,
-    required this.scale,
-    this.onTap,
-  });
+  const _InsightCard({required this.item, required this.scale, this.onTap});
 
   // Paletas
   // Alerta → amarelo com texto legível
@@ -149,13 +207,13 @@ class _InsightCard extends StatelessWidget {
     final iconColor = isAlert ? _alertBorder : AppColors.baseBlue;
     final textColor = isAlert ? _alertText : AppColors.darkText;
 
-    final icon = isAlert
-        ? Icons.warning_amber_rounded
-        : (isWeekly ? Icons.calendar_today_outlined : Icons.trending_up);
+    final icon =
+        isAlert
+            ? Icons.warning_amber_rounded
+            : (isWeekly ? Icons.calendar_today_outlined : Icons.trending_up);
 
     final badgeLabel = isWeekly ? 'Semana' : 'Evolução';
-    final badgeIcon =
-        isWeekly ? Icons.calendar_today : Icons.trending_up;
+    final badgeIcon = isWeekly ? Icons.calendar_today : Icons.trending_up;
 
     final card = Container(
       padding: EdgeInsets.symmetric(
@@ -230,18 +288,14 @@ class _SourceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = isAlert
-        ? const Color(0xFF5C4300)
-        : AppColors.baseBlue;
-    final bg = isAlert
-        ? const Color(0xFFFFE999)
-        : AppColors.baseBlue.withValues(alpha: 0.08);
+    final fg = isAlert ? const Color(0xFF5C4300) : AppColors.baseBlue;
+    final bg =
+        isAlert
+            ? const Color(0xFFFFE999)
+            : AppColors.baseBlue.withValues(alpha: 0.08);
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 6 * scale,
-        vertical: 2 * scale,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 6 * scale, vertical: 2 * scale),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(10 * scale),

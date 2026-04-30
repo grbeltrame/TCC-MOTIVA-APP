@@ -95,7 +95,7 @@ class _CoachCycleInsightsSectionState extends State<CoachCycleInsightsSection> {
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 6 * scale),
           child: Text(
-            'Insights do Ciclo',
+            'Análise do ciclo',
             style: Theme.of(context).textTheme.headlineSmall,
           ),
         ),
@@ -140,7 +140,7 @@ class _CoachCycleInsightsSectionState extends State<CoachCycleInsightsSection> {
               return Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6 * scale),
                 child: Text(
-                  'Nenhum insight disponível para o ciclo selecionado.',
+                  'Nenhuma análise disponível para o ciclo selecionado.',
                   style: TextStyle(
                     fontSize: 12 * scale,
                     color: AppColors.mediumGray,
@@ -379,7 +379,7 @@ class _TopicCarouselState extends State<_TopicCarousel>
 
     if (msgs.isEmpty) {
       return Text(
-        'Nenhum insight disponível.',
+        'Nenhuma análise disponível.',
         style: TextStyle(
           fontSize: 12 * scale,
           color: AppColors.mediumGray,

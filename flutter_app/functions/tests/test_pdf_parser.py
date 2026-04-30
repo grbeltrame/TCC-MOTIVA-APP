@@ -2,6 +2,7 @@ import unittest
 from pathlib import Path
 
 from pdf_module.parser import (
+    parse_exercicio,
     parse_single_day_workout,
     split_pdf_into_day_pages,
 )
@@ -9,6 +10,28 @@ from pdf_module.parser import (
 
 ROOT = Path(__file__).resolve().parents[3]
 PDF_PATH = ROOT / "Cronograma 04 - 01 WOD Abril 2026.pdf"
+
+
+class PdfParserExerciseLineTest(unittest.TestCase):
+    def test_parses_emom_ordinal_prefix_as_exercise(self):
+        item = parse_exercicio("1º- 16 Box jump over")
+        self.assertEqual(item["raw"], "16 Box jump over")
+        self.assertEqual(item["quantidade"], 16)
+        self.assertEqual(item["nome"], "Box jump over")
+        self.assertEqual(item["unidade"], "reps")
+
+    def test_parses_uppercase_o_ordinal_prefix(self):
+        item = parse_exercicio("1O - 16 Box jump over")
+        self.assertEqual(item["raw"], "16 Box jump over")
+        self.assertEqual(item["quantidade"], 16)
+        self.assertEqual(item["nome"], "Box jump over")
+
+    def test_parses_alternative_reps_with_pipe(self):
+        item = parse_exercicio("3º- 50 D.U. | 70 S.U.")
+        self.assertEqual(item["raw"], "50 D.U. | 70 S.U.")
+        self.assertEqual(item["quantidade"], "50|70")
+        self.assertEqual(item["nome"], "D.U. | S.U.")
+        self.assertEqual(item["unidade"], "reps")
 
 
 @unittest.skipUnless(PDF_PATH.exists(), "monthly workout PDF not available")

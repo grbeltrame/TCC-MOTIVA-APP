@@ -143,7 +143,7 @@ class _ProfileSummarySectionState extends State<ProfileSummarySection> {
                       children: [
                         Expanded(
                           child: _ActionButton(
-                            label: 'Lista de Treinos',
+                            label: 'Lista de treinos',
                             icon: Icons.fitness_center,
                             filled: true,
                             scale: scale,

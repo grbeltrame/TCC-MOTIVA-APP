@@ -71,14 +71,20 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           // 3. ESTADO DE SUCESSO (Dados carregados)
           final profileData = snapshot.data!;
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              vertical: 16 * scale,
-              horizontal: 8 * scale,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          return RefreshIndicator(
+            onRefresh: () async {
+              _loadProfile();
+              await _profileFuture;
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                vertical: 16 * scale,
+                horizontal: 8 * scale,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 // Info do Coach (Foto, Nome, Bio, etc)
                 CoachInfoSection(
                   profile: profileData,
@@ -125,6 +131,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
 
                 SizedBox(height: 16 * scale),
               ],
+              ),
             ),
           );
         },

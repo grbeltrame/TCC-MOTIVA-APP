@@ -96,6 +96,8 @@ class _AddAthleteComorbiditySheetState
   }
 
   void _submit() {
+    FocusScope.of(context).unfocus();
+
     final valid = _formKey.currentState?.validate() ?? false;
     if (!valid) return;
 
@@ -108,96 +110,98 @@ class _AddAthleteComorbiditySheetState
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 375.0;
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return AppBottomSheet(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          20 * scale,
-          16 * scale,
-          20 * scale,
-          (16 * scale) + bottomInset,
-        ),
+      child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // handle
-              Center(
-                child: Container(
-                  width: 40 * scale,
-                  height: 4 * scale,
-                  decoration: BoxDecoration(
-                    color: AppColors.mediumGray.withOpacity(.6),
-                    borderRadius: BorderRadius.circular(2 * scale),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              20 * scale,
+              16 * scale,
+              20 * scale,
+              16 * scale,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // handle
+                Center(
+                  child: Container(
+                    width: 40 * scale,
+                    height: 4 * scale,
+                    decoration: BoxDecoration(
+                      color: AppColors.mediumGray.withOpacity(.6),
+                      borderRadius: BorderRadius.circular(2 * scale),
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: 12 * scale),
+                SizedBox(height: 12 * scale),
 
-              // Título
-              Text(
-                'Adicionar novo fator de atenção',
-                style: TextStyle(
-                  fontFamily: AppFonts.montserrat,
-                  fontWeight: AppFontWeight.bold,
-                  fontSize: 18 * scale,
-                  color: AppColors.darkText,
-                ),
-              ),
-              SizedBox(height: 6 * scale),
-
-              SizedBox(height: 14 * scale),
-
-              // Campo
-              Text(
-                widget.sectionTitle,
-                style: TextStyle(
-                  fontFamily: AppFonts.roboto,
-                  fontWeight: AppFontWeight.bold,
-                  fontSize: 12 * scale,
-                  color: AppColors.darkText,
-                ),
-              ),
-              SizedBox(height: 6 * scale),
-              TextFormField(
-                controller: _nameCtrl,
-                textInputAction: TextInputAction.done,
-                decoration: _decoration(
-                  context,
-                  hint: 'Digite uma opção (ex.: Asma)',
-                ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'Informe uma opção';
-                  }
-                  if (v.trim().length < 2) {
-                    return 'Muito curto';
-                  }
-                  return null;
-                },
-                onFieldSubmitted: (_) => _submit(),
-              ),
-
-              SizedBox(height: 18 * scale),
-
-              // Botão
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: AppTheme.secondaryButtonStyle(
-                    AppColors.darkBlue,
-                    AppColors.baseBlue,
+                // Título
+                Text(
+                  'Adicionar novo fator de atenção',
+                  style: TextStyle(
+                    fontFamily: AppFonts.montserrat,
+                    fontWeight: AppFontWeight.bold,
+                    fontSize: 18 * scale,
+                    color: AppColors.darkText,
                   ),
-                  onPressed: _submit,
-                  child: const Text('Adicionar'),
                 ),
-              ),
+                SizedBox(height: 6 * scale),
 
-              SizedBox(height: 32 * scale),
-            ],
+                SizedBox(height: 14 * scale),
+
+                // Campo
+                Text(
+                  widget.sectionTitle,
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontWeight: AppFontWeight.bold,
+                    fontSize: 12 * scale,
+                    color: AppColors.darkText,
+                  ),
+                ),
+                SizedBox(height: 6 * scale),
+                TextFormField(
+                  controller: _nameCtrl,
+                  textInputAction: TextInputAction.done,
+                  decoration: _decoration(
+                    context,
+                    hint: 'Digite uma opção (ex.: Asma)',
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Informe uma opção';
+                    }
+                    if (v.trim().length < 2) {
+                      return 'Muito curto';
+                    }
+                    return null;
+                  },
+                  onFieldSubmitted: (_) => _submit(),
+                ),
+
+                SizedBox(height: 18 * scale),
+
+                // Botão
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: AppTheme.secondaryButtonStyle(
+                      AppColors.darkBlue,
+                      AppColors.baseBlue,
+                    ),
+                    onPressed: _submit,
+                    child: const Text('Adicionar'),
+                  ),
+                ),
+
+                SizedBox(height: 16 * scale),
+              ],
+            ),
           ),
         ),
       ),

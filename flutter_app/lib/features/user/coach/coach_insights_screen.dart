@@ -179,23 +179,27 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
 
     if (_selectedTraining == null) return const SizedBox.shrink();
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-        vertical: 8 * scale,
-        horizontal: 12 * scale,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 3. SELETOR DE TREINO (Só aparece se tiver + de 1 treino no dia)
-          if (_dayTrainings.length > 1) ...[
-            _buildWorkoutSwitcher(scale),
-            SizedBox(height: 16 * scale),
-          ],
+    return RefreshIndicator(
+      onRefresh: () => _fetchTrainingsForDate(_selectedDate),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(
+          vertical: 8 * scale,
+          horizontal: 12 * scale,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 3. SELETOR DE TREINO (Só aparece se tiver + de 1 treino no dia)
+            if (_dayTrainings.length > 1) ...[
+              _buildWorkoutSwitcher(scale),
+              SizedBox(height: 16 * scale),
+            ],
 
-          // 4. A VISÃO GERAL (O componente que já criamos)
-          CoachTrainingInsightsOverviewSection(training: _selectedTraining),
-        ],
+            // 4. A VISÃO GERAL (O componente que já criamos)
+            CoachTrainingInsightsOverviewSection(training: _selectedTraining),
+          ],
+        ),
       ),
     );
   }

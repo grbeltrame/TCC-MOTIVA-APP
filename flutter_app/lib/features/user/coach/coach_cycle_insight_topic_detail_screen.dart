@@ -46,7 +46,7 @@ class _CoachCycleInsightTopicDetailScreenState
 
     _boxId = (args['boxId'] ?? 'DEFAULT_BOX') as String;
     _categoryKey = (args['categoryKey'] ?? '') as String;
-    _categoryTitle = (args['categoryTitle'] ?? 'Insights') as String;
+    _categoryTitle = (args['categoryTitle'] ?? 'Análise') as String;
     _topicKey = (args['topicKey'] ?? '') as String;
     _topicTitle = (args['topicTitle'] ?? 'Detalhes') as String;
     _staticDate = args['staticDate'] as DateTime?;
@@ -136,9 +136,9 @@ class _CoachCycleInsightTopicDetailScreenState
 
   String _buildEmptyMessage() {
     if (_isStaticMode) {
-      return 'Nenhum insight disponível para esta seção.';
+      return 'Nenhuma análise disponível para esta seção.';
     }
-    return 'Nenhum insight disponível para este tópico neste mês.';
+    return 'Nenhuma análise disponível para este tópico neste mês.';
   }
 
   @override

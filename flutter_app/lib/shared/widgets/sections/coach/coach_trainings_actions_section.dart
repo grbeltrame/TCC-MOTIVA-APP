@@ -28,12 +28,12 @@ class CoachTrainingActionsSection extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        // Botão "Cadastrar Treino" — borda azul, fundo azul translúcido, ícone de lápis
+        // Botão "Cadastrar Treino" — borda azul, fundo azul translúcido, ícone de +
         ConstrainedBox(
           constraints: BoxConstraints(minHeight: height),
           child: OutlinedButton.icon(
             onPressed: () => _openRegisterTraining(context),
-            icon: Icon(Icons.edit, size: 16 * scale, color: AppColors.baseBlue),
+            icon: Icon(Icons.add, size: 16 * scale, color: AppColors.baseBlue),
             label: Text(
               'Cadastrar Treino',
               maxLines: 1,
@@ -60,14 +60,14 @@ class CoachTrainingActionsSection extends StatelessWidget {
 
         SizedBox(width: 8 * scale),
 
-        // Botão "Ver treinos cadastrados" — borda azul, fundo branco, ícone de +
+        // Botão "Editar treinos" — borda azul, fundo branco, ícone de lápis
         ConstrainedBox(
           constraints: BoxConstraints(minHeight: height),
           child: OutlinedButton.icon(
             onPressed: () => _goToRegisteredTrainings(context),
-            icon: Icon(Icons.add, size: 16 * scale, color: AppColors.baseBlue),
+            icon: Icon(Icons.edit, size: 16 * scale, color: AppColors.baseBlue),
             label: Text(
-              'Ver treinos cadastrados',
+              'Editar treinos',
               maxLines: 1,
               softWrap: false,
               style: TextStyle(

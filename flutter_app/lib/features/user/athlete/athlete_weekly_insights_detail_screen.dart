@@ -51,7 +51,7 @@ class _AthleteWeeklyInsightsDetailScreenState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Insights da Semana',
+                  'Análise da semana',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 if (data.weekLabel != null) ...[
@@ -112,7 +112,7 @@ class _AthleteWeeklyInsightsDetailScreenState
         child: Padding(
           padding: EdgeInsets.all(24 * scale),
           child: Text(
-            'Nenhum insight disponível para a semana atual.',
+            'Nenhuma análise disponível para a semana atual.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppFonts.roboto,

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/add_commobity_bottom_sheets.dart';
+import 'package:flutter_app/shared/widgets/utils/brazilian_date_input_formatter.dart';
 import 'package:intl/intl.dart';
 
 import 'package:flutter_app/core/constants/app_colors.dart';
@@ -33,6 +34,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
   final _nameCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
+  final _birthdayCtrl = TextEditingController();
   final _dateFmt = DateFormat('dd/MM/yyyy');
   final _picker = ImagePicker();
 
@@ -43,6 +45,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
   String? _localPhotoPath;
 
   bool _saving = false;
+  bool _didBootstrapProfile = false;
 
   // radios
   String? _category; // Iniciante | Scaled | Intermediário | RX | Elite
@@ -120,6 +123,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
     _nameCtrl.dispose();
     _weightCtrl.dispose();
     _heightCtrl.dispose();
+    _birthdayCtrl.dispose();
     super.dispose();
   }
 
@@ -198,7 +202,11 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
 
   Future<void> _pickBirthday() async {
     final now = DateTime.now();
-    final initial = _birthday ?? DateTime(now.year - 20, now.month, now.day);
+    final typedBirthday = _parseBirthdayText(_birthdayCtrl.text);
+    final initial =
+        typedBirthday ??
+        _birthday ??
+        DateTime(now.year - 20, now.month, now.day);
 
     final picked = await showDatePicker(
       context: context,
@@ -212,8 +220,51 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
     if (picked != null) {
       setState(() {
         _birthday = DateTime(picked.year, picked.month, picked.day);
+        _birthdayCtrl.text = _dateFmt.format(_birthday!);
       });
     }
+  }
+
+  DateTime? _parseBirthdayText(String value) {
+    final text = value.trim();
+    if (text.isEmpty || text.length != 10) return null;
+
+    try {
+      final parsed = _dateFmt.parseStrict(text);
+      final birthday = DateTime(parsed.year, parsed.month, parsed.day);
+      final now = DateTime.now();
+      final minDate = DateTime(now.year - 90, now.month, now.day);
+      final maxDate = DateTime(now.year, now.month, now.day);
+
+      if (birthday.isBefore(minDate) || birthday.isAfter(maxDate)) return null;
+      return birthday;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _syncBirthdayFromText({bool showError = false}) {
+    final text = _birthdayCtrl.text.trim();
+    if (text.isEmpty) {
+      _birthday = null;
+      return true;
+    }
+
+    final parsed = _parseBirthdayText(text);
+    if (parsed == null) {
+      if (showError && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Informe o aniversário no formato dd/mm/aaaa.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return false;
+    }
+
+    _birthday = parsed;
+    return true;
   }
 
   Future<void> _pickAndCropPhoto() async {
@@ -293,6 +344,8 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
 
   Future<void> _saveAndClose() async {
     if (_editable == null) return;
+    if (!_syncBirthdayFromText(showError: true)) return;
+
     setState(() => _saving = true);
 
     try {
@@ -302,15 +355,17 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
         localPhotoPath: _localPhotoPath,
         category: _category,
         gender: _gender,
-        weight: _weightCtrl.text.trim().isEmpty ? null : _weightCtrl.text.trim(),
+        weight:
+            _weightCtrl.text.trim().isEmpty ? null : _weightCtrl.text.trim(),
         practiceYears: _practiceYears,
-        height: _heightCtrl.text.trim().isEmpty ? null : _heightCtrl.text.trim(),
-        healthFactors: _selectedFactors.map(
-          (k, v) => MapEntry(k, v.toList()),
-        ),
+        height:
+            _heightCtrl.text.trim().isEmpty ? null : _heightCtrl.text.trim(),
+        healthFactors: _selectedFactors.map((k, v) => MapEntry(k, v.toList())),
       );
 
-      await AthleteProfileService.instance.updateAthleteProfileEditable(updated);
+      await AthleteProfileService.instance.updateAthleteProfileEditable(
+        updated,
+      );
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -351,39 +406,38 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
               return const Center(child: Text('Falha ao carregar perfil.'));
             }
 
-            _editable ??= snap.data!;
-            final profile = _editable!;
+            if (!_didBootstrapProfile) {
+              _editable = snap.data!;
+              final initialProfile = _editable!;
 
-            // bootstrap controllers uma vez
-            if (_nameCtrl.text.isEmpty) _nameCtrl.text = profile.name;
-            _birthday ??= profile.birthday;
-            _category ??= profile.category;
-            _gender ??= profile.gender;
-            _practiceYears ??= profile.practiceYears;
-            if (_weightCtrl.text.isEmpty && (profile.weight ?? '').isNotEmpty) {
-              _weightCtrl.text = profile.weight!;
-            }
-            if (_heightCtrl.text.isEmpty && (profile.height ?? '').isNotEmpty) {
-              _heightCtrl.text = profile.height!;
-            }
+              _nameCtrl.text = initialProfile.name;
+              _birthday = initialProfile.birthday;
+              if (_birthday != null) {
+                _birthdayCtrl.text = _dateFmt.format(_birthday!);
+              }
+              _category = initialProfile.category;
+              _gender = initialProfile.gender;
+              _practiceYears = initialProfile.practiceYears;
+              _weightCtrl.text = initialProfile.weight ?? '';
+              _heightCtrl.text = initialProfile.height ?? '';
 
-            // bootstrap fatores de saúde uma vez
-            if (profile.healthFactors.isNotEmpty) {
-              for (final entry in profile.healthFactors.entries) {
-                if (_selectedFactors.containsKey(entry.key) &&
-                    (_selectedFactors[entry.key]?.isEmpty ?? true)) {
-                  _selectedFactors[entry.key] = entry.value.toSet();
+              if (initialProfile.healthFactors.isNotEmpty) {
+                for (final entry in initialProfile.healthFactors.entries) {
+                  if (_selectedFactors.containsKey(entry.key)) {
+                    _selectedFactors[entry.key] = entry.value.toSet();
+                  }
                 }
               }
+
+              _didBootstrapProfile = true;
             }
+
+            final profile = _editable!;
 
             final safePractice = _sanitizeDropdownValue(
               _practiceYears,
               practiceItems,
             );
-
-            final birthdayLabel =
-                (_birthday == null) ? '' : _dateFmt.format(_birthday!);
 
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
@@ -462,7 +516,7 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
 
                   Center(
                     child: Text(
-                      'Dados Pessoais',
+                      'Dados pessoais',
                       style: TextStyle(
                         fontFamily: AppFonts.montserrat,
                         fontWeight: AppFontWeight.bold,
@@ -508,24 +562,35 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
                               onChanged: (_) => setState(() {}),
                             ),
                             SizedBox(height: 10 * scale),
-                            InkWell(
-                              onTap: _pickBirthday,
-                              borderRadius: BorderRadius.circular(10),
-                              child: IgnorePointer(
-                                child: TextFormField(
-                                  controller: TextEditingController(
-                                    text: birthdayLabel,
-                                  ),
-                                  decoration: _inputDec(
-                                    label: 'Aniversário',
-                                    suffixIcon: Icon(
-                                      Icons.calendar_today_outlined,
-                                      size: 18 * scale,
-                                      color: AppColors.mediumGray,
-                                    ),
+                            TextFormField(
+                              controller: _birthdayCtrl,
+                              keyboardType: TextInputType.number,
+                              textInputAction: TextInputAction.done,
+                              inputFormatters: const [
+                                BrazilianDateInputFormatter(),
+                              ],
+                              decoration: _inputDec(
+                                label: 'Aniversário',
+                                hint: 'dd/mm/aaaa',
+                                suffixIcon: IconButton(
+                                  onPressed: _pickBirthday,
+                                  icon: Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 18 * scale,
+                                    color: AppColors.mediumGray,
                                   ),
                                 ),
                               ),
+                              onChanged: (value) {
+                                setState(() {
+                                  _birthday =
+                                      value.trim().isEmpty
+                                          ? null
+                                          : _parseBirthdayText(value);
+                                });
+                              },
+                              onFieldSubmitted:
+                                  (_) => _syncBirthdayFromText(showError: true),
                             ),
                           ],
                         ),
@@ -634,16 +699,24 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
 
                   TextFormField(
                     controller: _weightCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: _inputDec(
                       label: 'Peso (kg)',
                       hint: 'Ex: 70',
-                      suffixIcon: _weightCtrl.text.isNotEmpty
-                          ? IconButton(
-                              onPressed: () => setState(() => _weightCtrl.clear()),
-                              icon: Icon(Icons.close, size: 18 * scale, color: AppColors.mediumGray),
-                            )
-                          : null,
+                      suffixIcon:
+                          _weightCtrl.text.isNotEmpty
+                              ? IconButton(
+                                onPressed:
+                                    () => setState(() => _weightCtrl.clear()),
+                                icon: Icon(
+                                  Icons.close,
+                                  size: 18 * scale,
+                                  color: AppColors.mediumGray,
+                                ),
+                              )
+                              : null,
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
@@ -651,16 +724,24 @@ class _EditProfileAthleteScreenState extends State<EditProfileAthleteScreen> {
 
                   TextFormField(
                     controller: _heightCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: _inputDec(
                       label: 'Altura (cm)',
                       hint: 'Ex: 170',
-                      suffixIcon: _heightCtrl.text.isNotEmpty
-                          ? IconButton(
-                              onPressed: () => setState(() => _heightCtrl.clear()),
-                              icon: Icon(Icons.close, size: 18 * scale, color: AppColors.mediumGray),
-                            )
-                          : null,
+                      suffixIcon:
+                          _heightCtrl.text.isNotEmpty
+                              ? IconButton(
+                                onPressed:
+                                    () => setState(() => _heightCtrl.clear()),
+                                icon: Icon(
+                                  Icons.close,
+                                  size: 18 * scale,
+                                  color: AppColors.mediumGray,
+                                ),
+                              )
+                              : null,
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
@@ -1060,19 +1141,19 @@ class _FactorSection extends StatelessWidget {
               ),
               // ── Itens da categoria ──
               ...items.map((label) {
-                  final checked = selected.contains(label);
+                final checked = selected.contains(label);
 
-                  return _FactorItem(
-                    label: label,
-                    checked: checked,
-                    scale: scale,
-                    onToggle: (v) {
-                      // Ao marcar qualquer item, desmarca "nenhum"
-                      if (v) onToggle(_noneLabel, false);
-                      onToggle(label, v);
-                    },
-                  );
-                }).toList(),
+                return _FactorItem(
+                  label: label,
+                  checked: checked,
+                  scale: scale,
+                  onToggle: (v) {
+                    // Ao marcar qualquer item, desmarca "nenhum"
+                    if (v) onToggle(_noneLabel, false);
+                    onToggle(label, v);
+                  },
+                );
+              }).toList(),
             ],
           ),
         ],

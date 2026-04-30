@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_app/shared/models/profile_option.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+const _googleSignInServerClientId =
+    '430412921098-2c7uaur967aij1p6qs5h76r2h1ftkn3o.apps.googleusercontent.com';
+
 class GoogleAuthResult {
   final UserCredential userCredential;
   final bool hasCompletedProfile;
@@ -27,6 +30,7 @@ class AuthService {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
   final GoogleSignIn _googleSignIn;
+  Future<void>? _googleSignInInitialization;
 
   User? get currentUser => _auth.currentUser;
 
@@ -79,6 +83,8 @@ class AuthService {
   }
 
   Future<GoogleAuthResult> signInWithGoogle() async {
+    await _ensureGoogleSignInInitialized();
+
     final googleUser = await _googleSignIn.authenticate();
     final idToken = googleUser.authentication.idToken;
     final authorizationClient = googleUser.authorizationClient;
@@ -171,10 +177,17 @@ class AuthService {
 
   Future<void> signOut() async {
     try {
+      await _ensureGoogleSignInInitialized();
       await _googleSignIn.signOut();
     } finally {
       await _auth.signOut();
     }
+  }
+
+  Future<void> _ensureGoogleSignInInitialized() {
+    return _googleSignInInitialization ??= _googleSignIn.initialize(
+      serverClientId: _googleSignInServerClientId,
+    );
   }
 
   Future<bool> _ensureGoogleUserDocument(User user) async {
