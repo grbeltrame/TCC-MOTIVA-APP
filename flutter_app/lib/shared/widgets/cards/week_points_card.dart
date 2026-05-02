@@ -120,7 +120,6 @@ class WeekPointsCard extends StatelessWidget {
     final scale = MediaQuery.of(context).size.width / 375.0;
     final pts = summary.weeklyLoadAll;
     final hasData = pts > 0;
-    final base = summary.weeklyCargaCronica;
 
     return Card(
       margin: EdgeInsets.symmetric(vertical: 3 * scale),
@@ -204,20 +203,6 @@ class WeekPointsCard extends StatelessWidget {
                     ),
                   ),
               ],
-            ),
-
-            // Base (carga crônica) — individualidade do atleta
-            Text(
-              base != null
-                  ? 'base: ${base.toStringAsFixed(0)} pts'
-                  : 'sem base ainda',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: AppFonts.roboto,
-                fontSize: 10.5 * scale,
-                color: AppColors.mediumGray,
-              ),
             ),
           ],
         ),

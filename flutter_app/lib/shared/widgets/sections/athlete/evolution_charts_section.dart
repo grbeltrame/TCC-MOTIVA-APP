@@ -1347,9 +1347,14 @@ class _PrSteppedLineChart extends StatelessWidget {
     final isTimeBased = prType == PrType.time;
 
     // Constrói pontos com "isNewPr" marcando só onde a linha sobe.
+    // O eixo X passa a ser por evento (cada PR ocupa uma posição igual,
+    // independente da data real). Isso elimina o espaço vazio causado por
+    // janelas de filtro que começam muito antes do primeiro PR. A data
+    // real continua acessível no tooltip e nas labels do eixo.
     final List<_PrPoint> points = [];
     double? runningBest;
-    for (final pr in prs) {
+    for (var i = 0; i < prs.length; i++) {
+      final pr = prs[i];
       bool isNew;
       if (runningBest == null) {
         runningBest = pr.value;
@@ -1360,30 +1365,41 @@ class _PrSteppedLineChart extends StatelessWidget {
         isNew = improved;
         if (improved) runningBest = pr.value;
       }
-      points.add(_PrPoint(pr.date, runningBest, isNew, pr.value));
+      points.add(_PrPoint(pr.date, runningBest, isNew, pr.value, i));
     }
 
-    // Calcula intervalo do eixo X para evitar labels duplicadas.
-    final totalDays = to.difference(from).inDays.clamp(1, 3650);
-    final intervalDays = (totalDays / 4).ceil().toDouble();
+    final dateFmt = DateFormat('dd/MM');
+    // Quando há PRs no mesmo dia, anexa um sufixo invisível para que cada
+    // ponto apareça em sua própria categoria sem repetir o label.
+    final categoryLabels = <String>[];
+    final usedLabels = <String, int>{};
+    for (final p in points) {
+      final base = dateFmt.format(p.date);
+      final dup = usedLabels[base] ?? 0;
+      usedLabels[base] = dup + 1;
+      // Categoria única via zero-width space; visual idêntico para o usuário.
+      categoryLabels.add(base + ('​' * dup));
+    }
 
-    // Altura maior compensa a ausência de legenda nesta aba — os dois
-    // cards (Volume e PRs) terminam com a mesma altura total.
     return SizedBox(
       height: _kPrChartHeight * scale,
       child: SfCartesianChart(
         margin: EdgeInsets.zero,
         plotAreaBorderWidth: 0,
-        primaryXAxis: DateTimeAxis(
-          minimum: from,
-          maximum: to,
-          intervalType: DateTimeIntervalType.days,
-          interval: intervalDays,
-          dateFormat: DateFormat('dd/MM'),
+        primaryXAxis: CategoryAxis(
+          // Cada PR vira uma categoria — pontos igualmente espaçados.
+          // O label exibe a data real do PR.
+          arrangeByIndex: true,
           majorGridLines: const MajorGridLines(width: 0),
           axisLine: _kAxisLineSoft,
           labelStyle: _kAxisLabelStyle(scale),
           majorTickLines: const MajorTickLines(size: 0),
+          labelRotation: -25,
+          // Quando há muitos PRs, evita sobreposição mostrando só alguns
+          // labels intercalados.
+          interval: points.length > 6
+              ? (points.length / 6).ceil().toDouble()
+              : 1,
         ),
         primaryYAxis: NumericAxis(
           majorGridLines: _kGridLines,
@@ -1444,9 +1460,9 @@ class _PrSteppedLineChart extends StatelessWidget {
           args.markerWidth = 10 * scale;
         },
         series: <CartesianSeries>[
-          LineSeries<_PrPoint, DateTime>(
+          LineSeries<_PrPoint, String>(
             dataSource: points,
-            xValueMapper: (p, _) => p.date,
+            xValueMapper: (p, _) => categoryLabels[p.index],
             yValueMapper: (p, _) => p.actual,
             color: AppColors.baseBlue.withValues(alpha: 0.55),
             width: 2,
@@ -1507,7 +1523,8 @@ class _PrPoint {
   final double runningBest;
   final bool isNewPr;
   final double actual;
-  _PrPoint(this.date, this.runningBest, this.isNewPr, this.actual);
+  final int index;
+  _PrPoint(this.date, this.runningBest, this.isNewPr, this.actual, this.index);
 }
 
 // =============================================================================

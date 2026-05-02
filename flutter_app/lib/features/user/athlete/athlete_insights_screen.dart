@@ -7,9 +7,8 @@ import 'package:flutter_app/core/services/athlete_stats_service.dart';
 import 'package:flutter_app/features/user/athlete/athlete_weekly_insights_detail_screen.dart';
 import 'package:flutter_app/shared/widgets/cards/week_calendar_card.dart';
 import 'package:flutter_app/shared/widgets/cards/week_effort_card.dart';
-import 'package:flutter_app/shared/widgets/cards/week_frequency_card.dart';
 import 'package:flutter_app/shared/widgets/cards/week_points_card.dart';
-import 'package:flutter_app/shared/widgets/cards/week_prs_card.dart';
+import 'package:flutter_app/shared/widgets/cards/week_prs_mini_card.dart';
 import 'package:flutter_app/shared/widgets/cards/week_stimuli_card.dart';
 import 'package:flutter_app/shared/widgets/sections/athlete/athlete_insights_carousel_loader.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
@@ -139,13 +138,13 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
 
                     SizedBox(height: 8 * scale),
 
-                    // Frequência + Esforço + Pontos da Semana
+                    // PRs + Esforço + Pontos (cards quadrados na mesma grade)
                     IntrinsicHeight(
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Expanded(
-                            child: WeekFrequencyCard(summary: summary),
+                          const Expanded(
+                            child: WeekPrsMiniCard(),
                           ),
                           SizedBox(width: 6 * scale),
                           Expanded(
@@ -163,11 +162,6 @@ class _AthleteInsightScreenState extends State<AthleteInsightScreen> {
 
                     // Estímulos
                     WeekStimuliCard(summary: summary),
-
-                    SizedBox(height: 2 * scale),
-
-                    // PRs
-                    const WeekPRsCard(),
                   ],
                 );
               },

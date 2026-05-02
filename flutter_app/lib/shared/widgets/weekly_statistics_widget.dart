@@ -218,17 +218,6 @@ class _WeeklyStatisticsWidgetState extends State<WeeklyStatisticsWidget> {
                     children: [
                       Expanded(
                         child: _StatBlock(
-                          title: 'PRs Batidos',
-                          subtitle: 'no período',
-                          icon: Icons.emoji_events_outlined,
-                          color: AppColors.baseBlue,
-                          scale: scale,
-                          valueFuture: _fetchPrCount(),
-                        ),
-                      ),
-                      SizedBox(width: 6 * scale),
-                      Expanded(
-                        child: _StatBlock(
                           title: 'Frequência',
                           subtitle: 'no período',
                           icon: Icons.calendar_month_outlined,
@@ -236,6 +225,22 @@ class _WeeklyStatisticsWidgetState extends State<WeeklyStatisticsWidget> {
                           scale: scale,
                           valueFuture: WeeklyStatsService.getStatForPeriod(
                             tipo: WeeklyStatsType.frequencia,
+                            from: widget.from,
+                            to: widget.to,
+                            trainingType: _selectedType,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 6 * scale),
+                      Expanded(
+                        child: _StatBlock(
+                          title: 'Esforço Médio',
+                          subtitle: 'percebido',
+                          icon: Icons.local_fire_department_outlined,
+                          color: AppColors.baseMagenta,
+                          scale: scale,
+                          valueFuture: WeeklyStatsService.getStatForPeriod(
+                            tipo: WeeklyStatsType.esforco,
                             from: widget.from,
                             to: widget.to,
                             trainingType: _selectedType,
@@ -252,17 +257,12 @@ class _WeeklyStatisticsWidgetState extends State<WeeklyStatisticsWidget> {
                     children: [
                       Expanded(
                         child: _StatBlock(
-                          title: 'Esforço Médio',
-                          subtitle: 'percebido',
-                          icon: Icons.local_fire_department_outlined,
-                          color: AppColors.baseMagenta,
+                          title: 'PRs Batidos',
+                          subtitle: 'no período',
+                          icon: Icons.emoji_events_outlined,
+                          color: AppColors.baseBlue,
                           scale: scale,
-                          valueFuture: WeeklyStatsService.getStatForPeriod(
-                            tipo: WeeklyStatsType.esforco,
-                            from: widget.from,
-                            to: widget.to,
-                            trainingType: _selectedType,
-                          ),
+                          valueFuture: _fetchPrCount(),
                         ),
                       ),
                       SizedBox(width: 6 * scale),
