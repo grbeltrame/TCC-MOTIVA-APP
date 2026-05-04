@@ -290,6 +290,9 @@ class AthleteInsightsService {
   static final _fn = FirebaseFunctions.instanceFor(region: 'us-central1');
 
   /// Lê os insights semanais já gerados (doc `users/{uid}/insights/semanal`).
+  /// Retorna `null` se o documento for de uma semana anterior — evita exibir
+  /// insights antigos como se fossem da semana corrente quando o atleta
+  /// ainda não treinou nesta semana.
   static Future<AthleteWeeklyInsights?> fetchWeekly() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return null;
@@ -302,7 +305,45 @@ class AthleteInsightsService {
             .doc('semanal')
             .get();
     if (!snap.exists) return null;
-    return AthleteWeeklyInsights.fromMap(snap.data() ?? {});
+
+    final insights = AthleteWeeklyInsights.fromMap(snap.data() ?? {});
+    if (insights.weekLabel != null &&
+        insights.weekLabel != _currentWeekLabel()) {
+      return null;
+    }
+    return insights;
+  }
+
+  /// Domingo da semana que contém [ref] (semana dom→sáb).
+  static DateTime _weekStartOf(DateTime ref) {
+    final daysSinceSunday = ref.weekday % 7; // seg=1..sáb=6, dom=0
+    return DateTime(ref.year, ref.month, ref.day - daysSinceSunday);
+  }
+
+  /// Label `YYYY-Www` da semana atual, replicando a convenção do backend
+  /// (`functions/athlete_stats_module/logic.py:_week_label_sunday`).
+  /// Semana 01 = semana que contém o primeiro domingo do ano. Domingos
+  /// anteriores pertencem à última semana do ano anterior.
+  static String _currentWeekLabel() {
+    final weekStart = _weekStartOf(DateTime.now());
+    return _weekLabelSunday(weekStart);
+  }
+
+  static String _weekLabelSunday(DateTime weekStart) {
+    final year = weekStart.year;
+    final jan1 = DateTime(year, 1, 1);
+    // Dart weekday: seg=1..dom=7. Domingo → 0 dias até o próximo domingo.
+    final daysToFirstSunday = (7 - jan1.weekday) % 7;
+    final firstSunday = jan1.add(Duration(days: daysToFirstSunday));
+
+    if (weekStart.isBefore(firstSunday)) {
+      // Pertence à última semana do ano anterior.
+      final prevYearLastDay = DateTime(year - 1, 12, 31);
+      return _weekLabelSunday(_weekStartOf(prevYearLastDay));
+    }
+
+    final weekNum = weekStart.difference(firstSunday).inDays ~/ 7 + 1;
+    return '$year-W${weekNum.toString().padLeft(2, '0')}';
   }
 
   /// Lê os insights pré-treino de um treino específico.
