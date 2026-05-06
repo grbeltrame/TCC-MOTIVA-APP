@@ -29,18 +29,24 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.430412921098-vjnevhn45ifiighgf2saj8pcldr1tt3r</string>
+				<string>com.googleusercontent.apps.430412921098-c433je4r1f0e8s2ri8nem097r8b6vllo</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>GIDClientID</key>
-	<string>430412921098-vjnevhn45ifiighgf2saj8pcldr1tt3r.apps.googleusercontent.com</string>
+	<string>430412921098-c433je4r1f0e8s2ri8nem097r8b6vllo.apps.googleusercontent.com</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Usamos sua biblioteca de fotos para escolher a foto do perfil.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
