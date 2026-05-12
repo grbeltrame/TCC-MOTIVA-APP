@@ -34,6 +34,8 @@ _RECENT_PR_WEEKS = 8
 # Campos do treino cuja alteração JUSTIFICA regerar insights.
 _HASH_FIELDS = ('partes', 'modalidade', 'wodType', 'keyMetrics', 'dataTreinoIso')
 
+_ATHLETE_PROFILES = {'athlete', 'athleteCoach', 'athleteIntern'}
+
 
 def _compute_workout_hash(workout: dict) -> str:
     """Hash determinístico dos campos relevantes do treino."""
@@ -59,12 +61,14 @@ def _extract_workout_summary(workout: dict) -> dict:
 
 def _is_athlete_user(user_doc, db) -> bool:
     """
-    Atleta é usuário com doc em users/{uid}/profiles/athlete.
+    Atleta é usuário cujo perfil raiz é atleta ou híbrido.
+
+    O doc users/{uid}/profiles/athlete é complementar: ele melhora o
+    contexto da IA, mas não deve bloquear a geração dos insights.
     """
     try:
-        prof_ref = db.collection('users').document(user_doc.id) \
-                     .collection('profiles').document('athlete')
-        return prof_ref.get().exists
+        data = user_doc.to_dict() or {}
+        return data.get('profile') in _ATHLETE_PROFILES
     except Exception:
         return False
 
@@ -177,15 +181,16 @@ def _fetch_athlete_recent_prs(db, uid: str) -> list:
 
 
 def _fetch_athlete_profile(db, uid: str) -> dict:
-    """Lê users/{uid}/profiles/athlete (campos que não revelam identidade)."""
+    """Lê users/{uid}/profiles/athlete como contexto opcional."""
     try:
         prof_ref = db.collection('users').document(uid) \
                      .collection('profiles').document('athlete')
         prof_doc = prof_ref.get()
         if not prof_doc.exists:
-            return {}
+            return {'hasDetailedProfile': False}
         data = prof_doc.to_dict() or {}
         return {
+            'hasDetailedProfile': True,
             'category':      data.get('category'),
             'gender':        data.get('gender'),
             'practiceYears': data.get('practiceYears'),
@@ -193,7 +198,20 @@ def _fetch_athlete_profile(db, uid: str) -> dict:
             'height':        data.get('height'),
         }
     except Exception:
-        return {}
+        return {'hasDetailedProfile': False}
+
+
+def _pre_workout_insight_exists(db, uid: str, workout_id: str) -> bool:
+    try:
+        doc = db.collection('users').document(uid) \
+                .collection('insights').document('pre_workout') \
+                .collection('items').document(workout_id).get()
+        return doc.exists
+    except Exception as e:
+        logging.warning(
+            f'[pre-workout] {uid}: falha ao verificar insight existente: {e}'
+        )
+        return False
 
 
 def _generate_insights_for_athlete(
@@ -274,8 +292,10 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
     Entry point chamado pela trigger.
 
     1. Computa hash dos campos relevantes do treino.
-    2. Compara com `_preWorkoutInsightsHash` no doc — se igual, skip.
-    3. Para cada atleta com perfil:
+    2. Compara com `_preWorkoutInsightsHash` no doc.
+       - Se mudou: regenera para todos os atletas elegíveis.
+       - Se está igual: gera apenas para atletas elegíveis ainda sem insight.
+    3. Para cada atleta elegível:
        - Busca histórico, carga atual, PRs.
        - Chama LLM.
        - Persiste em users/{uid}/insights/pre_workout/{workoutId}.
@@ -291,26 +311,19 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
 
     workout_hash = _compute_workout_hash(workout_data)
     last_hash = workout_data.get('_preWorkoutInsightsHash')
-
-    if last_hash == workout_hash:
-        logging.info(
-            f'[pre-workout] {workout_id}: hash inalterado — skip.'
-        )
-        return {'skipped': 'hash_unchanged'}
+    hash_unchanged = last_hash == workout_hash
 
     workout_summary = _extract_workout_summary(workout_data)
     workout_summary['workoutId'] = workout_id  # garante o id
 
-    # LLM compartilhado entre os atletas — uma única instância.
-    from .logic import _get_gemini_api_key, _build_llm
-    api_key = _get_gemini_api_key()
-    llm = _build_llm(api_key)
+    llm = None
 
     # Itera atletas. users/ tem todos os usuários — filtramos pelos que
-    # têm doc em profiles/athlete.
+    # têm perfil raiz de atleta ou híbrido.
     users_ref = db.collection('users')
     athlete_count = 0
     generated     = 0
+    existing      = 0
 
     for user_doc in users_ref.stream():
         if not _is_athlete_user(user_doc, db):
@@ -319,6 +332,19 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
         if not athlete_ai_enabled(db, user_doc.id):
             continue
         athlete_count += 1
+
+        if hash_unchanged and _pre_workout_insight_exists(
+            db, user_doc.id, workout_id
+        ):
+            existing += 1
+            continue
+
+        # LLM compartilhado entre os atletas — instanciado somente se houver
+        # alguém realmente precisando de geração nesta execução.
+        if llm is None:
+            from .logic import _get_gemini_api_key, _build_llm
+            api_key = _get_gemini_api_key()
+            llm = _build_llm(api_key)
 
         result = _generate_insights_for_athlete(
             db, user_doc.id, workout_summary, workout_hash, llm,
@@ -364,21 +390,25 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
             )
 
     # Atualiza o hash no doc do treino para evitar reprocessamento.
-    try:
-        db.collection('exercises').document(workout_id).update({
-            '_preWorkoutInsightsHash': workout_hash,
-            '_preWorkoutInsightsGeneratedAt': firestore.SERVER_TIMESTAMP,
-        })
-    except Exception as e:
-        logging.warning(f'[pre-workout] falha ao atualizar hash: {e}')
+    if generated > 0 or not hash_unchanged:
+        try:
+            db.collection('exercises').document(workout_id).update({
+                '_preWorkoutInsightsHash': workout_hash,
+                '_preWorkoutInsightsGeneratedAt': firestore.SERVER_TIMESTAMP,
+            })
+        except Exception as e:
+            logging.warning(f'[pre-workout] falha ao atualizar hash: {e}')
 
     logging.info(
         f'[pre-workout] {workout_id}: hash={workout_hash[:8]} '
-        f'atletas_visitados={athlete_count} insights_gerados={generated}'
+        f'atletas_visitados={athlete_count} '
+        f'insights_existentes={existing} insights_gerados={generated}'
     )
     return {
         'workoutId':       workout_id,
         'hash':            workout_hash,
         'athletesVisited': athlete_count,
+        'insightsExisting': existing,
         'insightsGenerated': generated,
+        'hashUnchanged':    hash_unchanged,
     }

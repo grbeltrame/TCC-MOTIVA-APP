@@ -676,6 +676,16 @@ def _pre_workout_glossary() -> str:
         "**athlete_recent_prs (PRs recentes nas últimas 8 semanas):**\n"
         "- Liste os movimentos onde o atleta vem progredindo. Útil para"
         " linkar com movimentos do treino do dia se houver overlap.\n"
+        "\n"
+        "**athlete_profile (perfil detalhado opcional):**\n"
+        "- `hasDetailedProfile=false` significa que o atleta escolheu o"
+        " perfil atleta, mas ainda não salvou o perfil detalhado.\n"
+        "- Se categoria, gênero, peso, altura ou tempo de prática estiverem"
+        " ausentes, NÃO invente esses dados e NÃO faça inferências sobre"
+        " nível, corpo ou experiência.\n"
+        "- Use o perfil detalhado apenas como complemento quando os campos"
+        " existirem. A base principal deve ser histórico, carga atual, PRs"
+        " e treino publicado.\n"
     )
 
 
