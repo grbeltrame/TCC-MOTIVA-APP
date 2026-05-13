@@ -25,6 +25,11 @@ from .prompt_builder import (
     create_weekly_insights_prompt,
     create_evolution_insights_prompt,
 )
+from .context_builder import (
+    build_evolution_context,
+    build_weekly_context,
+    week_label_for_date,
+)
 from .models import get_weekly_parser, get_evolution_parser
 
 _TZ_BRAZIL = ZoneInfo("America/Sao_Paulo")
@@ -37,6 +42,22 @@ _EVOLUTION_CACHE_DAYS = 4
 
 # Histórico considerado pela análise de evolução.
 _EVOLUTION_WEEKS = 12
+
+
+def _result_context_fields(data: dict) -> dict:
+    return {
+        "date": data.get("date"),
+        "effort": data.get("effort"),
+        "modalidade": data.get("modalidade"),
+        "wodType": data.get("wodType"),
+        "completed": data.get("completed"),
+        "forTimeSec": data.get("forTimeSec"),
+        "amrapRounds": data.get("amrapRounds"),
+        "amrapReps": data.get("amrapReps"),
+        "trainingTime": data.get("trainingTime"),
+        "category": data.get("category"),
+        "keyMetrics": data.get("keyMetrics", []),
+    }
 
 
 def _get_gemini_api_key() -> str:
@@ -131,14 +152,25 @@ def run_weekly_insights_logic(uid: str) -> dict:
                 .stream()
             for d in docs:
                 r = d.to_dict() or {}
-                recent_results.append({
-                    "date": r.get("date"),
-                    "effort": r.get("effort"),
-                    "modalidade": r.get("modalidade"),
-                    "keyMetrics": r.get("keyMetrics", []),
-                })
+                recent_results.append(_result_context_fields(r))
     except Exception as e:
         logging.warning(f"[weekly-insights] falha ao carregar results: {e}")
+
+    # 3b) Resultados recentes ampliados para tendencias objetivas
+    performance_results = []
+    try:
+        results_ref = db.collection("users").document(uid).collection("results")
+        since_str = (
+            datetime.now(tz=_TZ_BRAZIL) - timedelta(days=60)
+        ).strftime("%Y-%m-%d")
+        docs = results_ref.where("date", ">=", since_str).limit(80).stream()
+        for d in docs:
+            r = d.to_dict() or {}
+            performance_results.append(_result_context_fields(r))
+    except Exception as e:
+        logging.warning(
+            f"[weekly-insights] falha ao carregar performance recente: {e}"
+        )
 
     # 4) Histórico das últimas 4 semanas (exclui a semana atual)
     recent_weeks = []
@@ -167,6 +199,8 @@ def run_weekly_insights_logic(uid: str) -> dict:
                     "cargaCronica":  data.get("cargaCronica"),
                     "baselineType":  data.get("baselineType"),
                     "prsCount":      data.get("prsCount"),
+                    "dailyLoadsCrossfit": data.get("dailyLoadsCrossfit"),
+                    "stimuli":       data.get("stimuli"),
                 })
         recent_weeks = recent_weeks[:4]  # máximo 4 semanas anteriores
     except Exception as e:
@@ -181,11 +215,20 @@ def run_weekly_insights_logic(uid: str) -> dict:
         logging.warning(f"[weekly-insights] {uid}: cohort lookup falhou: {e}")
 
     # 6) Prompt + LLM
+    weekly_context = build_weekly_context(
+        stats_summary=stats_summary,
+        weekly_load=weekly_load,
+        recent_results=recent_results,
+        recent_weeks=recent_weeks,
+        performance_results=performance_results,
+    )
+
     prompt_text = create_weekly_insights_prompt(
         stats_summary=stats_summary,
         weekly_load=weekly_load,
         recent_results=recent_results,
         recent_weeks=recent_weeks,
+        weekly_context=weekly_context,
         now=datetime.now(tz=_TZ_BRAZIL),
         cohort=cohort,
     )
@@ -286,8 +329,8 @@ def _aggregate_stimuli_from_results(db, uid: str, since_date: datetime) -> dict:
 
 
 def _summarize_prs(db, uid: str, since_date: datetime) -> dict:
-    """Retorna {'count': int, 'byMovement': {movement: count}}."""
-    out = {"count": 0, "byMovement": {}}
+    """Retorna contagem de PRs, movimentos e itens datados para contexto."""
+    out = {"count": 0, "byMovement": {}, "items": []}
     try:
         prs_ref = db.collection("users").document(uid).collection("prs")
         docs = prs_ref.where("date", ">=", since_date).stream()
@@ -296,6 +339,14 @@ def _summarize_prs(db, uid: str, since_date: datetime) -> dict:
             out["count"] += 1
             mov = p.get("movementName") or p.get("movement") or "desconhecido"
             out["byMovement"][mov] = out["byMovement"].get(mov, 0) + 1
+            out["items"].append({
+                "date": p.get("date"),
+                "weekLabel": p.get("weekLabel") or week_label_for_date(p.get("date")),
+                "movementName": mov,
+                "value": p.get("value"),
+                "unit": p.get("unit"),
+                "prType": p.get("prType"),
+            })
     except Exception as e:
         logging.warning(f"[evolution] falha ao sumarizar PRs: {e}")
     return out
@@ -351,6 +402,11 @@ def run_evolution_insights_logic(uid: str, force: bool = False) -> dict:
     since_date = datetime.now(tz=_TZ_BRAZIL) - timedelta(weeks=_EVOLUTION_WEEKS)
     prs_summary = _summarize_prs(db, uid, since_date)
     stimulus_distribution = _aggregate_stimuli_from_results(db, uid, since_date)
+    evolution_context = build_evolution_context(
+        last_12_weeks=last_12_weeks,
+        prs_summary=prs_summary,
+        stimulus_distribution=stimulus_distribution,
+    )
 
     # Coorte (se elegível)
     cohort = None
@@ -366,6 +422,7 @@ def run_evolution_insights_logic(uid: str, force: bool = False) -> dict:
         last_12_weeks=last_12_weeks,
         prs_summary=prs_summary,
         stimulus_distribution=stimulus_distribution,
+        evolution_context=evolution_context,
         cohort=cohort,
     )
 

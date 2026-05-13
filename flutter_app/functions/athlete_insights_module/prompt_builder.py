@@ -197,11 +197,108 @@ def _common_rules() -> str:
         "  * Carga alta    → 'Você treinou pesado / em volume elevado'\n"
         "  * Esforço alto  → 'Você sentiu os treinos mais puxados'\n"
         "- Fale diretamente com o atleta em 2ª pessoa ('você').\n"
-        "- Tom: empático, motivacional, curto. Nada de jargão técnico.\n"
+        "- Tom: empático, motivacional e atento. As mensagens devem ser"
+        " curtas, mas nunca secas, robóticas ou bruscas; escreva como"
+        " alguém que está cuidando do atleta com respeito.\n"
         "- NUNCA cite os números crus internos (ex: 'ICN 82', 'monotonia 1.8').\n"
         "  Se precisar quantificar, traduza em linguagem comum"
         " ('quase todos os dias com a mesma intensidade').\n"
+        "\n"
+        "**SEMÂNTICA DE `completed` (vale para todo campo de taxa de conclusão):**\n"
+        "- **FOR TIME:** `completed=true` = terminou todas as reps dentro do"
+        " timecap. `completed=false` = não fechou no tempo prescrito.\n"
+        "- **AMRAP:** `completed=true` = o atleta ficou treinando até o fim do"
+        " tempo. A métrica real do AMRAP é rounds/reps, NÃO conclusão. Se"
+        " `completed=false` em AMRAP, traduza como 'interrompeu antes do fim',"
+        " 'não sustentou o tempo todo' ou 'ritmo baixo' — NUNCA 'não concluiu o"
+        " AMRAP' ou 'não terminou o AMRAP' (a frase não faz sentido para o"
+        " atleta porque AMRAP não tem fim a alcançar).\n"
+        "- **EMOM:** `completed=true` = manteve o ritmo de cada minuto."
+        " `completed=false` = perdeu o ritmo em algum minuto.\n"
+        "- Para taxas agregadas (`completionRateByModality`,"
+        " `completionRateSameType`), aplique a mesma regra de tradução conforme"
+        " o formato dominante da modalidade. Em modalidade dominantemente"
+        " AMRAP, fale em ritmo/sustentação, não em 'concluir'.\n"
     )
+
+
+def _non_obviousness_rule() -> str:
+    return (
+        "**TESTE DE NÃO-OBVIEDADE (aplique antes de incluir cada insight):**\n"
+        "Antes de incluir qualquer insight, pergunte mentalmente: 'o atleta"
+        " já saberia disso sem me ler?'. Se sim, descarte.\n"
+        "- DESCARTE frases óbvias: 'você treinou bastante', 'você precisa"
+        " descansar', 'sua consistência foi boa', 'FOR TIME é desafiador'.\n"
+        "- MANTENHA apenas o que nasce do cruzamento de dados: PRs em semanas"
+        " mais leves, melhora objetiva de tempo, padrão por horário/dia,"
+        " contraste com semanas anteriores ou movimento específico de hoje.\n"
+        "- REGRA DE UNICIDADE: se dois candidatos repetem a mesma ideia"
+        " central, mantenha o mais específico e descarte o genérico.\n"
+        "- CONTRASTE TEMPORAL: quando houver histórico, prefira narrativas"
+        " do tipo 'antes X, agora Y'. Contraste transforma observação em"
+        " insight memorável.\n"
+    )
+
+
+def _few_shot_examples_block(flow: str) -> str:
+    """
+    Exemplos de calibração para o LLM — 1 insight ruim + 1 bom por fluxo,
+    com motivo curto. NÃO copiar literalmente; servem como referência de
+    padrão (ancoragem em dado, contraste, ação).
+    """
+    examples = {
+        "weekly": (
+            "**EXEMPLOS DE CALIBRAÇÃO (não copie — use como referência de padrão):**\n"
+            "Mini-snapshot: `icnAll=85`, `monotony=1.7`,"
+            " `currentWeekStimuli={'Força': 4, 'Ritmo': 0}`,"
+            " `currentMicrocycle.shape='back_loaded'`.\n"
+            "- ❌ RUIM: 'Você treinou bastante essa semana. Pense em descansar.'\n"
+            "    Motivo: genérico, sem cruzamento, sem ação específica,"
+            " palavra vaga 'bastante'.\n"
+            "- ✅ BOM: 'Quatro estímulos de força e zero de ritmo essa semana —"
+            " e os dias pesados ficaram concentrados no fim. Encaixe um treino"
+            " mais ágil no começo do próximo ciclo para reequilibrar.'\n"
+            "    Motivo: cruza estímulo × forma do microciclo × ação concreta.\n"
+        ),
+        "evolution": (
+            "**EXEMPLOS DE CALIBRAÇÃO (não copie — use como referência de padrão):**\n"
+            "Mini-snapshot: `peakPerformanceProfile.status='available'`,"
+            " `dominantZone='low'`, últimas 4 semanas com `icnAll > 70`"
+            " (zona alta sustentada).\n"
+            "- ❌ RUIM: 'Você rende melhor em semanas mais leves.'\n"
+            "    Motivo: verdadeiro mas genérico — sem dado citado,"
+            " sem contraste, sem ação.\n"
+            "- ✅ BOM: 'Seus PRs recentes apareceram em semanas mais leves —"
+            " e o último mês você sustentou volume alto. Uma semana de"
+            " descarga pode destravar o próximo recorde.'\n"
+            "    Motivo: traduz `dominantZone=low` em linguagem humana,"
+            " contrasta com estado atual, sugere ação clara.\n"
+        ),
+        "pre_workout": (
+            "**EXEMPLOS DE CALIBRAÇÃO (não copie — use como referência de padrão):**\n"
+            "Mini-snapshot: treino de hoje é AMRAP com Burpee;"
+            " `objectiveTrendSameType.direction='improving'`;"
+            " `prsInTodayWorkout=[{movementName: 'Burpee',"
+            " date: '2026-04-12'}]`.\n"
+            "- ❌ RUIM: 'Bom treino, você consegue!'\n"
+            "    Motivo: zero conteúdo, não usa nenhum dado específico"
+            " do atleta nem do treino.\n"
+            "- ✅ BOM: 'Seu último AMRAP teve mais rounds que o anterior —"
+            " está sustentando ritmo. Hoje tem Burpee, onde você bateu PR"
+            " mês passado: o terreno é seu.'\n"
+            "    Motivo: ancora em `objectiveTrendSameType`, cruza com"
+            " `prsInTodayWorkout`, voz humana e curta.\n"
+        ),
+    }
+    body = examples.get(flow, "")
+    if not body:
+        return ""
+    footer = (
+        "Padrão a seguir: ancorar em pelo menos um dado específico, contrastar"
+        " com algo (tempo, estímulo, modalidade), terminar com leitura ou"
+        " ação clara.\n"
+    )
+    return body + footer
 
 
 def _weekly_glossary() -> str:
@@ -270,11 +367,48 @@ def _weekly_glossary() -> str:
     )
 
 
+def _weekly_context_glossary() -> str:
+    return (
+        "**GLOSSÁRIO DO `weekly_context` (cálculos determinísticos — use"
+        " para validar, não para inventar):**\n"
+        "- `milestone`: se preenchido, o atleta está perto de um marco de"
+        " treinos. `remaining` diz quantos faltam; `completedNow=true`"
+        " significa que o marco foi batido agora. Se for null, não"
+        " mencione marco.\n"
+        "- `currentMicrocycle.shape`: distribuição da carga na semana."
+        " `front_loaded` = início pesado; `back_loaded` = fim pesado;"
+        " `balanced` = bem distribuída; `single_peak` = apenas 1 dia"
+        " com treino; `empty`/`unknown` = sem base suficiente. Use"
+        " `trainingDays` e `heaviestDay` para deixar a leitura concreta.\n"
+        "- `microcycleShift`: só vem preenchido quando a semana atual"
+        " difere do padrão recente. Se for null, não fale que houve"
+        " mudança de padrão.\n"
+        "- `modalityPerformanceTrends`: tendências objetivas por"
+        " modalidade. Use apenas quando `sampleSize >= 3`. Em FOR TIME,"
+        " melhorar significa tempo menor; em AMRAP, melhorar significa"
+        " mais rounds/reps.\n"
+        "- `completionRateByModality`: taxa de conclusão por modalidade."
+        " `rate` perto de 1.0 sugere formato forte; `rate` baixo sugere"
+        " formato que exige ritmo ou escala. Use com cuidado se `total`"
+        " for pequeno.\n"
+        "- `categoryMix`: distribuição de categoria dos treinos analisados."
+        " `rxPercentage` = RX; `scaledPercentage` = Scaled;"
+        " `intermediatePercentage` = Intermediário; `otherPercentage` ="
+        " outras categorias. Só use se `totalWithCategory >= 5`. Não"
+        " afirme evolução de categoria se o JSON só mostra o snapshot"
+        " atual, sem comparação anterior.\n"
+        "- `performanceResultsAnalyzed`: quantidade de treinos usados nos"
+        " cálculos de performance dos últimos 60 dias. Quanto menor, mais"
+        " cautelosa deve ser a linguagem.\n"
+    )
+
+
 def create_weekly_insights_prompt(
     stats_summary: Dict[str, Any],
     weekly_load: Dict[str, Any],
     recent_results: list,
     recent_weeks: list = None,
+    weekly_context: Optional[Dict[str, Any]] = None,
     now: Optional[datetime] = None,
     cohort: Optional[Dict[str, Any]] = None,
 ) -> str:
@@ -297,6 +431,10 @@ def create_weekly_insights_prompt(
     )
     history_json = json.dumps(
         recent_weeks or [], indent=2, ensure_ascii=False, default=_json_converter
+    )
+    weekly_context_json = json.dumps(
+        weekly_context or {}, indent=2,
+        ensure_ascii=False, default=_json_converter,
     )
 
     has_history = bool(recent_weeks)
@@ -342,6 +480,7 @@ def create_weekly_insights_prompt(
         " na próxima semana.'\n\n"
 
         f"{_weekly_glossary()}\n"
+        f"{_weekly_context_glossary()}\n"
 
         "**DADOS COMPLETOS DA SEMANA DO ATLETA:**\n"
         f"1) Resumo consolidado (stats/summary):\n```json\n{stats_json}\n```\n\n"
@@ -355,6 +494,9 @@ def create_weekly_insights_prompt(
         )
 
     prompt += (
+        f"5) Contexto calculado para insights não óbvios:\n```json\n"
+        f"{weekly_context_json}\n```\n\n"
+
         "---\n"
         "**CONTEXTO DO BASELINE:**\n"
         f"- baselineType atual: `{baseline_type}`.\n"
@@ -397,8 +539,35 @@ def create_weekly_insights_prompt(
         "5. **currentWeekStimuli vs. histórico** — Se possível, veja se"
         " algum estímulo está dominando há várias semanas ou se algum"
         " sumiu. Desequilíbrios sustentados viram alertas de médio prazo.\n"
+        "\n"
+        "6. **Milestone detector — marcos de frequência:** Use"
+        " `weekly_context.milestone` quando existir. Se o atleta está perto"
+        " de 50, 75, 100, 150, 200+ treinos, transforme isso em motivação"
+        " concreta, sem inventar meta se o contexto vier vazio.\n"
+        "\n"
+        "7. **Padrão de microciclo habitual × esta semana:** Use"
+        " `weekly_context.microcycleShift` e `currentMicrocycle` para"
+        " detectar semana front-loaded, back-loaded, equilibrada ou invertida"
+        " em relação ao normal recente.\n"
+        "\n"
+        "8. **Desempenho objetivo × RPE:** Use"
+        " `weekly_context.modalityPerformanceTrends` e"
+        " `completionRateByModality`. Tempo caindo em FOR TIME, rounds"
+        " subindo em AMRAP ou taxa de conclusão alta valem mais que RPE"
+        " isolado. Se não houver tendência objetiva, não invente.\n"
+        "\n"
+        "9. **categoryMix × categoria praticada:** Use"
+        " `weekly_context.categoryMix` apenas se `totalWithCategory >= 5`."
+        " Se `rxPercentage` for alto, destaque como conquista concreta"
+        " sem citar percentual bruto. Se Intermediário domina, trate como"
+        " consistência em um nível de treino real, não como Scaled. Só diga"
+        " que houve evolução/subida de categoria se houver comparação"
+        " explícita no histórico; não deduza subida a partir de um snapshot.\n"
 
         "---\n"
+        f"{_non_obviousness_rule()}\n"
+        f"{_few_shot_examples_block('weekly')}\n"
+
         "**INSTRUÇÕES DE ANÁLISE:**\n\n"
 
         "**1. ALERTAS (`alertas`)** — riscos, excessos, faltas de descanso,"
@@ -420,7 +589,8 @@ def create_weekly_insights_prompt(
         " 'desgaste_acumulado', 'carga_acima_normal', 'falta_variacao',"
         " 'sem_descanso', 'esforco_alto', 'queda_frequencia',"
         " 'estimulo_ausente', 'risco_lesao', 'microciclo_sem_pausa',"
-        " 'gargalo_modalidade'.\n\n"
+        " 'gargalo_modalidade', 'microciclo_invertido',"
+        " 'queda_performance_objetivo', 'marco_proximo'.\n\n"
 
         "**2. INFORMAÇÕES (`informacoes`)** — conquistas, consistência, boas"
         " tendências, estímulos bem distribuídos, PRs, dicas práticas,"
@@ -433,7 +603,8 @@ def create_weekly_insights_prompt(
         "- Chaves sugeridas: 'constancia_boa', 'melhor_semana',"
         " 'estimulo_dominante', 'dica_recuperacao', 'prs_batidos',"
         " 'equilibrio_estimulos', 'volume_saudavel', 'modalidade_forte',"
-        " 'recuperacao_adequada'.\n\n"
+        " 'recuperacao_adequada', 'marco_frequencia', 'tendencia_tempo',"
+        " 'tendencia_rounds', 'melhor_mes_caminho'.\n\n"
 
         "**3. PROCESSO DE GERAÇÃO (siga em duas etapas):**\n"
         "- **Etapa 1 (interna):** Gere MUITOS candidatos — idealmente"
@@ -485,6 +656,41 @@ def _evolution_glossary() -> str:
         " negligenciados.\n"
         "- `stats_summary`: snapshot atual (frequência, esforço médio,"
         " carga da última semana).\n"
+        "- `evolution_context`: cálculos determinísticos feitos antes do"
+        " prompt, como melhor bloco de 4 semanas, PRs por dia de treino,"
+        " e zona de fadiga onde os PRs aparecem. Use esses dados para"
+        " validar ou negar padrões, não para inventar conclusões.\n"
+        "- Performance objetiva vale mais que sensação isolada: quando houver"
+        " tempo, rounds, PRs por semana ou eficiência PRs/treino, use isso"
+        " para complementar o RPE subjetivo.\n"
+    )
+
+
+def _evolution_context_glossary() -> str:
+    return (
+        "**GLOSSÁRIO DO `evolution_context` (cálculos determinísticos das"
+        " 12 semanas):**\n"
+        "- `peakPerformanceProfile`: zona onde os PRs aparecem. Use apenas"
+        " se `status=available`; se `insufficient_data`, não mencione."
+        " `dominantZone` pode ser `low` (semanas mais leves), `medium`"
+        " (ritmo regular) ou `high` (semanas pesadas)."
+        " `dominantZoneShare` mostra o quanto esse padrão se repete.\n"
+        "- `bestFourWeekPhase`: bloco de 4 semanas com melhor combinação"
+        " de PRs, frequência e carga saudável. Use `weekStart`, `weekEnd`,"
+        " `prsCount` e `wodDays` para explicar o que tornou o período bom.\n"
+        "- `allFourWeekPhases`: todos os blocos de 4 semanas em ordem"
+        " cronológica. Compare `score` entre blocos: subindo = trajetória"
+        " positiva; caindo nos blocos recentes = perda de ritmo; bloco"
+        " central melhor que o recente = atleta pode ter saído do melhor"
+        " período.\n"
+        "- `prEfficiency`: relação entre recordes e dias treinados."
+        " `prsPerWodDay` alto sugere fase de pico/eficiência; baixo sugere"
+        " fase de construção. Não cite o número cru: traduza para"
+        " 'seus treinos têm convertido bem em recordes' ou 'você está"
+        " acumulando base'.\n"
+        "- `gapAnalysisPolicy`: regra interna para não inventar relação"
+        " movimento-estímulo. Só mencione gap quando a ausência estiver"
+        " clara nos dados.\n"
     )
 
 
@@ -493,6 +699,7 @@ def create_evolution_insights_prompt(
     last_12_weeks: list,
     prs_summary: Dict[str, Any],
     stimulus_distribution: Dict[str, int],
+    evolution_context: Optional[Dict[str, Any]] = None,
     cohort: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
@@ -513,6 +720,10 @@ def create_evolution_insights_prompt(
     stimulus_json = json.dumps(
         stimulus_distribution, indent=2, ensure_ascii=False,
         default=_json_converter,
+    )
+    evolution_context_json = json.dumps(
+        evolution_context or {}, indent=2,
+        ensure_ascii=False, default=_json_converter,
     )
 
     cohort_block = _cohort_context_block(cohort)
@@ -535,12 +746,15 @@ def create_evolution_insights_prompt(
         "- Mesmo ao apontar risco, soe encorajador.\n\n"
 
         f"{_evolution_glossary()}\n"
+        f"{_evolution_context_glossary()}\n"
 
         "**DADOS DO ATLETA (até 12 semanas):**\n"
         f"1) Snapshot atual:\n```json\n{stats_json}\n```\n\n"
         f"2) Série semanal (cronológica):\n```json\n{weeks_json}\n```\n\n"
         f"3) PRs no período:\n```json\n{prs_json}\n```\n\n"
         f"4) Distribuição consolidada de estímulos:\n```json\n{stimulus_json}\n```\n\n"
+        f"5) Contexto calculado de evolução:\n```json\n"
+        f"{evolution_context_json}\n```\n\n"
 
         "---\n"
         "**INSTRUÇÕES DE CRUZAMENTO DE DADOS (faça antes de escrever os"
@@ -579,8 +793,38 @@ def create_evolution_insights_prompt(
         " estímulos** — Frequência estável com bom mix de estímulos é o"
         " cenário ideal. Frequência oscilante ou estímulo dominante por"
         " muitas semanas viram informações estratégicas.\n"
+        "\n"
+        "6. **Zona ótima de fadiga DESTE atleta (OBRIGATÓRIO se aplicável):**"
+        " Use `evolution_context.peakPerformanceProfile`. Se"
+        " `status=available`, gere OBRIGATORIAMENTE uma informação com chave"
+        " `zona_otima_rendimento` traduzindo a zona em linguagem humana:"
+        " `low` = 'semanas mais leves', `medium` = 'ritmo regular',"
+        " `high` = 'semanas pesadas'. Esse é o insight mais personalizado"
+        " deste fluxo. Se `status=insufficient_data`, não mencione zona.\n"
+        "\n"
+        "7. **Gap de movimento conservador:** Cruze"
+        " `stimulus_distribution` com `prs_summary.byMovement`, mas só"
+        " mencione gap quando a ausência for clara. Não invente relação"
+        " movimento-estímulo que não está nos dados.\n"
+        "\n"
+        "8. **Trajetória entre blocos:** Use"
+        " `evolution_context.allFourWeekPhases`, não apenas o melhor bloco."
+        " Compare os `score` em ordem cronológica. Score subindo nos"
+        " blocos recentes é trajetória positiva; score caindo pode indicar"
+        " perda de ritmo recente. Use `bestFourWeekPhase` para explicar"
+        " qual período foi mais produtivo e o que ele tinha de diferente.\n"
+        "\n"
+        "9. **Fase de construção vs. pico de eficiência:** Use"
+        " `evolution_context.prEfficiency.prsPerWodDay` junto com PRs,"
+        " frequência e ICN. Valor alto sugere fase em que os treinos"
+        " convertem bem em recordes; valor baixo pode ser fase saudável"
+        " de construção/base. Não cite o número cru; traduza em linguagem"
+        " humana e cuidadosa.\n"
 
         "---\n"
+        f"{_non_obviousness_rule()}\n"
+        f"{_few_shot_examples_block('evolution')}\n"
+
         "**INSTRUÇÕES DE ANÁLISE:**\n\n"
 
         "**1. ALERTAS (`alertas`)** — tendências de risco sustentadas.\n"
@@ -597,7 +841,9 @@ def create_evolution_insights_prompt(
         "- Se tudo está saudável, retorne `alertas: {}`.\n"
         "- Chaves sugeridas: 'volume_em_queda', 'estimulo_negligenciado',"
         " 'desgaste_sustentado', 'pausa_progressao', 'monotonia_cronica',"
-        " 'icn_alto_sustentado', 'estagnacao_pr', 'desequilibrio_estimulo'.\n\n"
+        " 'icn_alto_sustentado', 'estagnacao_pr', 'desequilibrio_estimulo',"
+        " 'gap_movimento', 'zona_fadiga_subotima', 'melhor_fase_distante',"
+        " 'trajetoria_em_queda', 'fase_construcao_prolongada'.\n\n"
 
         "**2. INFORMAÇÕES (`informacoes`)** — conquistas e direcionamento"
         " estratégico.\n"
@@ -606,10 +852,14 @@ def create_evolution_insights_prompt(
         "- Zona de fadiga ótima DESTE atleta (a partir do cruzamento PRs×ICN).\n"
         "- Progressão saudável de volume/consistência.\n"
         "- Sugira 1 foco estratégico para o próximo ciclo.\n"
+        "- Quando o item 6 do cruzamento for aplicável, use a chave"
+        " `zona_otima_rendimento` para a informação correspondente.\n"
         "- Chaves sugeridas: 'prs_periodo', 'evolucao_volume',"
         " 'foco_proximo_ciclo', 'estimulo_dominante_periodo',"
         " 'consistencia_longa', 'zona_otima_rendimento',"
-        " 'relacao_pr_estimulo'.\n\n"
+        " 'relacao_pr_estimulo', 'melhor_fase_identificada',"
+        " 'causa_prs_confirmada', 'trajetoria_positiva',"
+        " 'fase_pico_eficiencia', 'volta_ao_melhor_ritmo'.\n\n"
 
         "**3. PROCESSO DE GERAÇÃO (siga em duas etapas):**\n"
         "- **Etapa 1 (interna):** Gere MUITOS candidatos — idealmente 15"
@@ -664,9 +914,25 @@ def _pre_workout_glossary() -> str:
         "- Cada item tem `date`, `effort` (RPE 1-10), `modalidade`,"
         " `wodType`, `completed`, `forTimeSec`, `amrapRounds`, `amrapReps`,"
         " `keyMetrics`, `trainingTime` (HH:MM).\n"
-        "- Use para ler PADRÕES: RPE médio nessa modalidade, taxa de"
-        " conclusão, melhor horário do atleta nesse tipo, evolução de"
-        " desempenho ao longo do tempo.\n"
+        "- Use para ler PADRÕES e TENDÊNCIAS:\n"
+        "    • RPE médio nessa modalidade: alto = formato difícil para este"
+        " atleta; baixo = formato forte.\n"
+        "    • Taxa de conclusão (`completed=true`) indica consistência no"
+        " formato. → Esse cálculo JÁ VEM PRONTO em"
+        " `pre_workout_context.completionRateSameType`; prefira o campo"
+        " pré-calculado em vez de contar manualmente.\n"
+        "    • `forTimeSec`: valores decrescentes = ficando mais rápido;"
+        " crescentes = dificuldade ou desgaste. → A tendência JÁ VEM"
+        " CALCULADA em `pre_workout_context.objectiveTrendSameType`; use"
+        " `direction` (improving/declining/flat) em vez de comparar números"
+        " manualmente.\n"
+        "    • `amrapRounds` + `amrapReps`: valores crescentes = mais"
+        " capacidade de sustentar ritmo. → Mesmo princípio: use"
+        " `objectiveTrendSameType` se disponível.\n"
+        "    • `trainingTime`: se há RPE menor em certo horário, isso é"
+        " autoconhecimento valioso.\n"
+        "    • O registro mais recente é a melhor âncora narrativa para"
+        " comparar com o treino de hoje.\n"
         "\n"
         "**athlete_current_load (semana atual via weekly_load):**\n"
         "- Mesma semântica do glossário semanal — use para entender se o"
@@ -686,6 +952,54 @@ def _pre_workout_glossary() -> str:
         "- Use o perfil detalhado apenas como complemento quando os campos"
         " existirem. A base principal deve ser histórico, carga atual, PRs"
         " e treino publicado.\n"
+        "\n"
+        "**interpretação de cargas com dois valores:**\n"
+        "- No box de teste, quando um exercício tiver duas cargas em Kg,"
+        " interprete como primeira carga masculina e segunda carga feminina,"
+        " mesmo que os campos se chamem `cargaRx` e `cargaScaled`.\n"
+        "- Exemplos: `cargaRx=90Kg` e `cargaScaled=50Kg`, ou `raw` contendo"
+        " `(90Kg|50Kg)`, significam 90Kg para homem e 50Kg para mulher.\n"
+        "- Em dados antigos, se `cargaRx` vier como `90Kg/50Kg` ou o `raw`"
+        " contiver `(90Kg/50Kg)`, divida mentalmente: 90Kg masculino,"
+        " 50Kg feminino.\n"
+        "- Use `athlete_profile.gender` para escolher a carga: Homem/M/"
+        "masculino -> primeira carga; Mulher/F/feminino -> segunda carga.\n"
+        "- Se o gênero estiver ausente, `Outro` ou ambíguo, não cite uma"
+        " carga numérica como se fosse personalizada para o atleta.\n"
+        "- Nunca gere alerta para uma atleta mulher usando a carga masculina"
+        " como se fosse a carga dela.\n"
+    )
+
+
+def _pre_workout_context_glossary() -> str:
+    return (
+        "**GLOSSÁRIO DO `pre_workout_context` (cálculos para este atleta"
+        " neste treino):**\n"
+        "- `todayAnchors`: dados do treino de hoje já separados:"
+        " `modalidade`, `duracaoMinutos`, `keyMetrics` e `movements`."
+        " Use `movements` para ancorar a mensagem no treino real e cruzar"
+        " com PRs recentes.\n"
+        "- `latestSimilarResult`: último treino do atleta no mesmo tipo ou"
+        " modalidade. Se existir, use como âncora narrativa. Se for null,"
+        " não invente histórico comparável.\n"
+        "- `objectiveTrendSameType`: tendência objetiva na mesma modalidade."
+        " Use só com `sampleSize >= 3`. Em FOR TIME, melhorar é tempo"
+        " menor; em AMRAP, melhorar é mais rounds/reps.\n"
+        "- `sameWeekdayPerformance`: histórico desse dia da semana em geral."
+        " Inclui modalidades diferentes; só use com linguagem cautelosa e"
+        " `sampleSize >= 4`.\n"
+        "- `sameWeekdaySameTypePerformance`: histórico desse dia da semana"
+        " na mesma modalidade/tipo do treino de hoje. É mais preciso;"
+        " prefira quando `sampleSize >= 3`.\n"
+        "- `prsInTodayWorkout`: PRs recentes em movimentos que aparecem no"
+        " treino de hoje. Se houver itens, gere uma informação ligando o PR"
+        " ao movimento de hoje.\n"
+        "- `completionRateSameType`: taxa de conclusão nessa modalidade/tipo."
+        " `rate < 0.6` sugere atenção de ritmo; `rate > 0.85` sugere ponto"
+        " forte. Se for null, não mencione conclusão.\n"
+        "- `currentLoadSummary`: recorte da carga atual (`icnAll`,"
+        " `wodDays`, `restDays`, `dailyLoadsCrossfit`) para avaliar se o"
+        " atleta chega descansado, em desgaste ou em ritmo.\n"
     )
 
 
@@ -695,6 +1009,7 @@ def create_pre_workout_insights_prompt(
     athlete_history_same_type: list,
     athlete_current_load: Dict[str, Any],
     athlete_recent_prs: list,
+    pre_workout_context: Optional[Dict[str, Any]] = None,
     now: Optional[datetime] = None,
     cohort: Optional[Dict[str, Any]] = None,
 ) -> str:
@@ -718,6 +1033,10 @@ def create_pre_workout_insights_prompt(
     )
     prs_json = json.dumps(
         athlete_recent_prs, indent=2,
+        ensure_ascii=False, default=_json_converter,
+    )
+    pre_workout_context_json = json.dumps(
+        pre_workout_context or {}, indent=2,
         ensure_ascii=False, default=_json_converter,
     )
 
@@ -751,6 +1070,14 @@ def create_pre_workout_insights_prompt(
 
         f"{_common_rules()}\n"
 
+        "**⏱️ REGRA TEMPORAL OBRIGATÓRIA:**\n"
+        "O treino abaixo AINDA NÃO ACONTECEU. Fale sempre em"
+        " INTENÇÃO/PREPARO/EXPECTATIVA. NUNCA use passado para o treino de"
+        " hoje (proibido: 'foi puxado', 'não foi concluído', 'deu certo',"
+        " 'rendeu bem'). O passado só vale para o HISTÓRICO do atleta. Se"
+        " for citar AMRAP/FOR TIME de hoje, use frases como 'pode pesar',"
+        " 'tende a exigir ritmo', 'é uma oportunidade'.\n\n"
+
         "**🚫 ESCOPO — REGRAS RÍGIDAS DE TÓPICO:**\n"
         "Você está falando com o ATLETA, não com o professor. Portanto:\n"
         "- ✅ PERMITIDO falar sobre:\n"
@@ -773,6 +1100,7 @@ def create_pre_workout_insights_prompt(
         " a montagem do treino.\n\n"
 
         f"{_pre_workout_glossary()}\n"
+        f"{_pre_workout_context_glossary()}\n"
 
         "**DADOS COMPLETOS:**\n"
         f"1) Treino publicado para hoje:\n```json\n{workout_json}\n```\n\n"
@@ -782,6 +1110,8 @@ def create_pre_workout_insights_prompt(
         f"4) Estado atual do atleta (semana corrente):\n```json\n"
         f"{load_json}\n```\n\n"
         f"5) PRs recentes do atleta:\n```json\n{prs_json}\n```\n\n"
+        f"6) Contexto calculado pré-treino:\n```json\n"
+        f"{pre_workout_context_json}\n```\n\n"
 
         "---\n"
         "**INSTRUÇÕES DE CRUZAMENTO DE DADOS:**\n"
@@ -804,9 +1134,41 @@ def create_pre_workout_insights_prompt(
         "\n"
         "5. **dailyLoadsCrossfit dos últimos dias** — Se o atleta treinou"
         " 3 dias seguidos pesado, mencione o estado de recuperação ANTES"
-        " do treino do dia.\n\n"
+        " do treino do dia.\n"
+        "\n"
+        "6. **Ancoragem no treino específico de hoje (obrigatório):**"
+        " Pelo menos 2 dos 5 insights DEVEM mencionar algo específico do"
+        " treino publicado: movimento, modalidade, tempo previsto ou"
+        " `keyMetrics`. Use `pre_workout_context.todayAnchors`.\n"
+        "\n"
+        "7. **Tendência de performance objetiva:** Use"
+        " `pre_workout_context.objectiveTrendSameType`. Se FOR TIME está"
+        " melhorando, tempo cai; se AMRAP está melhorando, rounds/reps sobem."
+        " Se a tendência piora, redirecione como oportunidade, não como"
+        " sentença negativa.\n"
+        "\n"
+        "8. **Dia da semana + modalidade:** Use"
+        " `sameWeekdaySameTypePerformance` como primeira opção. Se"
+        " `sampleSize >= 3`, esse campo é mais preciso porque cruza mesmo"
+        " dia da semana e mesma modalidade/tipo. Se não houver amostra,"
+        " use `sameWeekdayPerformance` apenas quando `sampleSize >= 4`,"
+        " com linguagem cautelosa: 'esse costuma ser um dia mais pesado"
+        " para você em geral'.\n"
+        "\n"
+        "9. **Taxa de conclusão na modalidade (cuide do formato):** Use"
+        " `completionRateSameType` SEGUINDO a SEMÂNTICA DE `completed`."
+        " Se o treino de hoje é AMRAP, `rate < 0.6` deve virar 'tem mantido"
+        " ritmo baixo nesses AMRAPs' ou 'tem interrompido antes do fim' —"
+        " NUNCA 'não tem concluído' ou 'não terminou' (a frase não faz"
+        " sentido em AMRAP). Para FOR TIME/EMOM, `rate < 0.6` pode virar"
+        " 'não tem fechado o tempo' ou 'tem perdido o ritmo'. `rate > 0.85`"
+        " continua sendo ponto forte em qualquer formato. Se for null, não"
+        " mencione.\n\n"
 
         "---\n"
+        f"{_non_obviousness_rule()}\n"
+        f"{_few_shot_examples_block('pre_workout')}\n"
+
         "**INSTRUÇÕES DE GERAÇÃO:**\n"
         "\n"
         "**1. ALERTAS (`alertas`)** — riscos ou pontos de atenção"
@@ -816,13 +1178,19 @@ def create_pre_workout_insights_prompt(
         " anterior'.\n"
         "- Chaves sugeridas: 'modalidade_desafiadora', 'horario_subotimo',"
         " 'pos_desgaste_acumulado', 'modalidade_ritmo_alto',"
-        " 'recuperacao_curta'.\n"
+        " 'recuperacao_curta', 'ritmo_historico_alto_inicio',"
+        " 'tendencia_piora_formato', 'ultimo_treino_pesado',"
+        " 'taxa_conclusao_baixa', 'padrao_dia_modalidade_dificil'.\n"
         "\n"
         "**2. INFORMAÇÕES (`informacoes`)** — pontos fortes do atleta"
         " naquele tipo de treino, contexto positivo, oportunidades.\n"
+        "- Sempre que `pre_workout_context.prsInTodayWorkout` tiver itens,"
+        " gere uma informação ligando PR recente ao movimento de hoje.\n"
         "- Chaves sugeridas: 'modalidade_forte', 'horario_otimo',"
         " 'pr_recente_no_movimento', 'estado_descansado',"
-        " 'historico_consistente'.\n"
+        " 'historico_consistente', 'tendencia_melhora_formato',"
+        " 'ancoragem_ultimo_treino', 'pr_no_movimento_de_hoje',"
+        " 'taxa_conclusao_alta', 'padrao_dia_modalidade_favoravel'.\n"
         "\n"
         "**3. PROCESSO DE GERAÇÃO (duas etapas):**\n"
         "- **Etapa 1 (interna):** gere ~8 candidatos cruzando variáveis.\n"

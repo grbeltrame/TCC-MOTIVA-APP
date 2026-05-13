@@ -158,6 +158,14 @@ def _assert(ok, msg):
     return ok
 
 
+def _has_format_instructions(prompt):
+    return (
+        'FORMAT_INSTRUCTIONS_PLACEHOLDER' in prompt
+        or '"required": ["alertas", "informacoes"]' in prompt
+        or '"required": ["weeksAnalyzed", "alertas", "informacoes"]' in prompt
+    )
+
+
 def test_weekly_prompt():
     print('\n── Weekly prompt ─────────────────────────────')
     prompt = create_weekly_insights_prompt(
@@ -199,7 +207,7 @@ def test_weekly_prompt():
                   and 'avgRpeAll > 8' not in prompt
                   and '>30% a mais' not in prompt,
                   'sem thresholds hardcoded antigos')
-    ok &= _assert('FORMAT_INSTRUCTIONS_PLACEHOLDER' in prompt,
+    ok &= _assert(_has_format_instructions(prompt),
                   'format instructions do parser incluídas')
     return ok
 
@@ -239,7 +247,7 @@ def test_evolution_prompt():
     ok &= _assert('stimulus_distribution' in prompt
                   and 'prs_summary' in prompt,
                   'cruzamento PRs × estímulos instruído')
-    ok &= _assert('FORMAT_INSTRUCTIONS_PLACEHOLDER' in prompt,
+    ok &= _assert(_has_format_instructions(prompt),
                   'format instructions do parser incluídas')
     return ok
 

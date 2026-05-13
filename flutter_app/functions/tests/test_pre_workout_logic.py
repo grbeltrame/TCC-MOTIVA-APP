@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from athlete_insights_module import pre_workout_logic
+from athlete_insights_module.prompt_builder import create_pre_workout_insights_prompt
 
 
 class _Snapshot:
@@ -77,6 +78,42 @@ def _pre_workout_items(db, uid):
 
 
 class PreWorkoutLogicTest(unittest.TestCase):
+    def test_prompt_teaches_gendered_load_interpretation_for_saved_workouts(self):
+        prompt = create_pre_workout_insights_prompt(
+            workout={
+                "workoutId": "WOD (12-05-2026)",
+                "partes": {
+                    "WOD": {
+                        "exercicios": [
+                            {
+                                "raw": "10 Deadlift (90Kg|50Kg)",
+                                "nome": "Deadlift",
+                                "cargaRx": "90Kg",
+                                "cargaScaled": "50Kg",
+                            },
+                            {
+                                "raw": "8 Clean (90Kg/50Kg)",
+                                "nome": "Clean",
+                                "cargaRx": "90Kg/50Kg",
+                                "cargaScaled": None,
+                            },
+                        ]
+                    }
+                },
+            },
+            athlete_profile={"hasDetailedProfile": True, "gender": "Mulher"},
+            athlete_history_same_type=[],
+            athlete_current_load={},
+            athlete_recent_prs=[],
+        )
+
+        self.assertIn("primeira carga masculina", prompt)
+        self.assertIn("segunda carga feminina", prompt)
+        self.assertIn("cargaRx=90Kg", prompt)
+        self.assertIn("cargaScaled=50Kg", prompt)
+        self.assertIn("90Kg/50Kg", prompt)
+        self.assertIn("Nunca gere alerta para uma atleta mulher", prompt)
+
     def test_root_athlete_profile_is_eligible_without_detailed_profile(self):
         db = _Db()
         db.users["athlete"] = _user("athlete")

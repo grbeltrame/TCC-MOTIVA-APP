@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 from firebase_admin import firestore
 
 from .prompt_builder import create_pre_workout_insights_prompt
+from .context_builder import build_pre_workout_context
 from .models import get_pre_workout_parser
 
 _TZ_BRAZIL = ZoneInfo("America/Sao_Paulo")
@@ -112,12 +113,68 @@ def _fetch_athlete_history_same_type(
                     'amrapReps':    data.get('amrapReps'),
                     'keyMetrics':   data.get('keyMetrics'),
                     'trainingTime': data.get('trainingTime'),
+                    'category':     data.get('category'),
                 })
                 if len(matches) >= _MAX_HISTORY_ITEMS:
                     break
         return matches
     except Exception as e:
         logging.warning(f'[pre-workout] {uid} — falha ao buscar histórico: {e}')
+        return []
+
+
+def _fetch_athlete_history_same_weekday(
+    db, uid: str, workout_summary: dict
+) -> list:
+    target_date = workout_summary.get('dataTreinoIso')
+    if not target_date:
+        return []
+    try:
+        target_weekday = datetime.strptime(target_date[:10], '%Y-%m-%d').weekday()
+    except ValueError:
+        return []
+
+    try:
+        results_ref = db.collection('users').document(uid).collection('results')
+        recent = list(
+            results_ref.order_by('date', direction=firestore.Query.DESCENDING)
+                       .limit(90)
+                       .stream()
+        )
+        matches = []
+        for doc in recent:
+            data = doc.to_dict() or {}
+            date_value = data.get('date')
+            if not isinstance(date_value, str):
+                continue
+            try:
+                result_weekday = datetime.strptime(
+                    date_value[:10], '%Y-%m-%d'
+                ).weekday()
+            except ValueError:
+                continue
+            if result_weekday != target_weekday:
+                continue
+            matches.append({
+                'date':         data.get('date'),
+                'effort':       data.get('effort'),
+                'modalidade':   data.get('modalidade'),
+                'wodType':      data.get('wodType'),
+                'completed':    data.get('completed'),
+                'forTimeSec':   data.get('forTimeSec'),
+                'amrapRounds':  data.get('amrapRounds'),
+                'amrapReps':    data.get('amrapReps'),
+                'keyMetrics':   data.get('keyMetrics'),
+                'trainingTime': data.get('trainingTime'),
+                'category':     data.get('category'),
+            })
+            if len(matches) >= 8:
+                break
+        return matches
+    except Exception as e:
+        logging.warning(
+            f'[pre-workout] {uid} — falha ao buscar histórico por dia: {e}'
+        )
         return []
 
 
@@ -232,6 +289,9 @@ def _generate_insights_for_athlete(
 
     profile     = _fetch_athlete_profile(db, uid)
     recent_prs  = _fetch_athlete_recent_prs(db, uid)
+    weekday_history = _fetch_athlete_history_same_weekday(
+        db, uid, workout_summary
+    )
 
     # Coorte (se elegível) — pode estar None pra atletas sem perfil completo.
     cohort = None
@@ -247,6 +307,13 @@ def _generate_insights_for_athlete(
         athlete_history_same_type=history,
         athlete_current_load=current_load,
         athlete_recent_prs=recent_prs,
+        pre_workout_context=build_pre_workout_context(
+            workout=workout_summary,
+            athlete_history_same_type=history,
+            athlete_current_load=current_load,
+            athlete_recent_prs=recent_prs,
+            same_weekday_history=weekday_history,
+        ),
         now=datetime.now(tz=_TZ_BRAZIL),
         cohort=cohort,
     )
