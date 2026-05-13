@@ -30,6 +30,7 @@ from .context_builder import (
     build_weekly_context,
     week_label_for_date,
 )
+from .llm_parser import extract_json_object, parse_llm_response
 from .models import get_weekly_parser, get_evolution_parser
 
 _TZ_BRAZIL = ZoneInfo("America/Sao_Paulo")
@@ -88,12 +89,31 @@ def _build_llm(api_key: str) -> ChatGoogleGenerativeAI:
 
 
 def _parse_llm_json(raw: str) -> str:
-    """Remove cercas de markdown caso o modelo adicione."""
-    if "```json" in raw:
-        return raw.split("```json")[1].split("```")[0].strip()
-    if "```" in raw:
-        return raw.split("```")[1].strip()
-    return raw.strip()
+    """Backward-compatible wrapper around the robust JSON extractor."""
+    return extract_json_object(raw)
+
+
+def _record_insight_event(
+    kind: str,
+    status: str,
+    *,
+    reason: str | None = None,
+    with_cohort: bool = False,
+    prompt_chars: int = 0,
+    response_chars: int = 0,
+) -> None:
+    try:
+        from telemetry_module import record_insight_event
+        record_insight_event(
+            kind,
+            status=status,
+            reason=reason,
+            with_cohort=with_cohort,
+            prompt_chars=prompt_chars,
+            response_chars=response_chars,
+        )
+    except Exception:
+        pass
 
 
 # =============================================================================
@@ -111,6 +131,7 @@ def run_weekly_insights_logic(uid: str) -> dict:
     from user_settings_module import athlete_ai_enabled
     if not athlete_ai_enabled(db, uid):
         logging.info(f"[weekly-insights] {uid}: IA desativada ou conta inativa.")
+        _record_insight_event("weekly", "skipped", reason="ai_disabled")
         return {"skipped": "ai_disabled"}
 
     # 1) stats/summary
@@ -119,6 +140,7 @@ def run_weekly_insights_logic(uid: str) -> dict:
     stats_doc = stats_ref.get()
     if not stats_doc.exists:
         logging.info(f"[weekly-insights] {uid} sem stats/summary, abortando.")
+        _record_insight_event("weekly", "skipped", reason="no_stats")
         return {"skipped": "no_stats"}
     stats_summary = stats_doc.to_dict() or {}
 
@@ -135,6 +157,7 @@ def run_weekly_insights_logic(uid: str) -> dict:
         logging.info(
             f"[weekly-insights] {uid} sem weekly_load atual, abortando."
         )
+        _record_insight_event("weekly", "skipped", reason="no_weekly_load")
         return {"skipped": "no_weekly_load"}
 
     # 3) Resultados recentes da semana (leves, só pro contexto)
@@ -202,7 +225,12 @@ def run_weekly_insights_logic(uid: str) -> dict:
                     "dailyLoadsCrossfit": data.get("dailyLoadsCrossfit"),
                     "stimuli":       data.get("stimuli"),
                 })
-        recent_weeks = recent_weeks[:4]  # máximo 4 semanas anteriores
+        recent_weeks = sorted(
+            recent_weeks[:4],
+            key=lambda week: str(
+                week.get("weekLabel") or week.get("weekStart") or ""
+            ),
+        )
     except Exception as e:
         logging.warning(f"[weekly-insights] falha ao carregar histórico: {e}")
 
@@ -238,21 +266,34 @@ def run_weekly_insights_logic(uid: str) -> dict:
     parser = get_weekly_parser()
 
     logging.info(f"[weekly-insights] enviando prompt para Gemini ({uid})")
-    ai_message = llm.invoke(prompt_text)
-    clean = _parse_llm_json(ai_message.content)
-    parsed = parser.parse(clean).dict()
-
-    # Telemetria — não bloqueia o fluxo se falhar.
     try:
-        from telemetry_module import record_insight_generated
-        record_insight_generated(
-            'weekly',
-            with_cohort=cohort is not None,
-            prompt_chars=len(prompt_text),
-            response_chars=len(ai_message.content or ''),
+        ai_message = llm.invoke(prompt_text)
+        parsed = parse_llm_response(
+            ai_message.content,
+            parser,
+            flow="weekly-insights",
+            uid=uid,
         )
     except Exception:
-        pass
+        _record_insight_event(
+            "weekly",
+            "failed",
+            reason="llm_or_parse_error",
+            with_cohort=cohort is not None,
+            prompt_chars=len(prompt_text),
+            response_chars=len(
+                getattr(locals().get("ai_message", None), "content", "") or ""
+            ),
+        )
+        raise
+
+    _record_insight_event(
+        "weekly",
+        "generated",
+        with_cohort=cohort is not None,
+        prompt_chars=len(prompt_text),
+        response_chars=len(ai_message.content or ''),
+    )
 
     # 5) Persistência
     final_doc = {
@@ -328,12 +369,31 @@ def _aggregate_stimuli_from_results(db, uid: str, since_date: datetime) -> dict:
     return counts
 
 
+def _stream_date_docs_since(collection_ref, since_date: datetime):
+    """
+    Reads docs whose `date` may be either Firestore Timestamp/datetime or legacy
+    YYYY-MM-DD string. The app currently writes PR dates as Timestamp, while
+    results use string day keys; supporting both avoids silent historical gaps.
+    """
+    seen = {}
+    bounds = (since_date, since_date.strftime("%Y-%m-%d"))
+    for bound in bounds:
+        try:
+            for doc in collection_ref.where("date", ">=", bound).stream():
+                seen[doc.id] = doc
+        except Exception as e:
+            logging.warning(
+                f"[insights] falha ao consultar date >= {type(bound).__name__}: {e}"
+            )
+    return list(seen.values())
+
+
 def _summarize_prs(db, uid: str, since_date: datetime) -> dict:
     """Retorna contagem de PRs, movimentos e itens datados para contexto."""
     out = {"count": 0, "byMovement": {}, "items": []}
     try:
         prs_ref = db.collection("users").document(uid).collection("prs")
-        docs = prs_ref.where("date", ">=", since_date).stream()
+        docs = _stream_date_docs_since(prs_ref, since_date)
         for d in docs:
             p = d.to_dict() or {}
             out["count"] += 1
@@ -371,17 +431,20 @@ def run_evolution_insights_logic(uid: str, force: bool = False) -> dict:
         and _is_cache_fresh(existing_data.get("lastGeneratedAt"))
     ):
         logging.info(f"[evolution-insights] cache quente para {uid}, reusando.")
+        _record_insight_event("evolution", "from_cache", reason="cache_fresh")
         return {**existing_data, "fromCache": True}
 
     from user_settings_module import athlete_ai_enabled
     if not athlete_ai_enabled(db, uid):
         logging.info(f"[evolution-insights] {uid}: IA desativada ou conta inativa.")
+        _record_insight_event("evolution", "skipped", reason="ai_disabled")
         return {"skipped": "ai_disabled"}
 
     # stats/summary
     stats_doc = db.collection("users").document(uid) \
                   .collection("stats").document("summary").get()
     if not stats_doc.exists:
+        _record_insight_event("evolution", "skipped", reason="no_stats")
         return {"skipped": "no_stats"}
     stats_summary = stats_doc.to_dict() or {}
 
@@ -396,6 +459,7 @@ def run_evolution_insights_logic(uid: str, force: bool = False) -> dict:
     last_12_weeks.reverse()  # asc
 
     if not last_12_weeks:
+        _record_insight_event("evolution", "skipped", reason="no_history")
         return {"skipped": "no_history"}
 
     # PRs + estímulos das últimas 12 semanas
@@ -431,21 +495,34 @@ def run_evolution_insights_logic(uid: str, force: bool = False) -> dict:
     parser = get_evolution_parser()
 
     logging.info(f"[evolution-insights] enviando prompt ({uid})")
-    ai_message = llm.invoke(prompt_text)
-    clean = _parse_llm_json(ai_message.content)
-    parsed = parser.parse(clean).dict()
-
-    # Telemetria
     try:
-        from telemetry_module import record_insight_generated
-        record_insight_generated(
-            'evolution',
-            with_cohort=cohort is not None,
-            prompt_chars=len(prompt_text),
-            response_chars=len(ai_message.content or ''),
+        ai_message = llm.invoke(prompt_text)
+        parsed = parse_llm_response(
+            ai_message.content,
+            parser,
+            flow="evolution-insights",
+            uid=uid,
         )
     except Exception:
-        pass
+        _record_insight_event(
+            "evolution",
+            "failed",
+            reason="llm_or_parse_error",
+            with_cohort=cohort is not None,
+            prompt_chars=len(prompt_text),
+            response_chars=len(
+                getattr(locals().get("ai_message", None), "content", "") or ""
+            ),
+        )
+        raise
+
+    _record_insight_event(
+        "evolution",
+        "generated",
+        with_cohort=cohort is not None,
+        prompt_chars=len(prompt_text),
+        response_chars=len(ai_message.content or ''),
+    )
 
     final_doc = {
         **parsed,

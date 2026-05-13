@@ -39,12 +39,12 @@ class PromptEnrichmentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn("TESTE DE NÃO-OBVIEDADE", prompt)
+        self.assertIn("REGRAS DE QUALIDADE", prompt)
         self.assertIn("CONTRASTE TEMPORAL", prompt)
         self.assertIn("curtas, mas nunca secas", prompt)
         self.assertIn("GLOSSÁRIO DO `weekly_context`", prompt)
         self.assertIn("Milestone detector", prompt)
-        self.assertIn("Padrão de microciclo habitual", prompt)
+        self.assertIn("Forma da semana atual vs. semanas anteriores", prompt)
         self.assertIn("modalityPerformanceTrends", prompt)
         self.assertIn("categoryMix × categoria praticada", prompt)
         self.assertIn("intermediatePercentage", prompt)
@@ -81,7 +81,7 @@ class PromptEnrichmentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn("TESTE DE NÃO-OBVIEDADE", prompt)
+        self.assertIn("REGRAS DE QUALIDADE", prompt)
         self.assertIn("curtas, mas nunca secas", prompt)
         self.assertIn("GLOSSÁRIO DO `evolution_context`", prompt)
         self.assertIn("Zona ótima de fadiga DESTE atleta", prompt)
@@ -132,7 +132,7 @@ class PromptEnrichmentTest(unittest.TestCase):
             },
         )
 
-        self.assertIn("TESTE DE NÃO-OBVIEDADE", prompt)
+        self.assertIn("REGRAS DE QUALIDADE", prompt)
         self.assertIn("curtas, mas nunca secas", prompt)
         self.assertIn("GLOSSÁRIO DO `pre_workout_context`", prompt)
         self.assertIn("Ancoragem no treino específico de hoje", prompt)

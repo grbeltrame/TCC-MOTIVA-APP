@@ -39,11 +39,33 @@ def record_insight_generated(
     prompt_chars: int = 0,
     response_chars: int = 0,
     skipped: bool = False,
+    reason: str | None = None,
+) -> None:
+    status = 'skipped' if skipped else 'generated'
+    record_insight_event(
+        kind,
+        status=status,
+        reason=reason,
+        with_cohort=with_cohort,
+        prompt_chars=prompt_chars,
+        response_chars=response_chars,
+    )
+
+
+def record_insight_event(
+    kind: str,
+    *,
+    status: str,
+    reason: str | None = None,
+    with_cohort: bool = False,
+    prompt_chars: int = 0,
+    response_chars: int = 0,
 ) -> None:
     """
     Atualiza atomicamente o contador diário em telemetry/{YYYY-MM-DD}.
 
     kind ∈ {'weekly', 'evolution', 'preWorkout'}.
+    status ∈ {'generated', 'skipped', 'failed', 'from_cache'}.
 
     Use FieldValue.increment para que múltiplas execuções concorrentes
     no mesmo dia não derrubem updates umas das outras.
@@ -61,12 +83,16 @@ def record_insight_generated(
         updates: dict = {
             'date': ts_doc_id,
             f'insights.{kind}.total':         firestore.Increment(1),
+            f'insights.{kind}.{status}':      firestore.Increment(1),
             'estimatedTokens.prompt':         firestore.Increment(prompt_tok),
             'estimatedTokens.response':       firestore.Increment(response_tok),
             'updatedAt':                      firestore.SERVER_TIMESTAMP,
         }
-        if skipped:
-            updates[f'insights.{kind}.skipped'] = firestore.Increment(1)
+        if reason:
+            safe_reason = ''.join(
+                c if c.isalnum() or c == '_' else '_' for c in str(reason)
+            ).strip('_') or 'unknown'
+            updates[f'insights.{kind}.reasons.{safe_reason}'] = firestore.Increment(1)
         if with_cohort:
             updates[f'insights.{kind}.withCohort'] = firestore.Increment(1)
         else:
@@ -75,8 +101,9 @@ def record_insight_generated(
         db.collection('telemetry').document(ts_doc_id).set(updates, merge=True)
 
         logging.info(
-            f'[telemetry] {kind} kind={kind} cohort={with_cohort} '
-            f'prompt_tok≈{prompt_tok} resp_tok≈{response_tok} skipped={skipped}'
+            f'[telemetry] {kind} status={status} reason={reason} '
+            f'cohort={with_cohort} prompt_tok≈{prompt_tok} '
+            f'resp_tok≈{response_tok}'
         )
     except Exception as e:
         # Telemetria nunca derruba o fluxo principal.

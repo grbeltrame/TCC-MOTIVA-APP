@@ -28,10 +28,10 @@ from athlete_insights_module.logic import (
     _aggregate_stimuli_from_results,
     _build_llm,
     _get_gemini_api_key,
-    _parse_llm_json,
     _result_context_fields,
     _summarize_prs,
 )
+from athlete_insights_module.llm_parser import parse_llm_response
 from athlete_insights_module.models import (
     get_evolution_parser,
     get_pre_workout_parser,
@@ -40,8 +40,9 @@ from athlete_insights_module.models import (
 from athlete_insights_module.pre_workout_logic import (
     _extract_workout_summary,
     _fetch_athlete_current_load,
+    _fetch_athlete_complementary_load_recent,
+    _fetch_athlete_history_for_time_of_day,
     _fetch_athlete_history_same_type,
-    _fetch_athlete_history_same_weekday,
     _fetch_athlete_profile,
     _fetch_athlete_recent_prs,
 )
@@ -253,13 +254,15 @@ def _pre_workout_eval(db, uid: str, workout_id: str):
     history = _fetch_athlete_history_same_type(db, uid, workout_summary)
     current_load = _fetch_athlete_current_load(db, uid)
     recent_prs = _fetch_athlete_recent_prs(db, uid)
-    weekday_history = _fetch_athlete_history_same_weekday(db, uid, workout_summary)
+    time_of_day_history = _fetch_athlete_history_for_time_of_day(db, uid)
+    complementary_load = _fetch_athlete_complementary_load_recent(db, uid)
     pre_workout_context = build_pre_workout_context(
         workout=workout_summary,
         athlete_history_same_type=history,
         athlete_current_load=current_load,
         athlete_recent_prs=recent_prs,
-        same_weekday_history=weekday_history,
+        time_of_day_history=time_of_day_history,
+        complementary_load_recent=complementary_load,
     )
     prompt = create_pre_workout_insights_prompt(
         workout=workout_summary,
@@ -278,7 +281,8 @@ def _pre_workout_eval(db, uid: str, workout_id: str):
         "summary": {
             "workoutId": workout_id,
             "sameTypeHistory": len(history),
-            "sameWeekdayHistory": len(weekday_history),
+            "timeOfDayHistory": len(time_of_day_history),
+            "complementaryLoadRecent": len(complementary_load),
             "recentPrs": len(recent_prs),
             "preWorkoutContext": pre_workout_context,
         },
@@ -360,7 +364,11 @@ def _run_llm(item: dict, no_llm: bool, project_id: str | None):
         return None, None
     llm = _build_llm(_api_key(project_id))
     raw = llm.invoke(item["prompt"]).content
-    parsed = item["parser"].parse(_parse_llm_json(raw)).dict()
+    parsed = parse_llm_response(
+        raw,
+        item["parser"],
+        flow=f"evaluate-{item['flow']}",
+    )
     return raw, parsed
 
 

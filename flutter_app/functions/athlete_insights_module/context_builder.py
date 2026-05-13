@@ -191,8 +191,18 @@ def _category_mix(results: list[dict]) -> dict:
 
 
 def _load_shape(daily_loads: dict | None) -> dict:
+    """Retorna fatos brutos sobre a distribuição de carga — sem classificação."""
+    _empty = {
+        "totalLoad": 0.0,
+        "trainingDays": 0,
+        "loadsOrdered": [],
+        "firstHalfLoad": 0.0,
+        "secondHalfLoad": 0.0,
+        "heaviestDay": None,
+        "heaviestLoad": 0.0,
+    }
     if not daily_loads:
-        return {"shape": "unknown", "totalLoad": 0.0}
+        return _empty
 
     ordered = sorted(
         ((date, _to_float(load) or 0.0) for date, load in daily_loads.items()),
@@ -200,28 +210,20 @@ def _load_shape(daily_loads: dict | None) -> dict:
     )
     total = sum(load for _, load in ordered)
     if total <= 0:
-        return {"shape": "empty", "totalLoad": 0.0}
+        return _empty
 
-    first_half = sum(load for _, load in ordered[:3])
-    last_half = sum(load for _, load in ordered[-3:])
-    heaviest = max(ordered, key=lambda item: item[1])
     positive_days = [date for date, load in ordered if load > 0]
+    heaviest = max(ordered, key=lambda item: item[1])
 
-    if len(positive_days) == 1:
-        shape = "single_peak"
-    elif first_half > last_half * 1.2:
-        shape = "front_loaded"
-    elif last_half > first_half * 1.2:
-        shape = "back_loaded"
-    else:
-        shape = "balanced"
-
+    mid = len(ordered) // 2
     return {
-        "shape": shape,
         "totalLoad": round(total, 1),
+        "trainingDays": len(positive_days),
+        "loadsOrdered": [{"date": d, "load": round(l, 1)} for d, l in ordered],
+        "firstHalfLoad": round(sum(load for _, load in ordered[:mid]), 1),
+        "secondHalfLoad": round(sum(load for _, load in ordered[mid:]), 1),
         "heaviestDay": heaviest[0],
         "heaviestLoad": round(heaviest[1], 1),
-        "trainingDays": len(positive_days),
     }
 
 
@@ -272,39 +274,32 @@ def build_weekly_context(
 ) -> dict:
     performance_results = performance_results or recent_results
     recent_weeks = recent_weeks or []
-
-    current_shape = _load_shape((weekly_load or {}).get("dailyLoadsCrossfit"))
-    prior_shapes = [
-        _load_shape(week.get("dailyLoadsCrossfit"))
-        for week in recent_weeks
+    recent_week_dicts = [
+        week for week in recent_weeks
         if isinstance(week, dict)
     ]
-    prior_shape_counts = Counter(
-        item["shape"] for item in prior_shapes
-        if item.get("shape") not in {"unknown", "empty"}
+    latest_recent_weeks = sorted(
+        recent_week_dicts,
+        key=lambda week: str(week.get("weekLabel") or week.get("weekStart") or ""),
+        reverse=True,
+    )[:4]
+    recent_weeks_chronological = sorted(
+        latest_recent_weeks,
+        key=lambda week: str(week.get("weekLabel") or week.get("weekStart") or ""),
     )
-    habitual_shape = (
-        prior_shape_counts.most_common(1)[0][0]
-        if prior_shape_counts else None
-    )
-
-    microcycle_shift = None
-    if (
-        habitual_shape
-        and current_shape.get("shape") not in {"unknown", "empty"}
-        and current_shape.get("shape") != habitual_shape
-    ):
-        microcycle_shift = {
-            "habitualShape": habitual_shape,
-            "currentShape": current_shape.get("shape"),
-            "weeksCompared": sum(prior_shape_counts.values()),
-        }
 
     return {
         "milestone": _milestone_context(stats_summary or {}),
-        "currentMicrocycle": current_shape,
-        "habitualMicrocycleShape": habitual_shape,
-        "microcycleShift": microcycle_shift,
+        "currentWeekDailyLoads": _load_shape(
+            (weekly_load or {}).get("dailyLoadsCrossfit")
+        ),
+        "recentWeeksDailyLoads": [
+            {
+                "weekLabel": week.get("weekLabel"),
+                **_load_shape(week.get("dailyLoadsCrossfit")),
+            }
+            for week in recent_weeks_chronological
+        ],
         "modalityPerformanceTrends": _modality_performance_context(performance_results),
         "completionRateByModality": _completion_rates(performance_results),
         "categoryMix": _category_mix(performance_results),
@@ -341,9 +336,6 @@ def build_evolution_context(
             value for value in (_to_float(week.get("icnAll")) for week in chunk)
             if value is not None
         ]
-        healthy_weeks = sum(1 for value in icns if 40 <= value <= 75)
-        high_weeks = sum(1 for value in icns if value > 75)
-        score = (prs * 4) + (wod_days * 0.5) + healthy_weeks - high_weeks
         blocks.append({
             "blockIndex": (idx // 4) + 1,
             "weekStart": chunk[0].get("weekStart"),
@@ -351,11 +343,10 @@ def build_evolution_context(
             "prsCount": prs,
             "wodDays": wod_days,
             "avgIcnAll": round(mean(icns), 1) if icns else None,
-            "healthyWeeks": healthy_weeks,
-            "score": round(score, 2),
+            "weeksInHealthyIcnZone": sum(1 for v in icns if 40 <= v <= 75),
+            "weeksInHighIcnZone": sum(1 for v in icns if v > 75),
+            "weeksInLowIcnZone": sum(1 for v in icns if v < 40),
         })
-
-    best_block = max(blocks, key=lambda block: block["score"]) if blocks else None
 
     pr_items = [
         item for item in (prs_summary or {}).get("items", [])
@@ -394,7 +385,6 @@ def build_evolution_context(
     total_wod_days = sum(_to_int(week.get("wodDays")) or 0 for week in weeks)
 
     return {
-        "bestFourWeekPhase": best_block,
         "allFourWeekPhases": blocks,
         "peakPerformanceProfile": peak_profile,
         "prEfficiency": {
@@ -451,6 +441,63 @@ def _recent_result_anchor(history: list[dict]) -> dict | None:
     }
 
 
+def _classify_time_of_day(training_time) -> str | None:
+    """Classifica um valor HH:MM (ou HH:MM:SS) em período do dia."""
+    if not training_time:
+        return None
+    try:
+        hour = int(str(training_time).strip().split(":")[0])
+        if 5 <= hour < 12:
+            return "manha"
+        if 12 <= hour < 18:
+            return "tarde"
+        if 18 <= hour < 24:
+            return "noite"
+        return "madrugada"
+    except (ValueError, IndexError):
+        return None
+
+
+def _time_of_day_performance(history: list[dict]) -> dict | None:
+    """
+    Agrega desempenho do atleta por período do dia (manhã/tarde/noite/madrugada).
+    Requer `trainingTime` (HH:MM) nos items. Retorna None se não houver dados.
+    """
+    period_efforts: dict[str, list[float]] = defaultdict(list)
+    period_total: dict[str, int] = defaultdict(int)
+    period_completed: dict[str, int] = defaultdict(int)
+
+    for item in (history or []):
+        period = _classify_time_of_day(item.get("trainingTime"))
+        if not period:
+            continue
+        period_total[period] += 1
+        effort = _to_float(item.get("effort"))
+        if effort is not None:
+            period_efforts[period].append(effort)
+        if item.get("completed") is True:
+            period_completed[period] += 1
+
+    if not period_total:
+        return None
+
+    breakdown = {}
+    for period, total in period_total.items():
+        efforts = period_efforts[period]
+        breakdown[period] = {
+            "sampleSize": total,
+            "avgEffort": round(mean(efforts), 1) if efforts else None,
+            "completionRate": round(period_completed[period] / total, 2),
+        }
+
+    dominant_period = max(period_total, key=lambda p: period_total[p])
+
+    return {
+        "dominantPeriod": dominant_period,
+        "periodBreakdown": breakdown,
+    }
+
+
 def _matches_workout_type(item: dict, target_modality: str, target_wod_type: str) -> bool:
     modality_matches = (
         bool(target_modality)
@@ -481,7 +528,8 @@ def build_pre_workout_context(
     athlete_history_same_type: list[dict],
     athlete_current_load: dict,
     athlete_recent_prs: list[dict],
-    same_weekday_history: list[dict] | None = None,
+    time_of_day_history: list[dict] | None = None,
+    complementary_load_recent: list[dict] | None = None,
 ) -> dict:
     movements = _workout_movements(workout)
     workout_text = " ".join(movements).lower()
@@ -491,26 +539,38 @@ def build_pre_workout_context(
         if movement and movement.lower() in workout_text:
             prs_in_workout.append(pr)
 
-    weekday_efforts = [
-        _to_float(item.get("effort"))
-        for item in (same_weekday_history or [])
-        if _to_float(item.get("effort")) is not None
-    ]
     target_modality = _normalize_modality((workout or {}).get("modalidade"))
     target_wod_type = _normalize_wod_type((workout or {}).get("wodType"))
-    same_weekday_same_type = [
-        item for item in (same_weekday_history or [])
-        if _matches_workout_type(item, target_modality, target_wod_type)
-    ] if (target_modality or target_wod_type) else []
-    weekday_same_type_efforts = [
-        _to_float(item.get("effort"))
-        for item in same_weekday_same_type
-        if _to_float(item.get("effort")) is not None
-    ]
     same_type_history = [
         item for item in (athlete_history_same_type or [])
         if _matches_workout_type(item, target_modality, target_wod_type)
     ] if (target_modality or target_wod_type) else []
+
+    # Período do treino de hoje (se dataTreinoIso incluir horário, ex: "2026-05-13T19:00:00")
+    date_iso = str((workout or {}).get("dataTreinoIso") or "")
+    today_period = None
+    if "T" in date_iso:
+        try:
+            today_period = _classify_time_of_day(date_iso.split("T")[1])
+        except (IndexError, ValueError):
+            pass
+
+    tod_performance = _time_of_day_performance(time_of_day_history)
+    if tod_performance is not None:
+        tod_performance["todayPeriod"] = today_period
+
+    # Sumariza carga complementar recente (extras/pessoais dos últimos 7 dias)
+    comp_load_summary = None
+    extras = complementary_load_recent or []
+    if extras:
+        days_with_extra = len({item.get("date") for item in extras if item.get("date")})
+        efforts = [_to_float(item.get("effort")) for item in extras
+                   if _to_float(item.get("effort")) is not None]
+        comp_load_summary = {
+            "count": len(extras),
+            "days": days_with_extra,
+            "avgEffort": round(mean(efforts), 1) if efforts else None,
+        }
 
     return {
         "todayAnchors": {
@@ -523,17 +583,8 @@ def build_pre_workout_context(
         "objectiveTrendSameType": _modality_performance_context(
             athlete_history_same_type or []
         ),
-        "sameWeekdayPerformance": {
-            "sampleSize": len(weekday_efforts),
-            "avgEffort": round(mean(weekday_efforts), 1) if weekday_efforts else None,
-            "recentItems": (same_weekday_history or [])[:3],
-        },
-        "sameWeekdaySameTypePerformance": {
-            "sampleSize": len(weekday_same_type_efforts),
-            "avgEffort": round(mean(weekday_same_type_efforts), 1)
-            if weekday_same_type_efforts else None,
-            "recentItems": same_weekday_same_type[:3],
-        },
+        "timeOfDayPerformance": tod_performance,
+        "complementaryLoadRecent": comp_load_summary,
         "completionRateSameType": _aggregate_completion_rate(same_type_history),
         "prsInTodayWorkout": prs_in_workout[:5],
         "currentLoadSummary": {

@@ -8,7 +8,7 @@ from athlete_insights_module.context_builder import (
 
 
 class InsightContextBuilderTest(unittest.TestCase):
-    def test_weekly_context_classifies_single_training_day_as_single_peak(self):
+    def test_weekly_context_single_training_day_raw_loads(self):
         context = build_weekly_context(
             stats_summary={},
             weekly_load={
@@ -23,8 +23,50 @@ class InsightContextBuilderTest(unittest.TestCase):
             performance_results=[],
         )
 
-        self.assertEqual(context["currentMicrocycle"]["shape"], "single_peak")
-        self.assertEqual(context["currentMicrocycle"]["trainingDays"], 1)
+        daily = context["currentWeekDailyLoads"]
+        self.assertEqual(daily["trainingDays"], 1)
+        self.assertEqual(daily["firstHalfLoad"], 84.0)
+        self.assertEqual(daily["secondHalfLoad"], 0.0)
+        self.assertEqual(daily["heaviestDay"], "2026-05-10")
+        self.assertEqual(len(daily["loadsOrdered"]), 4)
+        self.assertNotIn("currentMicrocycle", context)
+        self.assertNotIn("microcycleShift", context)
+        self.assertNotIn("habitualMicrocycleShape", context)
+
+    def test_weekly_context_recent_weeks_are_chronological_when_input_is_desc(self):
+        context = build_weekly_context(
+            stats_summary={},
+            weekly_load={},
+            recent_results=[],
+            recent_weeks=[
+                {
+                    "weekLabel": "2026-W18",
+                    "dailyLoadsCrossfit": {"2026-05-03": 18},
+                },
+                {
+                    "weekLabel": "2026-W17",
+                    "dailyLoadsCrossfit": {"2026-04-26": 17},
+                },
+                {
+                    "weekLabel": "2026-W16",
+                    "dailyLoadsCrossfit": {"2026-04-19": 16},
+                },
+                {
+                    "weekLabel": "2026-W15",
+                    "dailyLoadsCrossfit": {"2026-04-12": 15},
+                },
+                {
+                    "weekLabel": "2026-W14",
+                    "dailyLoadsCrossfit": {"2026-04-05": 14},
+                },
+            ],
+            performance_results=[],
+        )
+
+        self.assertEqual(
+            [week["weekLabel"] for week in context["recentWeeksDailyLoads"]],
+            ["2026-W15", "2026-W16", "2026-W17", "2026-W18"],
+        )
 
     def test_weekly_context_category_mix_splits_rx_scaled_intermediate_and_other(self):
         context = build_weekly_context(
@@ -112,11 +154,19 @@ class InsightContextBuilderTest(unittest.TestCase):
             stimulus_distribution={"Forca": 8},
         )
 
-        self.assertEqual(context["bestFourWeekPhase"]["blockIndex"], 2)
+        self.assertNotIn("bestFourWeekPhase", context)
+        phases = context["allFourWeekPhases"]
+        # Bloco 2 (semanas 5-8): ICN 55,58,60,62 — todas em zona saudável
+        block2 = phases[1]
+        self.assertEqual(block2["blockIndex"], 2)
+        self.assertEqual(block2["weeksInHealthyIcnZone"], 4)
+        self.assertEqual(block2["weeksInHighIcnZone"], 0)
+        self.assertEqual(block2["prsCount"], 3)
+        self.assertNotIn("score", block2)
         self.assertEqual(context["peakPerformanceProfile"]["status"], "available")
         self.assertEqual(context["peakPerformanceProfile"]["dominantZone"], "medium")
 
-    def test_pre_workout_context_keeps_same_weekday_history(self):
+    def test_pre_workout_context_time_of_day_performance(self):
         context = build_pre_workout_context(
             workout={
                 "modalidade": "FOR TIME",
@@ -131,17 +181,29 @@ class InsightContextBuilderTest(unittest.TestCase):
             ],
             athlete_current_load={},
             athlete_recent_prs=[{"movementName": "Clean", "value": 80}],
-            same_weekday_history=[
-                {"date": "2026-04-01", "modalidade": "FOR TIME", "wodType": "WOD", "effort": 8},
-                {"date": "2026-04-08", "modalidade": "AMRAP", "wodType": "WOD", "effort": 6},
-                {"date": "2026-04-15", "modalidade": "FOR TIME", "wodType": "WOD", "effort": 7},
+            time_of_day_history=[
+                {"date": "2026-04-01", "effort": 8, "trainingTime": "19:00", "completed": True},
+                {"date": "2026-04-08", "effort": 7, "trainingTime": "19:30", "completed": True},
+                {"date": "2026-04-15", "effort": 9, "trainingTime": "20:00", "completed": False},
+                {"date": "2026-04-22", "effort": 8, "trainingTime": "19:00", "completed": True},
+                {"date": "2026-03-01", "effort": 6, "trainingTime": "09:00", "completed": True},
+                {"date": "2026-03-08", "effort": 5, "trainingTime": "08:30", "completed": True},
             ],
         )
 
-        self.assertEqual(context["sameWeekdayPerformance"]["sampleSize"], 3)
-        self.assertEqual(context["sameWeekdayPerformance"]["avgEffort"], 7.0)
-        self.assertEqual(context["sameWeekdaySameTypePerformance"]["sampleSize"], 3)
-        self.assertEqual(context["sameWeekdaySameTypePerformance"]["avgEffort"], 7.0)
+        tod = context["timeOfDayPerformance"]
+        self.assertIsNotNone(tod)
+        self.assertEqual(tod["dominantPeriod"], "noite")
+        self.assertNotIn("hasContrast", tod)
+        self.assertNotIn("bestPerformancePeriod", tod)
+        self.assertIn("noite", tod["periodBreakdown"])
+        self.assertIn("manha", tod["periodBreakdown"])
+        self.assertEqual(tod["periodBreakdown"]["noite"]["sampleSize"], 4)
+        self.assertEqual(tod["periodBreakdown"]["noite"]["avgEffort"], 8.0)
+        self.assertEqual(tod["periodBreakdown"]["manha"]["sampleSize"], 2)
+        self.assertIsNone(tod["todayPeriod"])
+        self.assertNotIn("sameWeekdayPerformance", context)
+        self.assertNotIn("sameWeekdaySameTypePerformance", context)
         self.assertEqual(context["completionRateSameType"]["total"], 3)
         self.assertEqual(context["completionRateSameType"]["completed"], 2)
         self.assertEqual(context["completionRateSameType"]["rate"], 0.67)
@@ -159,7 +221,6 @@ class InsightContextBuilderTest(unittest.TestCase):
             ],
             athlete_current_load={},
             athlete_recent_prs=[],
-            same_weekday_history=[],
         )
 
         self.assertIsNone(context["completionRateSameType"])

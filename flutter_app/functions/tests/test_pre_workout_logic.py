@@ -260,6 +260,7 @@ class PreWorkoutLogicTest(unittest.TestCase):
         self.assertEqual(result["athletesVisited"], 2)
         self.assertEqual(result["insightsExisting"], 1)
         self.assertEqual(result["insightsGenerated"], 1)
+        self.assertEqual(result["insightsFailed"], 0)
         self.assertTrue(result["hashUnchanged"])
 
     def test_hash_unchanged_with_all_insights_does_not_call_llm(self):
@@ -300,6 +301,7 @@ class PreWorkoutLogicTest(unittest.TestCase):
         self.assertEqual(result["athletesVisited"], 2)
         self.assertEqual(result["insightsExisting"], 2)
         self.assertEqual(result["insightsGenerated"], 0)
+        self.assertEqual(result["insightsFailed"], 0)
         self.assertTrue(result["hashUnchanged"])
         self.assertNotIn("_preWorkoutInsightsGeneratedAt", db.exercises[workout_id])
 
@@ -357,6 +359,7 @@ class PreWorkoutLogicTest(unittest.TestCase):
         self.assertEqual(generated_for, ["existing", "missing"])
         self.assertEqual(result["insightsExisting"], 0)
         self.assertEqual(result["insightsGenerated"], 2)
+        self.assertEqual(result["insightsFailed"], 0)
         self.assertFalse(result["hashUnchanged"])
         self.assertEqual(
             _pre_workout_items(db, "existing")[workout_id]["informacoes"],
@@ -415,6 +418,58 @@ class PreWorkoutLogicTest(unittest.TestCase):
         self.assertIn(workout_id, _pre_workout_items(db, "hybrid"))
         self.assertEqual(result["athletesVisited"], 1)
         self.assertEqual(result["insightsGenerated"], 1)
+        self.assertEqual(result["insightsFailed"], 0)
+
+    def test_generation_failures_are_counted_in_summary(self):
+        db = _Db()
+        db.users["ok"] = _user("athlete")
+        db.users["fail"] = _user("athlete")
+
+        workout_id = "WOD (18-05-2026)"
+        workout_data = {
+            "status": "publicado",
+            "partes": {"WOD": {"exercicios": []}},
+            "dataTreinoIso": "2026-05-18",
+        }
+        db.exercises[workout_id] = {}
+
+        def fake_generate(_db, uid, _summary, _hash, _llm):
+            if uid == "fail":
+                return {}
+            return {
+                "alertas": {},
+                "informacoes": {"ok": {"detail": "Insight gerado."}},
+            }
+
+        with patch(
+            "athlete_insights_module.pre_workout_logic.firestore.client",
+            lambda: db,
+        ), patch(
+            "user_settings_module.athlete_ai_enabled",
+            lambda _db, _uid: True,
+        ), patch(
+            "athlete_insights_module.logic._get_gemini_api_key",
+            lambda: "key",
+        ), patch(
+            "athlete_insights_module.logic._build_llm",
+            lambda _key: object(),
+        ), patch(
+            "athlete_insights_module.pre_workout_logic._generate_insights_for_athlete",
+            fake_generate,
+        ), patch(
+            "notification_module.create_user_notification",
+            lambda **_kwargs: True,
+        ):
+            result = pre_workout_logic.run_pre_workout_insights_logic(
+                workout_id, workout_data
+            )
+
+        self.assertEqual(result["athletesVisited"], 2)
+        self.assertEqual(result["insightsExisting"], 0)
+        self.assertEqual(result["insightsGenerated"], 1)
+        self.assertEqual(result["insightsFailed"], 1)
+        self.assertIn(workout_id, _pre_workout_items(db, "ok"))
+        self.assertNotIn(workout_id, _pre_workout_items(db, "fail"))
 
     def test_unpublished_workout_is_skipped_before_building_llm(self):
         db = _Db()
@@ -484,6 +539,7 @@ class PreWorkoutLogicTest(unittest.TestCase):
         )
         self.assertEqual(notifications, {})
         self.assertEqual(result["insightsGenerated"], 1)
+        self.assertEqual(result["insightsFailed"], 0)
 
 
 if __name__ == "__main__":

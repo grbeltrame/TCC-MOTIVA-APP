@@ -18,6 +18,7 @@ from firebase_admin import firestore
 
 from .prompt_builder import create_pre_workout_insights_prompt
 from .context_builder import build_pre_workout_context
+from .llm_parser import parse_llm_response
 from .models import get_pre_workout_parser
 
 _TZ_BRAZIL = ZoneInfo("America/Sao_Paulo")
@@ -36,6 +37,28 @@ _RECENT_PR_WEEKS = 8
 _HASH_FIELDS = ('partes', 'modalidade', 'wodType', 'keyMetrics', 'dataTreinoIso')
 
 _ATHLETE_PROFILES = {'athlete', 'athleteCoach', 'athleteIntern'}
+
+
+def _record_insight_event(
+    status: str,
+    *,
+    reason: str | None = None,
+    with_cohort: bool = False,
+    prompt_chars: int = 0,
+    response_chars: int = 0,
+) -> None:
+    try:
+        from telemetry_module import record_insight_event
+        record_insight_event(
+            'preWorkout',
+            status=status,
+            reason=reason,
+            with_cohort=with_cohort,
+            prompt_chars=prompt_chars,
+            response_chars=response_chars,
+        )
+    except Exception:
+        pass
 
 
 def _compute_workout_hash(workout: dict) -> str:
@@ -78,8 +101,9 @@ def _fetch_athlete_history_same_type(
     db, uid: str, workout_summary: dict
 ) -> list:
     """
-    Retorna até _MAX_HISTORY_ITEMS resultados do atleta no MESMO
+    Retorna até _MAX_HISTORY_ITEMS WODs OFICIAIS do atleta no MESMO
     wodType OU mesma modalidade, ordenados desc por data.
+    Apenas results com `trainingDocId` (vinculados a treino do coach).
     """
     target_wod_type   = (workout_summary.get('wodType') or '').strip().upper()
     target_modalidade = (workout_summary.get('modalidade') or '').strip().upper()
@@ -89,7 +113,6 @@ def _fetch_athlete_history_same_type(
 
     try:
         results_ref = db.collection('users').document(uid).collection('results')
-        # Não dá pra fazer OR no Firestore — busca os mais recentes e filtra.
         recent = list(
             results_ref.order_by('date', direction=firestore.Query.DESCENDING)
                        .limit(60)
@@ -98,8 +121,10 @@ def _fetch_athlete_history_same_type(
         matches = []
         for doc in recent:
             data = doc.to_dict() or {}
-            wt   = (data.get('wodType')    or '').strip().upper()
-            md   = (data.get('modalidade') or '').strip().upper()
+            if not data.get('trainingDocId'):  # pular extras/pessoais
+                continue
+            wt = (data.get('wodType')    or '').strip().upper()
+            md = (data.get('modalidade') or '').strip().upper()
             if (target_wod_type   and wt == target_wod_type) or \
                (target_modalidade and md == target_modalidade):
                 matches.append({
@@ -123,17 +148,44 @@ def _fetch_athlete_history_same_type(
         return []
 
 
-def _fetch_athlete_history_same_weekday(
-    db, uid: str, workout_summary: dict
-) -> list:
-    target_date = workout_summary.get('dataTreinoIso')
-    if not target_date:
-        return []
+def _fetch_athlete_complementary_load_recent(db, uid: str) -> list:
+    """
+    Retorna extras/treinos pessoais dos últimos 7 dias (results SEM
+    trainingDocId). Usado apenas para informar carga acumulada — nunca
+    como histórico de comparação de formato.
+    """
+    cutoff = (
+        datetime.now(tz=_TZ_BRAZIL) - timedelta(days=7)
+    ).strftime('%Y-%m-%d')
     try:
-        target_weekday = datetime.strptime(target_date[:10], '%Y-%m-%d').weekday()
-    except ValueError:
+        results_ref = db.collection('users').document(uid).collection('results')
+        docs = list(
+            results_ref.where('date', '>=', cutoff).limit(30).stream()
+        )
+        return [
+            {
+                'date':       data.get('date'),
+                'effort':     data.get('effort'),
+                'modalidade': data.get('modalidade'),
+            }
+            for doc in docs
+            if (data := doc.to_dict() or {}) and not data.get('trainingDocId')
+        ]
+    except Exception as e:
+        logging.warning(
+            f'[pre-workout] {uid} — falha ao buscar carga complementar: {e}'
+        )
         return []
 
+
+def _fetch_athlete_history_for_time_of_day(
+    db, uid: str
+) -> list:
+    """
+    Retorna até 90 results recentes do atleta para alimentar o cálculo de
+    período do dia. Não filtra por modalidade — o padrão de horário é
+    transversal ao tipo de treino.
+    """
     try:
         results_ref = db.collection('users').document(uid).collection('results')
         recent = list(
@@ -141,39 +193,21 @@ def _fetch_athlete_history_same_weekday(
                        .limit(90)
                        .stream()
         )
-        matches = []
-        for doc in recent:
-            data = doc.to_dict() or {}
-            date_value = data.get('date')
-            if not isinstance(date_value, str):
-                continue
-            try:
-                result_weekday = datetime.strptime(
-                    date_value[:10], '%Y-%m-%d'
-                ).weekday()
-            except ValueError:
-                continue
-            if result_weekday != target_weekday:
-                continue
-            matches.append({
+        return [
+            {
                 'date':         data.get('date'),
                 'effort':       data.get('effort'),
-                'modalidade':   data.get('modalidade'),
-                'wodType':      data.get('wodType'),
-                'completed':    data.get('completed'),
-                'forTimeSec':   data.get('forTimeSec'),
-                'amrapRounds':  data.get('amrapRounds'),
-                'amrapReps':    data.get('amrapReps'),
-                'keyMetrics':   data.get('keyMetrics'),
                 'trainingTime': data.get('trainingTime'),
-                'category':     data.get('category'),
-            })
-            if len(matches) >= 8:
-                break
-        return matches
+                'completed':    data.get('completed'),
+            }
+            for doc in recent
+            if (data := doc.to_dict() or {})
+            and data.get('trainingTime')
+            and data.get('trainingDocId')  # apenas WODs oficiais
+        ]
     except Exception as e:
         logging.warning(
-            f'[pre-workout] {uid} — falha ao buscar histórico por dia: {e}'
+            f'[pre-workout] {uid} — falha ao buscar histórico por período: {e}'
         )
         return []
 
@@ -285,13 +319,13 @@ def _generate_insights_for_athlete(
     current_load = _fetch_athlete_current_load(db, uid)
     if not history and not current_load:
         logging.info(f'[pre-workout] {uid}: sem dados — pulando.')
+        _record_insight_event('skipped', reason='no_data')
         return {}
 
-    profile     = _fetch_athlete_profile(db, uid)
-    recent_prs  = _fetch_athlete_recent_prs(db, uid)
-    weekday_history = _fetch_athlete_history_same_weekday(
-        db, uid, workout_summary
-    )
+    profile               = _fetch_athlete_profile(db, uid)
+    recent_prs            = _fetch_athlete_recent_prs(db, uid)
+    time_of_day_hist      = _fetch_athlete_history_for_time_of_day(db, uid)
+    complementary_load    = _fetch_athlete_complementary_load_recent(db, uid)
 
     # Coorte (se elegível) — pode estar None pra atletas sem perfil completo.
     cohort = None
@@ -312,7 +346,8 @@ def _generate_insights_for_athlete(
             athlete_history_same_type=history,
             athlete_current_load=current_load,
             athlete_recent_prs=recent_prs,
-            same_weekday_history=weekday_history,
+            time_of_day_history=time_of_day_hist,
+            complementary_load_recent=complementary_load,
         ),
         now=datetime.now(tz=_TZ_BRAZIL),
         cohort=cohort,
@@ -322,27 +357,31 @@ def _generate_insights_for_athlete(
 
     try:
         ai_message = llm.invoke(prompt)
-        raw = ai_message.content
-        if "```json" in raw:
-            raw = raw.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw:
-            raw = raw.split("```")[1].strip()
-        parsed = parser.parse(raw).dict()
+        parsed = parse_llm_response(
+            ai_message.content,
+            parser,
+            flow='pre-workout',
+            uid=uid,
+        )
     except Exception as e:
+        _record_insight_event(
+            'failed',
+            reason='llm_or_parse_error',
+            with_cohort=cohort is not None,
+            prompt_chars=len(prompt),
+            response_chars=len(
+                getattr(locals().get('ai_message', None), 'content', '') or ''
+            ),
+        )
         logging.error(f'[pre-workout] {uid}: falha do LLM: {e}')
         return {}
 
-    # Telemetria por atleta gerado.
-    try:
-        from telemetry_module import record_insight_generated
-        record_insight_generated(
-            'preWorkout',
-            with_cohort=cohort is not None,
-            prompt_chars=len(prompt),
-            response_chars=len(ai_message.content or ''),
-        )
-    except Exception:
-        pass
+    _record_insight_event(
+        'generated',
+        with_cohort=cohort is not None,
+        prompt_chars=len(prompt),
+        response_chars=len(ai_message.content or ''),
+    )
 
     return {
         **parsed,
@@ -374,6 +413,7 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
 
     if workout_data.get('status') != 'publicado':
         logging.info(f'[pre-workout] {workout_id}: treino não publicado — skip.')
+        _record_insight_event('skipped', reason='not_published')
         return {'skipped': 'not_published'}
 
     workout_hash = _compute_workout_hash(workout_data)
@@ -391,6 +431,7 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
     athlete_count = 0
     generated     = 0
     existing      = 0
+    failed        = 0
 
     for user_doc in users_ref.stream():
         if not _is_athlete_user(user_doc, db):
@@ -417,6 +458,7 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
             db, user_doc.id, workout_summary, workout_hash, llm,
         )
         if not result:
+            failed += 1
             continue
 
         try:
@@ -452,6 +494,7 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
                     f'{notify_error}'
                 )
         except Exception as e:
+            failed += 1
             logging.error(
                 f'[pre-workout] {user_doc.id}: falha ao persistir: {e}'
             )
@@ -469,7 +512,8 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
     logging.info(
         f'[pre-workout] {workout_id}: hash={workout_hash[:8]} '
         f'atletas_visitados={athlete_count} '
-        f'insights_existentes={existing} insights_gerados={generated}'
+        f'insights_existentes={existing} insights_gerados={generated} '
+        f'insights_falhos={failed}'
     )
     return {
         'workoutId':       workout_id,
@@ -477,5 +521,6 @@ def run_pre_workout_insights_logic(workout_id: str, workout_data: dict) -> dict:
         'athletesVisited': athlete_count,
         'insightsExisting': existing,
         'insightsGenerated': generated,
+        'insightsFailed':   failed,
         'hashUnchanged':    hash_unchanged,
     }
