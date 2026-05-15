@@ -1120,7 +1120,7 @@ class _LabeledDropdown extends StatelessWidget {
   }
 }
 
-class _LabeledInputInt extends StatelessWidget {
+class _LabeledInputInt extends StatefulWidget {
   final String label;
   final int? value;
   final ValueChanged<int?>? onChanged;
@@ -1141,41 +1141,72 @@ class _LabeledInputInt extends StatelessWidget {
   });
 
   @override
+  State<_LabeledInputInt> createState() => _LabeledInputIntState();
+}
+
+class _LabeledInputIntState extends State<_LabeledInputInt> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value?.toString() ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant _LabeledInputInt oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextText = widget.value?.toString() ?? '';
+    if (_controller.text == nextText) return;
+
+    _controller.value = _controller.value.copyWith(
+      text: nextText,
+      selection: TextSelection.collapsed(offset: nextText.length),
+      composing: TextRange.empty,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = TextEditingController(text: value?.toString() ?? '');
     return Padding(
-      padding: EdgeInsets.only(bottom: 8 * scale),
+      padding: EdgeInsets.only(bottom: 8 * widget.scale),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Label à esquerda — igual ao _LabeledDropdown
           Text(
-            label,
+            widget.label,
             style: TextStyle(
               fontFamily: AppFonts.roboto,
               fontWeight: AppFontWeight.bold,
-              fontSize: 12 * scale,
+              fontSize: 12 * widget.scale,
               color: AppColors.mediumGray,
             ),
           ),
-          SizedBox(width: 8 * scale),
+          SizedBox(width: 8 * widget.scale),
           // Campo com largura fixa — sem isso expande e sobrepõe tudo no Wrap
           SizedBox(
-            width: 72 * scale,
+            width: 72 * widget.scale,
             child: Container(
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: AppColors.baseBlue.withOpacity(0.04),
-                borderRadius: BorderRadius.circular(6 * scale),
+                borderRadius: BorderRadius.circular(6 * widget.scale),
                 border: Border.all(
                   color: AppColors.baseBlue.withOpacity(0.3),
                   width: 1,
                 ),
               ),
-              padding: EdgeInsets.symmetric(horizontal: 8 * scale),
+              padding: EdgeInsets.symmetric(horizontal: 8 * widget.scale),
               child: TextField(
-                controller: controller,
+                controller: _controller,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
@@ -1187,10 +1218,11 @@ class _LabeledInputInt extends StatelessWidget {
                   contentPadding: EdgeInsets.symmetric(vertical: 8),
                 ),
                 onChanged:
-                    (t) => onChanged?.call(t.isEmpty ? null : int.parse(t)),
+                    (t) =>
+                        widget.onChanged?.call(t.isEmpty ? null : int.parse(t)),
                 style: TextStyle(
                   fontFamily: AppFonts.roboto,
-                  fontSize: 13 * scale,
+                  fontSize: 13 * widget.scale,
                   fontWeight: AppFontWeight.medium,
                   color: AppColors.darkText,
                 ),
