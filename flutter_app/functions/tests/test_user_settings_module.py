@@ -1,10 +1,6 @@
 import unittest
 
-from user_settings_module.logic import (
-    athlete_ai_enabled,
-    is_account_disabled,
-    notification_enabled,
-)
+from user_settings_module.logic import athlete_ai_enabled, is_account_disabled
 
 
 class _Snapshot:
@@ -58,61 +54,30 @@ class _Db:
 
 
 class UserSettingsModuleTest(unittest.TestCase):
-    def test_disabled_account_blocks_everything(self):
+    def test_disabled_account_blocks_ai(self):
         db = _Db({"u1": {"accountStatus": "disabled", "settings": {}}})
 
         self.assertTrue(is_account_disabled(db, "u1"))
         self.assertFalse(athlete_ai_enabled(db, "u1"))
-        self.assertFalse(
-            notification_enabled(
-                db,
-                "u1",
-                "coach",
-                "coach_daily_analysis_ready",
-            )
-        )
 
-    def test_missing_settings_default_to_enabled(self):
+    def test_missing_privacy_settings_default_to_ai_enabled(self):
         db = _Db({"u1": {"profile": "athlete", "settings": {}}})
 
         self.assertTrue(athlete_ai_enabled(db, "u1"))
-        self.assertTrue(
-            notification_enabled(
-                db,
-                "u1",
-                "athlete",
-                "athlete_pre_workout_insights_ready",
-            )
-        )
 
-    def test_role_settings_can_disable_specific_notification(self):
+    def test_privacy_setting_can_disable_ai(self):
         db = _Db(
             {
                 "u1": {
-                    "profile": "coach",
+                    "profile": "athlete",
                     "settings": {
-                        "coach": {"cycleAnalysis": False},
+                        "privacy": {"aiPersonalizationEnabled": False},
                     },
                 }
             }
         )
 
-        self.assertFalse(
-            notification_enabled(
-                db,
-                "u1",
-                "coach",
-                "coach_cycle_analysis_ready",
-            )
-        )
-        self.assertTrue(
-            notification_enabled(
-                db,
-                "u1",
-                "coach",
-                "coach_daily_analysis_ready",
-            )
-        )
+        self.assertFalse(athlete_ai_enabled(db, "u1"))
 
 
 if __name__ == "__main__":

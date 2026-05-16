@@ -8,6 +8,7 @@ import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_
 import 'package:flutter_app/shared/widgets/utils/icon_text_action_button.dart';
 
 import 'package:flutter_app/core/services/workout/training_service.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 
@@ -72,7 +73,7 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
   Future<_CategoryData> _loadAll() async {
     // Busca os treinos reais do Firestore — mesma fonte que o coach usa
     final trainings = await TrainingService.fetchTrainingsListForDate(
-      boxId: widget.boxId.isNotEmpty ? widget.boxId : 'BOX_PRINCIPAL',
+      boxId: widget.boxId.isNotEmpty ? widget.boxId : AppBox.id,
       date: widget.date,
     );
 
@@ -95,7 +96,7 @@ class _CategoryTrainingSectionState extends State<CategoryTrainingSection> {
     // Busca os blocos para exibição (título, itens, etc.)
     final blocksMap =
         await TrainingService.fetchTrainingBlocksByCategoryForDate(
-          boxId: widget.boxId.isNotEmpty ? widget.boxId : 'BOX_PRINCIPAL',
+          boxId: widget.boxId.isNotEmpty ? widget.boxId : AppBox.id,
           date: widget.date,
         );
 

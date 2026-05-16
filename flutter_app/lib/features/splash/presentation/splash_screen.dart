@@ -6,7 +6,6 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/services/auth_service.dart';
 import 'package:flutter_app/features/auth/presentation/login_screen.dart';
 import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart';
-import 'package:flutter_app/features/auth/presentation/select_profile_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_home_screen.dart';
 import 'package:flutter_app/features/user/coach/coach_home_screen.dart';
 import 'package:provider/provider.dart';
@@ -119,9 +118,10 @@ class _SplashScreenState extends State<SplashScreen>
       await userProvider.loadUserData(user);
 
       if (userProvider.profileType == null) {
+        await AuthService.instance.signOut();
         return const _SplashDestination(
-          screen: SelectProfileScreen(),
-          routeName: SelectProfileScreen.routeName,
+          screen: LoginScreen(),
+          routeName: LoginScreen.routeName,
         );
       }
 

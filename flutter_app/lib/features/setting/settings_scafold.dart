@@ -2,21 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart';
 
 class SettingsScaffold extends StatelessWidget {
   final Widget child;
 
   const SettingsScaffold({super.key, required this.child});
 
-  void _openRegisterTraining(BuildContext context) {
-    showRegisterTrainingBottomSheet(context);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: () => _openRegisterTraining(context)),
+      appBar: const TopNavbar(),
       bottomNavigationBar: const BottomNavBar(),
       body: SafeArea(child: child),
     );

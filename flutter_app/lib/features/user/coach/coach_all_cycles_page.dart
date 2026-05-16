@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/cards/coach_cycle_month_card.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
@@ -22,7 +22,7 @@ class CoachAllCyclesScreen extends StatefulWidget {
 
 class _CoachAllCyclesScreenState extends State<CoachAllCyclesScreen> {
   // TODO(back): trocar pelo boxId real vindo do contexto/auth
-  final String _boxId = '1';
+  final String _boxId = AppBox.id;
 
   late int _selectedYear;
   bool _bootstrapped = false;
@@ -82,11 +82,7 @@ class _CoachAllCyclesScreenState extends State<CoachAllCyclesScreen> {
 
     if (!mounted) return;
 
-    if (!exists) {
-      // Se não existe ciclo, abre bottom sheet de cadastrar treino
-      showRegisterTrainingBottomSheet(context);
-      return;
-    }
+    if (!exists) return;
 
     Navigator.pushNamed(
       context,

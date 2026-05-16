@@ -2,92 +2,26 @@
 // ignore_for_file: type=lint
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+    show defaultTargetPlatform, TargetPlatform;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
-///
-/// Example:
-/// ```dart
-/// import 'firebase_options.dart';
-/// // ...
-/// await Firebase.initializeApp(
-///   options: DefaultFirebaseOptions.currentPlatform,
-/// );
-/// ```
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
-    if (kIsWeb) {
-      return web;
-    }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
-      case TargetPlatform.iOS:
-        return ios;
-      case TargetPlatform.macOS:
-        return macos;
-      case TargetPlatform.windows:
-        return windows;
-      case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
       default:
         throw UnsupportedError(
-          'DefaultFirebaseOptions are not supported for this platform.',
+          'DefaultFirebaseOptions are only configured for Android in this build.',
         );
     }
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyA-VroK13_FrY_ZhGjxlEKjYsK5fALh0WA',
-    appId: '1:430412921098:android:301f287ccf1f8951a422f3',
-    messagingSenderId: '430412921098',
-    projectId: 'motiva-8b82f',
-    storageBucket: 'motiva-8b82f.firebasestorage.app',
+    apiKey: 'AIzaSyD3vWwhFLK1hsDC7qouqr2WTr5-6MM9mzw',
+    appId: '1:877545487911:android:827789bc563d3450b31802',
+    messagingSenderId: '877545487911',
+    projectId: 'motiva-andre',
+    storageBucket: 'motiva-andre.firebasestorage.app',
   );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyD5PPwRS60RHunn0quyLWhM4Vc1HGqhpzQ',
-    appId: '1:430412921098:ios:a4f22f8b8a9f309da422f3',
-    messagingSenderId: '430412921098',
-    projectId: 'motiva-8b82f',
-    storageBucket: 'motiva-8b82f.firebasestorage.app',
-    androidClientId: '430412921098-da4if8bnl47h0dqfu037qln4l1hkrn37.apps.googleusercontent.com',
-    iosClientId: '430412921098-c433je4r1f0e8s2ri8nem097r8b6vllo.apps.googleusercontent.com',
-    iosBundleId: 'com.projetofinal.motivaapp',
-  );
-
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyADiN6S1xbCrkIxM6WoriBgClRv0cTwjkM',
-    appId: '1:430412921098:web:214a01d6a3bd4a7da422f3',
-    messagingSenderId: '430412921098',
-    projectId: 'motiva-8b82f',
-    authDomain: 'motiva-8b82f.firebaseapp.com',
-    storageBucket: 'motiva-8b82f.firebasestorage.app',
-    measurementId: 'G-1DER2EL04F',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyD5PPwRS60RHunn0quyLWhM4Vc1HGqhpzQ',
-    appId: '1:430412921098:ios:b4325bd4d8ff640ba422f3',
-    messagingSenderId: '430412921098',
-    projectId: 'motiva-8b82f',
-    storageBucket: 'motiva-8b82f.firebasestorage.app',
-    androidClientId: '430412921098-da4if8bnl47h0dqfu037qln4l1hkrn37.apps.googleusercontent.com',
-    iosClientId: '430412921098-vjnevhn45ifiighgf2saj8pcldr1tt3r.apps.googleusercontent.com',
-    iosBundleId: 'com.example.flutterApp',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyADiN6S1xbCrkIxM6WoriBgClRv0cTwjkM',
-    appId: '1:430412921098:web:db03fe867006a24ea422f3',
-    messagingSenderId: '430412921098',
-    projectId: 'motiva-8b82f',
-    authDomain: 'motiva-8b82f.firebaseapp.com',
-    storageBucket: 'motiva-8b82f.firebasestorage.app',
-    measurementId: 'G-X9K9815E4L',
-  );
-
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/core/services/effort_service.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/core/services/workout/workout_result_service.dart';
@@ -198,7 +199,7 @@ class _RegisterResultSheetContentState
     _loadingTrainings = true;
     try {
       final list = await TrainingService.fetchTrainingsListForDate(
-        boxId: 'BOX_PRINCIPAL',
+        boxId: AppBox.id,
         date: _selectedDate,
       );
       if (mounted) setState(() => _trainings = list);

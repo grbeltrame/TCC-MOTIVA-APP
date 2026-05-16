@@ -4,12 +4,9 @@ import logging
 import os
 import firebase_admin
 from firebase_functions import (
-    storage_fn,
     firestore_fn,
     https_fn,
-    scheduler_fn,
     options,
-    params,
 )
 
 # inicializa app firebase (leve)
@@ -22,7 +19,6 @@ if not firebase_admin._apps:
 # =============================================================================
 
 _REGION = "us-central1"
-_SUPPORT_EMAIL_SECRET = params.SecretParam("SUPPORT_EMAIL")
 _TASK_QUEUE_ID = os.environ.get("WEEKLY_INSIGHTS_QUEUE", "weekly-insights-queue")
 
 # Janela base de debounce: 5 min. Se o atleta publicar N resultados em até
@@ -130,30 +126,6 @@ def _enqueue_weekly_insights_task(uid: str) -> None:
         logging.warning(f"[cloud-tasks] falha ao enfileirar ({uid}): {e}")
 
 
-# =============================================================================
-# Triggers já existentes
-# =============================================================================
-
-@storage_fn.on_object_finalized(
-    region=_REGION,
-    memory=options.MemoryOption.MB_512,
-    timeout_sec=60
-)
-def process_workout_pdf(event):
-    logging.info("process_workout_pdf triggered")
-    try:
-        from pdf_module import run_pdf_parser_logic
-    except Exception:
-        logging.exception("Falha ao importar pdf_module")
-        raise
-
-    try:
-        run_pdf_parser_logic(event)
-    except Exception:
-        logging.exception("Erro ao executar run_pdf_parser_logic")
-        raise
-
-
 @firestore_fn.on_document_written(
     document="exercises/{workoutId}",
     region=_REGION,
@@ -205,7 +177,7 @@ def generate_pre_workout_insights(event):
         logging.info(f"{workout_id}: status != publicado — skip pre-workout.")
         return
 
-    # Skip se ainda não tem partes (PDF não foi processado).
+    # Skip se ainda não tem partes (treino sem conteúdo cadastrado).
     if not workout_data.get("partes"):
         logging.info(f"{workout_id}: sem `partes` ainda — skip.")
         return
@@ -332,48 +304,6 @@ def run_weekly_insights_task(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         logging.exception("Erro em run_weekly_insights_task")
         return https_fn.Response(f"error: {e}", status=500)
-
-
-@scheduler_fn.on_schedule(
-    schedule="every 1 hours",
-    timezone="America/Sao_Paulo",
-    region=_REGION,
-    memory=options.MemoryOption.MB_256,
-    timeout_sec=540,
-)
-def run_notification_reminders(event: scheduler_fn.ScheduledEvent) -> None:
-    """
-    Job horario que cria lembretes de treino/registro pendente.
-    A janela real e a deduplicacao ficam em notification_module.
-    """
-    try:
-        from notification_module import run_hourly_notification_reminders
-        result = run_hourly_notification_reminders()
-        logging.info(f"[notifications] reminders result={result}")
-    except Exception:
-        logging.exception("Erro em run_notification_reminders")
-        raise
-
-
-@scheduler_fn.on_schedule(
-    schedule="30 3 * * *",
-    timezone="America/Sao_Paulo",
-    region=_REGION,
-    memory=options.MemoryOption.MB_256,
-    timeout_sec=540,
-)
-def cleanup_expired_notifications(event: scheduler_fn.ScheduledEvent) -> None:
-    """
-    Job diario que remove notificacoes com mais de 7 dias.
-    A regra usa createdAt para limpar tambem documentos antigos sem expiresAt.
-    """
-    try:
-        from notification_module import delete_expired_notifications
-        result = delete_expired_notifications()
-        logging.info(f"[notifications] cleanup result={result}")
-    except Exception:
-        logging.exception("Erro em cleanup_expired_notifications")
-        raise
 
 
 # =============================================================================
@@ -503,31 +433,3 @@ def export_user_data(req: https_fn.CallableRequest):
             message=str(e),
         )
 
-
-@https_fn.on_call(
-    region=_REGION,
-    memory=options.MemoryOption.MB_512,
-    timeout_sec=60,
-    secrets=[_SUPPORT_EMAIL_SECRET],
-)
-def submit_support_ticket(req: https_fn.CallableRequest):
-    if not req.auth or not req.auth.uid:
-        raise https_fn.HttpsError(
-            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
-            message="Autenticação necessária.",
-        )
-
-    try:
-        from support_module import submit_support_ticket as _submit_support_ticket
-        return _submit_support_ticket(req.auth.uid, req.data or {})
-    except ValueError as e:
-        raise https_fn.HttpsError(
-            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
-            message=str(e),
-        )
-    except Exception as e:
-        logging.exception("Erro em submit_support_ticket")
-        raise https_fn.HttpsError(
-            code=https_fn.FunctionsErrorCode.INTERNAL,
-            message=str(e),
-        )

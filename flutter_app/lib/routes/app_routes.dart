@@ -1,17 +1,13 @@
 // lib/routes/app_routes.dart
 import 'package:flutter/material.dart';
 
-import 'package:flutter_app/features/auth/presentation/select_profile_screen.dart';
 import 'package:flutter_app/features/setting/admin_manage_box_screen.dart';
 import 'package:flutter_app/features/setting/setting_app_permissions_screen.dart';
-import 'package:flutter_app/features/setting/settings_bug_report_screen.dart';
 import 'package:flutter_app/features/setting/settings_data_download_screen.dart';
 import 'package:flutter_app/features/setting/settings_data_sharing_screen.dart';
 import 'package:flutter_app/features/setting/settings_deactivate_account_screen.dart';
 import 'package:flutter_app/features/setting/settings_delete_account_screen.dart';
-import 'package:flutter_app/features/setting/settings_feedback_screen.dart';
 import 'package:flutter_app/features/setting/settings_reset_password_screen.dart';
-import 'package:flutter_app/features/setting/settings_supporte_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_all_championships_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_all_goals_screen.dart';
 import 'package:flutter_app/features/user/athlete/athlete_class_details_screen.dart';
@@ -48,7 +44,6 @@ import 'package:flutter_app/features/auth/presentation/verify_otp_screen.dart';
 import 'package:flutter_app/features/auth/presentation/reset_password_screen.dart';
 import 'package:flutter_app/features/auth/presentation/terms_screen.dart';
 import 'package:flutter_app/features/auth/presentation/privacy_policy_screen.dart';
-import 'package:flutter_app/features/notifications/notifications_screen.dart';
 
 import 'package:flutter_app/features/splash/presentation/splash_screen.dart';
 
@@ -69,13 +64,11 @@ class AppRoutes {
   static const String splash = SplashScreen.routeName; // '/'
   static const String login = LoginScreen.routeName; // '/login'
   static const String signup = SignupScreen.routeName; // '/signup'
-  static const String selectProfile = SelectProfileScreen.routeName;
   static const String forgotPassword = ForgotPasswordScreen.routeName;
   static const String verifyOtp = VerifyOtpScreen.routeName;
   static const String resetPassword = ResetPasswordScreen.routeName;
   static const String terms = TermsScreen.routeName;
   static const String privacyPolicy = PrivacyPolicyScreen.routeName;
-  static const String notifications = NotificationsScreen.routeName;
 
   // Athlete
   static const String athleteHome = AthleteHomeScreen.routeName;
@@ -121,6 +114,8 @@ class AppRoutes {
 
   static const String coachProfile = CoachProfileScreen.routeName;
   static const String coachTrainingEdit = CoachTrainingEditScreen.routeName;
+  static const String coachTrainingCreate =
+      CoachTrainingEditScreen.createRouteName;
   static const String coachProfileEdit = EditProfileCoachScreen.routeName;
 
   static const String coachAllCycles = CoachAllCyclesScreen.routeName;
@@ -151,11 +146,6 @@ class AppRoutes {
   static const String settingsDeleteAccount =
       SettingsDeleteAccountScreen.routeName;
 
-  // Suporte e Feedback
-  static const String settingsSupport = SettingsSupportScreen.routeName;
-  static const String settingsFeedback = SettingsFeedbackScreen.routeName;
-  static const String settingsBugReport = SettingsBugReportScreen.routeName;
-
   // Admin (futuro)
   static const String adminManageBox = AdminManageBoxScreen.routeName;
 }
@@ -166,13 +156,11 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.splash: (_) => const SplashScreen(),
   AppRoutes.login: (_) => const LoginScreen(),
   AppRoutes.signup: (_) => const SignupScreen(),
-  AppRoutes.selectProfile: (_) => const SelectProfileScreen(),
   AppRoutes.forgotPassword: (_) => const ForgotPasswordScreen(),
   AppRoutes.verifyOtp: (_) => const VerifyOtpScreen(email: ''),
   AppRoutes.resetPassword: (_) => const ResetPasswordScreen(email: ''),
   AppRoutes.terms: (_) => const TermsScreen(),
   AppRoutes.privacyPolicy: (_) => const PrivacyPolicyScreen(),
-  AppRoutes.notifications: (_) => const NotificationsScreen(),
 
   // Athlete
   AppRoutes.athleteHome: (_) => const AthleteHomeScreen(),
@@ -219,6 +207,10 @@ final Map<String, WidgetBuilder> appRouteMap = {
     final settings = ModalRoute.of(ctx)!.settings;
     return CoachTrainingEditScreen.fromArgs(settings);
   },
+  AppRoutes.coachTrainingCreate: (ctx) {
+    final settings = ModalRoute.of(ctx)!.settings;
+    return CoachTrainingEditScreen.fromArgs(settings);
+  },
   AppRoutes.coachProfileEdit: (_) => const EditProfileCoachScreen(),
   AppRoutes.coachAllCycles: (_) => const CoachAllCyclesScreen(),
   AppRoutes.coachCycleDetail: (_) => const CoachCycleDetailScreen(),
@@ -239,10 +231,6 @@ final Map<String, WidgetBuilder> appRouteMap = {
   AppRoutes.settingsDeactivateAccount:
       (_) => const SettingsDeactivateAccountScreen(),
   AppRoutes.settingsDeleteAccount: (_) => const SettingsDeleteAccountScreen(),
-
-  AppRoutes.settingsSupport: (_) => const SettingsSupportScreen(),
-  AppRoutes.settingsFeedback: (_) => const SettingsFeedbackScreen(),
-  AppRoutes.settingsBugReport: (_) => const SettingsBugReportScreen(),
 
   AppRoutes.adminManageBox: (_) => const AdminManageBoxScreen(),
 };

@@ -8,6 +8,7 @@ import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/dialogs/confirm_delete_training.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 
 /// Section: “Esses são todos os treinos cadastrados do Box”
 class CoachRegisteredTrainingsSection extends StatefulWidget {
@@ -88,7 +89,7 @@ class _CoachRegisteredTrainingsSectionState
     setState(() {
       // Observa TODOS os documentos do dia, independente do ID ou Tipo.
       _stream = TrainingService.watchAllTrainingBlocksRaw(
-        boxId: 'DEFAULT_BOX',
+        boxId: AppBox.id,
         date: _date,
       );
     });
@@ -123,7 +124,7 @@ class _CoachRegisteredTrainingsSectionState
     Navigator.of(context).pushNamed(
       AppRoutes.coachTrainingDetail,
       arguments: {
-        'boxId': '1',
+        'boxId': AppBox.id,
         'date': _date,
         'category': _category,
         'blockId': block.id,
@@ -154,7 +155,7 @@ class _CoachRegisteredTrainingsSectionState
     if (confirmed != true) return;
 
     await TrainingService.deleteTraining(
-      boxId: 'DEFAULT_BOX',
+      boxId: AppBox.id,
       date: _date,
       category: _category,
       blockId: block.id,
@@ -175,7 +176,7 @@ class _CoachRegisteredTrainingsSectionState
       context,
       AppRoutes.coachTrainingEdit,
       arguments: {
-        'boxId': '1',
+        'boxId': AppBox.id,
         'date': _date,
         'category': _category,
         'blockId': block.id, // O ID do documento Firestore

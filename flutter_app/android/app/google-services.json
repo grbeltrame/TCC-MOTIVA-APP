@@ -1,95 +1,26 @@
 {
   "project_info": {
-    "project_number": "430412921098",
-    "project_id": "motiva-8b82f",
-    "storage_bucket": "motiva-8b82f.firebasestorage.app"
+    "project_number": "877545487911",
+    "project_id": "motiva-andre",
+    "storage_bucket": "motiva-andre.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:430412921098:android:b43f08f241d0d5a8a422f3",
+        "mobilesdk_app_id": "1:877545487911:android:827789bc563d3450b31802",
         "android_client_info": {
-          "package_name": "com.example.flutter_app"
+          "package_name": "com.motiva.buildAmdre"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "430412921098-da4if8bnl47h0dqfu037qln4l1hkrn37.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.flutter_app",
-            "certificate_hash": "cc01d3526d1d6b07567364f603a80d8404b79486"
-          }
-        },
-        {
-          "client_id": "430412921098-2c7uaur967aij1p6qs5h76r2h1ftkn3o.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyA-VroK13_FrY_ZhGjxlEKjYsK5fALh0WA"
+          "current_key": "AIzaSyD3vWwhFLK1hsDC7qouqr2WTr5-6MM9mzw"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "430412921098-2c7uaur967aij1p6qs5h76r2h1ftkn3o.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "430412921098-c433je4r1f0e8s2ri8nem097r8b6vllo.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.projetofinal.motivaapp"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:430412921098:android:301f287ccf1f8951a422f3",
-        "android_client_info": {
-          "package_name": "com.projetofinal.motivaapp"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "430412921098-n4p5idu830q9tc63p6huddl5d8vo6s25.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.projetofinal.motivaapp",
-            "certificate_hash": "6bcb6807956f2028f4e311509bcb30d880734e2c"
-          }
-        },
-        {
-          "client_id": "430412921098-2c7uaur967aij1p6qs5h76r2h1ftkn3o.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyA-VroK13_FrY_ZhGjxlEKjYsK5fALh0WA"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "430412921098-2c7uaur967aij1p6qs5h76r2h1ftkn3o.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "430412921098-c433je4r1f0e8s2ri8nem097r8b6vllo.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.projetofinal.motivaapp"
-              }
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

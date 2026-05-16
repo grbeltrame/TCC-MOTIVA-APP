@@ -32,18 +32,15 @@ void main() {
       expect(profileTypeCanToggleView(null), isFalse);
     });
 
-    test(
-      'identifies only athlete-coach profiles as hybrid for notifications',
-      () {
-        expect(profileTypeIsHybrid('athlete'), isFalse);
-        expect(profileTypeIsHybrid('coach'), isFalse);
-        expect(profileTypeIsHybrid('intern'), isFalse);
-        expect(profileTypeIsHybrid('athleteCoach'), isTrue);
-        expect(profileTypeIsHybrid('athleteIntern'), isTrue);
-        expect(profileTypeIsHybrid('admin'), isFalse);
-        expect(profileTypeIsHybrid(null), isFalse);
-      },
-    );
+    test('identifies only athlete-coach profiles as hybrid', () {
+      expect(profileTypeIsHybrid('athlete'), isFalse);
+      expect(profileTypeIsHybrid('coach'), isFalse);
+      expect(profileTypeIsHybrid('intern'), isFalse);
+      expect(profileTypeIsHybrid('athleteCoach'), isTrue);
+      expect(profileTypeIsHybrid('athleteIntern'), isTrue);
+      expect(profileTypeIsHybrid('admin'), isFalse);
+      expect(profileTypeIsHybrid(null), isFalse);
+    });
 
     test('maps stored profile strings to the correct initial view', () {
       expect(profileTypeStartsInCoachView('athlete'), isFalse);

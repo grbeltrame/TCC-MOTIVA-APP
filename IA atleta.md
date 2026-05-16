@@ -844,7 +844,7 @@ PYTHONPATH=functions functions/venv/bin/python functions/tools/evaluate_athlete_
   --flow all \
   --uid <UID_DO_ATLETA> \
   --workout-id "<ID_DO_TREINO>" \
-  --project-id motiva-8b82f \
+  --project-id motiva-andre \
   --hide-prompt --no-llm
 ```
 

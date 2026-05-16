@@ -7,6 +7,7 @@ import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 
 // =============================================================================
@@ -14,6 +15,14 @@ import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 // =============================================================================
 
 const _kSectionTypes = <String>['WarmUp', 'ExtraTraining', 'Skill', 'WOD'];
+
+/// Label apresentado no bottom sheet de criação de seção.
+const _kSectionTypeLabels = <String, String>{
+  'WarmUp': 'Aquecimento',
+  'Skill': 'Skill',
+  'ExtraTraining': 'Extra Training',
+  'WOD': 'WOD',
+};
 
 /// Modalidades disponíveis no selector de cada seção.
 /// "ROUNDS FOR TIME" exige preenchimento do campo de rounds.
@@ -81,6 +90,7 @@ class EditableTraining {
 
 class CoachTrainingEditScreen extends StatefulWidget {
   static const routeName = '/coach_training_edit';
+  static const createRouteName = '/coach_training_create';
 
   const CoachTrainingEditScreen({
     super.key,
@@ -88,6 +98,7 @@ class CoachTrainingEditScreen extends StatefulWidget {
     required this.date,
     required this.category,
     this.highlightBlockId,
+    this.isCreating = false,
   });
 
   final String boxId;
@@ -95,14 +106,19 @@ class CoachTrainingEditScreen extends StatefulWidget {
   final String category;
   final String? highlightBlockId;
 
+  /// Quando true, a tela começa com lista de seções vazia e salva como
+  /// documento novo (não carrega nada do Firestore).
+  final bool isCreating;
+
   static CoachTrainingEditScreen fromArgs(RouteSettings settings) {
     final args = (settings.arguments ?? {}) as Map;
     return CoachTrainingEditScreen(
-      boxId: args['boxId']?.toString() ?? 'DEFAULT_BOX',
+      boxId: args['boxId']?.toString() ?? AppBox.id,
       date:
           args['date'] is DateTime ? args['date'] as DateTime : DateTime.now(),
       category: args['category']?.toString() ?? 'WOD',
       highlightBlockId: args['blockId']?.toString(),
+      isCreating: args['isCreating'] == true,
     );
   }
 
@@ -118,12 +134,18 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
   @override
   void initState() {
     super.initState();
-    _futureEditable = _loadEditableFromService(
-      boxId: widget.boxId,
-      date: widget.date,
-      category: widget.category,
-      highlightBlockId: widget.highlightBlockId,
-    );
+    if (widget.isCreating) {
+      _futureEditable = Future.value(
+        EditableTraining(category: widget.category, sections: []),
+      );
+    } else {
+      _futureEditable = _loadEditableFromService(
+        boxId: widget.boxId,
+        date: widget.date,
+        category: widget.category,
+        highlightBlockId: widget.highlightBlockId,
+      );
+    }
   }
 
   String _fmtDate(DateTime d) {
@@ -421,7 +443,9 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
 
   Future<void> _persistEditedTraining(EditableTraining edited) async {
     String? realDocId;
-    if (widget.highlightBlockId != null &&
+    if (widget.isCreating) {
+      realDocId = null;
+    } else if (widget.highlightBlockId != null &&
         widget.highlightBlockId!.contains('__')) {
       realDocId = widget.highlightBlockId!.split('__')[0];
     } else {
@@ -453,7 +477,11 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Treino atualizado com sucesso!'),
+          content: Text(
+            widget.isCreating
+                ? 'Treino criado como rascunho!'
+                : 'Treino atualizado com sucesso!',
+          ),
           backgroundColor: AppColors.baseBlue,
         ),
       );
@@ -515,8 +543,11 @@ class _CoachTrainingEditScreenState extends State<CoachTrainingEditScreen> {
                     8 * scale,
                   ),
                   child: Text(
-                    'Você está editando o treino\n'
-                    'do dia ${_fmtDate(widget.date)} da categoria ${widget.category}',
+                    widget.isCreating
+                        ? 'Você está criando um treino\n'
+                            'para o dia ${_fmtDate(widget.date)}'
+                        : 'Você está editando o treino\n'
+                            'do dia ${_fmtDate(widget.date)} da categoria ${widget.category}',
                     style: TextStyle(
                       fontFamily: AppFonts.roboto,
                       fontWeight: AppFontWeight.bold,
@@ -592,13 +623,16 @@ class _EditBodyState extends State<_EditBody> {
 
   void _notify() => widget.onEditedChanged(_edited);
 
-  void _addSection() {
+  Future<void> _addSection() async {
+    final chosenType = await _pickSectionType(context);
+    if (chosenType == null) return;
+
     final id = 'section_${DateTime.now().microsecondsSinceEpoch}';
     setState(() {
       _edited.sections.add(
         EditableSection(
           id: id,
-          type: 'WOD',
+          type: chosenType,
           name: null,
           timeMinutes: null,
           modalidade: null,
@@ -608,6 +642,73 @@ class _EditBodyState extends State<_EditBody> {
       );
     });
     _notify();
+  }
+
+  Future<String?> _pickSectionType(BuildContext context) {
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) {
+        final scale = MediaQuery.of(sheetCtx).size.width / 375.0;
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              16 * scale,
+              16 * scale,
+              16 * scale,
+              12 * scale,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Escolha o tipo do bloco',
+                  style: TextStyle(
+                    fontFamily: AppFonts.roboto,
+                    fontWeight: AppFontWeight.bold,
+                    fontSize: 16 * scale,
+                    color: AppColors.darkText,
+                  ),
+                ),
+                SizedBox(height: 12 * scale),
+                ..._kSectionTypes.map(
+                  (type) => Padding(
+                    padding: EdgeInsets.only(bottom: 8 * scale),
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(sheetCtx).pop(type),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(
+                          color: AppColors.baseBlue,
+                          width: 1.2,
+                        ),
+                        backgroundColor: AppColors.baseBlue.withAlpha(10),
+                        padding: EdgeInsets.symmetric(vertical: 14 * scale),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10 * scale),
+                        ),
+                      ),
+                      child: Text(
+                        _kSectionTypeLabels[type] ?? type,
+                        style: TextStyle(
+                          fontFamily: AppFonts.roboto,
+                          fontWeight: AppFontWeight.bold,
+                          fontSize: 14 * scale,
+                          color: AppColors.baseBlue,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _removeSection(String id) {

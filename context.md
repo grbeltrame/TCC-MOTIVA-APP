@@ -14,7 +14,7 @@ Este arquivo resume as principais decisões, implementações e validações fei
 ### Android
 
 - O app oficial Android usa o package:
-  - `com.projetofinal.motivaapp`
+  - `com.motiva.buildAmdre`
 - O app antigo `com.example.flutter_app` no Firebase não deve ser usado como oficial.
 - A distribuição de APK para testes foi feita pelo Firebase App Distribution.
 - Se não houver grupo de testers criado, o upload da release pode funcionar, mas a distribuição para `--groups testers` falha com 404.
@@ -24,7 +24,7 @@ Comando usado como base:
 
 ```bash
 firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
-  --app 1:430412921098:android:301f287ccf1f8951a422f3 \
+  --app 1:877545487911:android:827789bc563d3450b31802 \
   --groups testers \
   --release-notes "Nova versão de teste do MOTIVA"
 ```
@@ -34,7 +34,7 @@ firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.ap
 - A conta Apple Developer foi ativada.
 - O app foi registrado no App Store Connect.
 - O Bundle ID oficial deve ser:
-  - `com.projetofinal.motivaapp`
+  - `com.motiva.buildAmdre`
 - Foi feito upload via Xcode Organizer/TestFlight.
 - Um erro de App Store Connect ocorreu por falta de purpose string:
   - `NSPhotoLibraryUsageDescription`
@@ -256,7 +256,7 @@ PYTHONPATH=functions functions/venv/bin/python functions/tools/evaluate_athlete_
   --flow all \
   --uid <UID_DO_ATLETA> \
   --workout-id "<ID_DO_TREINO>" \
-  --project-id motiva-8b82f
+  --project-id motiva-andre
 ```
 
 Modo sem chamada ao Gemini:
@@ -266,7 +266,7 @@ PYTHONPATH=functions functions/venv/bin/python functions/tools/evaluate_athlete_
   --flow all \
   --uid <UID_DO_ATLETA> \
   --workout-id "<ID_DO_TREINO>" \
-  --project-id motiva-8b82f \
+  --project-id motiva-andre \
   --hide-prompt \
   --no-llm
 ```
@@ -278,7 +278,7 @@ PYTHONPATH=functions functions/venv/bin/python functions/tools/evaluate_athlete_
   --flow all \
   --uid girs2jkfxHOkJeq30PsR1yrEMnt1 \
   --workout-id "LONG HEAVY (12-05-2026)" \
-  --project-id motiva-8b82f \
+  --project-id motiva-andre \
   --hide-prompt \
   --no-llm
 ```

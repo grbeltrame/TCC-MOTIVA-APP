@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/services/auth_service.dart';
-import 'package:flutter_app/core/services/notification_service.dart';
 import 'package:flutter_app/shared/models/profile_option.dart';
 
 class UserProvider with ChangeNotifier {
@@ -29,8 +28,6 @@ class UserProvider with ChangeNotifier {
       final profileType = await AuthService.instance.fetchUserProfileType(
         user.uid,
       );
-      await NotificationService.instance.syncMessagingToken();
-
       if (profileType != null) {
         _profileType = profileType; // A string salva no cadastro
         print("🔍 [DEBUG] Perfil carregado: '$_profileType'");

@@ -7,6 +7,7 @@ import 'package:flutter_app/shared/widgets/sections/athlete/worked_muscles_secti
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/bottom_sheets/register_result_bottom_sheet.dart';
 import 'package:flutter_app/core/services/effort_service.dart';
@@ -32,7 +33,7 @@ class _FullTrainingScreenState extends State<FullTrainingScreen> {
     if (_bootstrapped) return;
 
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
-    _boxId = (args['boxId'] ?? '1') as String;
+    _boxId = (args['boxId'] ?? AppBox.id) as String;
     _date = (args['date'] as DateTime?) ?? DateTime.now();
     _category = (args['category'] ?? 'WOD') as String;
 

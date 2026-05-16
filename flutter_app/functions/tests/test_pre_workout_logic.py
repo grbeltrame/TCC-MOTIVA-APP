@@ -222,7 +222,6 @@ class PreWorkoutLogicTest(unittest.TestCase):
         }
 
         generated_for = []
-        notified = []
 
         def fake_generate(_db, uid, _summary, _hash, _llm):
             generated_for.append(uid)
@@ -246,16 +245,12 @@ class PreWorkoutLogicTest(unittest.TestCase):
         ), patch(
             "athlete_insights_module.pre_workout_logic._generate_insights_for_athlete",
             fake_generate,
-        ), patch(
-            "notification_module.create_user_notification",
-            lambda **kwargs: notified.append(kwargs["uid"]) or True,
         ):
             result = pre_workout_logic.run_pre_workout_insights_logic(
                 workout_id, workout_data
             )
 
         self.assertEqual(generated_for, ["missing"])
-        self.assertEqual(notified, ["missing"])
         self.assertIn(workout_id, _pre_workout_items(db, "missing"))
         self.assertEqual(result["athletesVisited"], 2)
         self.assertEqual(result["insightsExisting"], 1)
@@ -348,9 +343,6 @@ class PreWorkoutLogicTest(unittest.TestCase):
         ), patch(
             "athlete_insights_module.pre_workout_logic._generate_insights_for_athlete",
             fake_generate,
-        ), patch(
-            "notification_module.create_user_notification",
-            lambda **_kwargs: True,
         ):
             result = pre_workout_logic.run_pre_workout_insights_logic(
                 workout_id, workout_data
@@ -406,9 +398,6 @@ class PreWorkoutLogicTest(unittest.TestCase):
         ), patch(
             "athlete_insights_module.pre_workout_logic._generate_insights_for_athlete",
             fake_generate,
-        ), patch(
-            "notification_module.create_user_notification",
-            lambda **_kwargs: True,
         ):
             result = pre_workout_logic.run_pre_workout_insights_logic(
                 workout_id, workout_data
@@ -456,9 +445,6 @@ class PreWorkoutLogicTest(unittest.TestCase):
         ), patch(
             "athlete_insights_module.pre_workout_logic._generate_insights_for_athlete",
             fake_generate,
-        ), patch(
-            "notification_module.create_user_notification",
-            lambda **_kwargs: True,
         ):
             result = pre_workout_logic.run_pre_workout_insights_logic(
                 workout_id, workout_data
@@ -492,55 +478,6 @@ class PreWorkoutLogicTest(unittest.TestCase):
             )
 
         self.assertEqual(result, {"skipped": "not_published"})
-
-    def test_pre_workout_notification_opt_out_does_not_block_generation(self):
-        db = _Db()
-        db.users["athlete"] = _user("athlete")
-        db.users["athlete"]["_subcollections"]["settings"] = {
-            "athlete": {"preWorkoutInsights": False}
-        }
-
-        workout_id = "WOD (17-05-2026)"
-        workout_data = {
-            "status": "publicado",
-            "partes": {"WOD": {"exercicios": []}},
-            "dataTreinoIso": "2026-05-17",
-        }
-        db.exercises[workout_id] = {}
-
-        def fake_generate(_db, _uid, _summary, _hash, _llm):
-            return {
-                "alertas": {},
-                "informacoes": {"ok": {"detail": "Insight gerado."}},
-            }
-
-        with patch(
-            "athlete_insights_module.pre_workout_logic.firestore.client",
-            lambda: db,
-        ), patch(
-            "athlete_insights_module.logic._get_gemini_api_key",
-            lambda: "key",
-        ), patch(
-            "athlete_insights_module.logic._build_llm",
-            lambda _key: object(),
-        ), patch(
-            "athlete_insights_module.pre_workout_logic._generate_insights_for_athlete",
-            fake_generate,
-        ):
-            result = pre_workout_logic.run_pre_workout_insights_logic(
-                workout_id, workout_data
-            )
-
-        self.assertIn(workout_id, _pre_workout_items(db, "athlete"))
-        notifications = (
-            db.users["athlete"]
-            .setdefault("_subcollections", {})
-            .setdefault("notifications", {})
-        )
-        self.assertEqual(notifications, {})
-        self.assertEqual(result["insightsGenerated"], 1)
-        self.assertEqual(result["insightsFailed"], 0)
-
 
 if __name__ == "__main__":
     unittest.main()

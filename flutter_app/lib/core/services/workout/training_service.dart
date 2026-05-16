@@ -9,6 +9,7 @@ import 'package:flutter_app/shared/models/class.dart';
 import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/models/daily_workout_model.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 
 // Import da tela de edição
 import 'package:flutter_app/features/user/coach/coach_training_edit_screen.dart';
@@ -73,8 +74,6 @@ class TrainingService {
   }
 
   /// Observa TODOS os documentos de treino do dia como lista de Training.
-  /// Usado nas telas de coach para atualizar automaticamente quando a Function
-  /// terminar de importar o PDF para o Firestore.
   static Stream<List<Training>> watchTrainingsListForDate({
     required String boxId,
     required DateTime date,
@@ -565,7 +564,7 @@ class TrainingService {
 
   static Future<List<dynamic>> fetchWorkoutsForDate(DateTime date) async {
     final blocks = await fetchFullTrainingBlocks(
-      boxId: '1',
+      boxId: AppBox.id,
       date: date,
       category: 'ANY',
       includeDrafts: false,
@@ -744,7 +743,7 @@ class TrainingService {
     // App testado com um único box por enquanto.
     // Quando o vínculo atleta↔box for implementado no Firestore,
     // este método lerá users/{uid}/boxId ou equivalente.
-    return [Box(id: 'BOX_PRINCIPAL', name: 'CrossFit Box')];
+    return [Box(id: AppBox.id, name: AppBox.name)];
   }
 
   static Future<Box> registerBox(String boxName) async {

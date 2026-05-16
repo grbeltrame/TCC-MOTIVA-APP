@@ -10,6 +10,7 @@ import 'package:flutter_app/shared/models/training_block.dart';
 import 'package:flutter_app/shared/widgets/cards/training_blocks_card.dart';
 import 'package:flutter_app/shared/widgets/footers/coach_training_footer.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/core/constants/app_colors.dart'; // Para cores do botão
@@ -43,7 +44,7 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
     if (_bootstrapped) return;
 
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
-    _boxId = (args['boxId'] ?? '1') as String;
+    _boxId = (args['boxId'] ?? AppBox.id) as String;
     _category = (args['category'] ?? 'WOD') as String;
     _expectedTitle = args['expectedTitle'] as String?;
     _blockId = args['blockId'] as String?;
@@ -109,17 +110,18 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
       await TrainingService.publishTraining(docId);
       if (!mounted) return;
       setState(() {
-        _trainingObject = _trainingObject == null
-            ? null
-            : Training(
-                id: _trainingObject!.id,
-                title: _trainingObject!.title,
-                description: _trainingObject!.description,
-                date: _trainingObject!.date,
-                status: 'publicado',
-                partes: _trainingObject!.partes,
-                analysis: _trainingObject!.analysis,
-              );
+        _trainingObject =
+            _trainingObject == null
+                ? null
+                : Training(
+                  id: _trainingObject!.id,
+                  title: _trainingObject!.title,
+                  description: _trainingObject!.description,
+                  date: _trainingObject!.date,
+                  status: 'publicado',
+                  partes: _trainingObject!.partes,
+                  analysis: _trainingObject!.analysis,
+                );
         _trainingStatus = 'publicado';
         _blocksFut = TrainingService.fetchFullTrainingBlocks(
           boxId: _boxId,
@@ -134,9 +136,9 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao publicar treino: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao publicar treino: $e')));
     }
   }
 
@@ -289,34 +291,34 @@ class _CoachTrainingDetailScreenState extends State<CoachTrainingDetailScreen> {
                 child: FutureBuilder<List<TrainingBlock>>(
                   future: _blocksFut,
                   builder: (ctx, snap) {
-                  if (!snap.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final blocks = snap.data!;
-                  final lastBlock = _chooseTargetBlock(blocks);
+                    if (!snap.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final blocks = snap.data!;
+                    final lastBlock = _chooseTargetBlock(blocks);
 
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TrainingBlocksCard(
-                        blocks: blocks,
-                        onTapRegisterResult: _onTapRegistrarResultado,
-                        footer: CoachTrainingFooter(
-                          onTapVerResultados: _onTapVerResultados,
-                          // Aqui conectamos o botão do rodapé aos Insights também
-                          onTapComentariosDoCriador: _onTapVerInsightsAI,
-                          onTapRegistrarResultado: _onTapRegistrarResultado,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TrainingBlocksCard(
+                          blocks: blocks,
+                          onTapRegisterResult: _onTapRegistrarResultado,
+                          footer: CoachTrainingFooter(
+                            onTapVerResultados: _onTapVerResultados,
+                            // Aqui conectamos o botão do rodapé aos Insights também
+                            onTapComentariosDoCriador: _onTapVerInsightsAI,
+                            onTapRegistrarResultado: _onTapRegistrarResultado,
+                          ),
                         ),
-                      ),
 
-                      if (lastBlock != null) ...[
-                        SizedBox(height: 16 * scale),
-                        WorkedMusclesSection(lastBlock: lastBlock),
+                        if (lastBlock != null) ...[
+                          SizedBox(height: 16 * scale),
+                          WorkedMusclesSection(lastBlock: lastBlock),
+                        ],
                       ],
-                    ],
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
               ),
             ),
           ),

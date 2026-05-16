@@ -3,6 +3,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/shared/models/training.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_training_insights_overview_section.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
@@ -88,7 +89,7 @@ class _CoachInsightsScreenState extends State<CoachInsightsScreen> {
       // Busca a lista de treinos daquele dia (Lógica que arrumamos no passo anterior)
       // Ajuste o boxId conforme sua lógica de usuário
       final list = await TrainingService.fetchTrainingsListForDate(
-        boxId: '1',
+        boxId: AppBox.id,
         date: date,
         includeDrafts: true,
       );

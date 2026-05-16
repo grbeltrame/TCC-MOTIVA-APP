@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/training.dart';
 
@@ -77,7 +78,7 @@ class DailyTrainingSummaryCard extends StatefulWidget {
 }
 
 class _DailyTrainingSummaryCardState extends State<DailyTrainingSummaryCard> {
-  static const String _boxId = 'BOX_PRINCIPAL';
+  static const String _boxId = AppBox.id;
 
   late final Future<List<_DropdownOption>> _futOptions;
   _DropdownOption? _selected;

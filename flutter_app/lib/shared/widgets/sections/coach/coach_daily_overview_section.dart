@@ -28,10 +28,7 @@ class CoachDailyOverviewSection extends StatelessWidget {
 
         // // ----- SUBSECTION: TAB BAR + GRÁFICOS + ESFORÇO -----
         // CoachDailySummaryTabs(date: date, boxId: boxId),
-        CoachDailyInsightsSection(
-          date: DateTime.now(),
-          boxId: 'BOX_123', // passe o id real do seu box
-        ),
+        CoachDailyInsightsSection(date: date, boxId: boxId),
       ],
     );
   }

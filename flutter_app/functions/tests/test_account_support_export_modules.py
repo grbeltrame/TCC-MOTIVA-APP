@@ -7,7 +7,6 @@ from account_module.logic import (
     reactivate_user_account,
 )
 from export_module.logic import export_user_data
-from support_module.logic import submit_support_ticket
 
 
 class _Snapshot:
@@ -89,15 +88,13 @@ class _Db:
         self.stores = {
             "users": {},
             "exercises": {},
-            "supportTickets": {},
-            "mail": {},
         }
 
     def collection(self, name):
         return _Collection(name, self.stores.setdefault(name, {}))
 
 
-class AccountSupportExportModuleTest(unittest.TestCase):
+class AccountExportModuleTest(unittest.TestCase):
     def test_deactivate_and_reactivate_user_account(self):
         db = _Db()
         db.stores["users"]["u1"] = {"email": "user@test.com"}
@@ -135,27 +132,6 @@ class AccountSupportExportModuleTest(unittest.TestCase):
         self.assertEqual(result["user"]["data"]["email"], "user@test.com")
         self.assertIn("mine", result["exercises"])
         self.assertNotIn("other", result["exercises"])
-
-    def test_submit_support_ticket_creates_ticket_and_mail_document(self):
-        db = _Db()
-        db.stores["users"]["u1"] = {
-            "email": "user@test.com",
-            "name": "Usuario",
-        }
-
-        with patch.dict("support_module.logic.os.environ", {"SUPPORT_EMAIL": "help@test.com"}):
-            result = submit_support_ticket(
-                "u1",
-                {"type": "feedback", "message": "Muito bom", "rating": 9},
-                db=db,
-            )
-
-        ticket_id = result["ticketId"]
-        self.assertIn(ticket_id, db.stores["supportTickets"])
-        self.assertEqual(db.stores["supportTickets"][ticket_id]["type"], "feedback")
-        self.assertEqual(db.stores["mail"][ticket_id]["to"], ["help@test.com"])
-        self.assertIn("novo feedback", db.stores["mail"][ticket_id]["message"]["subject"])
-
 
 if __name__ == "__main__":
     unittest.main()

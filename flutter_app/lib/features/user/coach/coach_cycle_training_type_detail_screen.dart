@@ -6,6 +6,7 @@ import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/core/services/workout/cycle_service.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
@@ -13,8 +14,6 @@ import 'package:flutter_app/shared/models/training_block.dart';
 
 import 'package:flutter_app/shared/widgets/utils/date_selector.dart';
 
-// ✅ bottom sheet correto
-import 'package:flutter_app/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/utils/training_edit_delete_buttons.dart';
 
 class CoachCycleTrainingTypeDetailScreen extends StatefulWidget {
@@ -28,7 +27,7 @@ class CoachCycleTrainingTypeDetailScreen extends StatefulWidget {
 
 class _CoachCycleTrainingTypeDetailScreenState
     extends State<CoachCycleTrainingTypeDetailScreen> {
-  static const String _boxId = '1';
+  static const String _boxId = AppBox.id;
 
   bool _didInit = false;
 
@@ -46,10 +45,6 @@ class _CoachCycleTrainingTypeDetailScreenState
 
   // delete local (mock)
   final Set<String> _locallyDeletedBlockIds = {};
-
-  void _openRegisterTraining(BuildContext context) {
-    showRegisterTrainingBottomSheet(context);
-  }
 
   String _mapTypeKeyToCategory(String typeKey, String typeLabel) {
     final k = typeKey.toLowerCase().trim();
@@ -206,24 +201,6 @@ class _CoachCycleTrainingTypeDetailScreenState
                   fontFamily: AppFonts.roboto,
                   fontSize: 13 * scale,
                   color: AppColors.mediumGray,
-                ),
-              ),
-              SizedBox(height: 8 * scale),
-              TextButton(
-                onPressed: () => _openRegisterTraining(context),
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  'Registrar treino',
-                  style: TextStyle(
-                    fontFamily: AppFonts.roboto,
-                    fontWeight: AppFontWeight.bold,
-                    color: AppColors.baseBlue,
-                    fontSize: 13 * scale,
-                  ),
                 ),
               ),
             ] else ...[

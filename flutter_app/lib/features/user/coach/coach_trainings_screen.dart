@@ -3,6 +3,7 @@ import 'package:flutter_app/shared/widgets/sections/coach/coach_daily_trainings_
 import 'package:flutter_app/shared/widgets/sections/coach/coach_trainings_actions_section.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/shared/widgets/utils/date_selector.dart'; // Importante para o seletor funcionar
 
 class CoachTrainingScreen extends StatefulWidget {
@@ -53,7 +54,7 @@ class _CoachTrainingScreenState extends State<CoachTrainingScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Botões de Ação
-              const CoachTrainingActionsSection(),
+              CoachTrainingActionsSection(selectedDate: _selectedDate),
 
               const SizedBox(height: 16),
 
@@ -71,7 +72,7 @@ class _CoachTrainingScreenState extends State<CoachTrainingScreen> {
                 key: ValueKey(
                   'coach_daily_trainings_${_selectedDate.toIso8601String()}_$_refreshTick',
                 ),
-                boxId: '1',
+                boxId: AppBox.id,
                 date: _selectedDate,
               ),
             ],

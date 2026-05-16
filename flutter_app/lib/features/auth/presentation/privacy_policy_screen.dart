@@ -13,7 +13,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       title: 'Quais dados coletamos',
       body:
           'Para criar sua conta, identificar seu perfil e operar o app, coletamos: '
-          'dados cadastrais, treinos, resultados, PRs, preferências, notificações '
+          'dados cadastrais, treinos, resultados, PRs, preferências '
           'e informações usadas para gerar as análises do aplicativo.',
     ),
     _PolicySection(
@@ -32,13 +32,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
           'preferência nas configurações.',
     ),
     _PolicySection(
-      title: 'Suporte e feedback',
-      body:
-          'Suporte, feedback e relatos de erro enviados pelo app podem ser '
-          'encaminhados ao email de suporte do projeto e armazenados para '
-          'acompanhamento.',
-    ),
-    _PolicySection(
       title: 'Seus direitos',
       body:
           'Você pode solicitar o download dos seus dados, desativar temporariamente '
@@ -49,7 +42,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       title: 'Compartilhamento com terceiros',
       body:
           'Não vendemos seus dados pessoais. Utilizamos provedores como o Firebase '
-          'para autenticação, armazenamento, notificações e funções em nuvem '
+          'para autenticação, banco de dados e funções em nuvem '
           'apenas para operar o aplicativo.',
     ),
   ];

@@ -32,27 +32,15 @@ class SettingsAppPermissionsScreen extends StatelessWidget {
             SizedBox(height: 12 * scale),
 
             _InfoRow(
-              title: 'Arquivos',
-              subtitle: 'Para upload de PDFs e anexos (se aplicável)',
-            ),
-            _InfoRow(
-              title: 'Notificações',
-              subtitle: 'Para receber alertas e resumos',
+              title: 'Fotos',
+              subtitle: 'Para escolher a foto do perfil',
             ),
             _InfoRow(
               title: 'Câmera',
-              subtitle: 'Para capturar fotos/anexos (se aplicável)',
+              subtitle: 'Para capturar foto de perfil (se aplicável)',
             ),
 
             SizedBox(height: 16 * scale),
-            Text(
-              'TODO(FRONT): se quiser abrir as configs direto, adicionar dependency (ex.: app_settings/permission_handler).',
-              style: TextStyle(
-                fontFamily: AppFonts.roboto,
-                fontSize: 11 * scale,
-                color: AppColors.mediumGray,
-              ),
-            ),
             SizedBox(height: 24 * scale),
           ],
         ),

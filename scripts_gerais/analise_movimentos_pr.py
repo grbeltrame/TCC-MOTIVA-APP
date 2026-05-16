@@ -31,35 +31,22 @@ from firebase_admin import credentials, firestore
 # -----------------------------------------------------------------------------
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-_CRED_PATH = os.path.join(_THIS_DIR, "motiva-8b82f-firebase-adminsdk-fbsvc-14d8d2b5e8.json")
-_PROJECT_ID = "motiva-8b82f"
+_PROJECT_ID = "motiva-andre"
 
 
 def _init_firebase() -> None:
     """
     Tenta inicializar o Firebase Admin.
 
-    Ordem de preferência:
-      1. Application Default Credentials (gcloud auth application-default login)
-         → mais robusto, não depende de service account rotativa.
-      2. Fallback: service account JSON local.
+    Usa Application Default Credentials configuradas no ambiente local.
     """
     if firebase_admin._apps:
         return
 
-    # 1. Tenta ADC primeiro
-    try:
-        firebase_admin.initialize_app(
-            credentials.ApplicationDefault(),
-            {"projectId": _PROJECT_ID},
-        )
-        return
-    except Exception as e:
-        print(f"[warn] ADC falhou ({e}). Tentando service account local...")
-
-    # 2. Fallback: service account JSON
-    cred = credentials.Certificate(_CRED_PATH)
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(
+        credentials.ApplicationDefault(),
+        {"projectId": _PROJECT_ID},
+    )
 
 
 _init_firebase()

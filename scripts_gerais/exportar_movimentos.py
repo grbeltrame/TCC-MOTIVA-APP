@@ -22,17 +22,13 @@ from openpyxl.utils import get_column_letter
 # ─────────────────────────────────────────────────────────────────────────────
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-_CRED_PATH = os.path.join(_THIS_DIR, "motiva-8b82f-firebase-adminsdk-fbsvc-14d8d2b5e8.json")
-_PROJECT_ID = "motiva-8b82f"
+_PROJECT_ID = "motiva-andre"
 
 if not firebase_admin._apps:
-    try:
-        firebase_admin.initialize_app(
-            credentials.ApplicationDefault(),
-            {"projectId": _PROJECT_ID},
-        )
-    except Exception:
-        firebase_admin.initialize_app(credentials.Certificate(_CRED_PATH))
+    firebase_admin.initialize_app(
+        credentials.ApplicationDefault(),
+        {"projectId": _PROJECT_ID},
+    )
 
 db = firestore.client()
 

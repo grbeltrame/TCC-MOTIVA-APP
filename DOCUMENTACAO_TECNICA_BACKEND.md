@@ -435,7 +435,7 @@ O arquivo `firebase.json` versionado define os recursos implantáveis pelo Fireb
 | Functions runtime | `python311` |
 | Functions codebase | `default` |
 | Arquivos ignorados no deploy | `venv`, `.git`, logs de debug e `__pycache__` |
-| Projeto Firebase | `motiva-8b82f` nas configurações Android, iOS, macOS, web e Windows |
+| Projeto Firebase | `motiva-andre` nas configurações Android, iOS, macOS, web e Windows |
 
 > O `firebase.json` não declara fila do Cloud Tasks nem job externo do Cloud Scheduler para coortes. Esses recursos precisam ser criados por configuração de infraestrutura fora do arquivo ou por comandos `gcloud`, conforme descrito na seção de implantação.
 

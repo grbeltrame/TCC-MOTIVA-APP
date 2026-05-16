@@ -3,6 +3,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 import 'package:flutter_app/shared/widgets/sections/coach/coach_cycle_insights_section.dart';
@@ -31,7 +32,7 @@ class _CoachTrainingInsightsScreenState
         monthArg is DateTime ? _validMonth(monthArg) : null;
     final DateTime? initialMonth =
         monthFromArg ?? _monthFromKey(args?['monthKey']);
-    final String boxId = (args?['boxId'] as String?) ?? '1';
+    final String boxId = (args?['boxId'] as String?) ?? AppBox.id;
 
     return Scaffold(
       appBar: const TopNavbar(),

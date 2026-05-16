@@ -1,163 +1,111 @@
 # Contexto - build Android isolada para o professor Andre
 
-## Objetivo
+## Objetivo final
 
-Criar uma build Android separada do app Motiva para o professor do TCC testar no box dele, sem misturar dados com o ambiente atual de producao.
+Manter uma branch Android separada do Motiva para o professor Andre testar no box dele, sem qualquer referencia ao Firebase de producao e sem misturar dados entre ambientes.
 
-Essa build deve:
+Nesta build:
 
-- apontar para um novo projeto Firebase isolado;
-- manter a mesma arquitetura de banco atual;
-- permitir que ele cadastre treinos do box dele e veja as analises do box dele;
-- rodar apenas em Android;
-- remover/simplificar o login com Google, mantendo apenas email e senha;
-- poder usar outro projeto Firebase e ate outra conta Google, se isso facilitar.
+- o Firebase e o projeto `motiva-andre`;
+- o app Android usa o package `com.motiva.buildAmdre`;
+- o professor deve ser `athleteCoach`, para alternar entre visao de coach e atleta;
+- o login fica apenas com email e senha;
+- notificacoes/FCM, suporte por email e fluxo de PDF/Storage ficam fora;
+- o banco mantem a mesma arquitetura principal;
+- o box padrao da branch e `BOX_ANDRE` / `Box do André`;
+- os treinos serao cadastrados manualmente depois, mas o fluxo de analise por IA continua sendo o mesmo quando um treino existir.
 
-## Decisao tomada
+## O que ja foi feito
 
-Para esse caso especifico, nao e necessario montar uma estrutura completa de `dev`/`prod` com Apple, iOS, macOS ou multiplos flavors complexos.
+### Firebase e Android
 
-O caminho mais simples e suficiente e:
+- `.firebaserc` aponta somente para `motiva-andre`;
+- `firebase.json` ficou apenas com Android, Firestore e Functions;
+- `firebase_options.dart` foi trocado para o projeto novo;
+- `android/app/google-services.json` foi substituido pelo arquivo novo;
+- `namespace` e `applicationId` Android agora sao `com.motiva.buildAmdre`;
+- o plugin Google Services foi atualizado no Gradle;
+- os arquivos Firebase de iOS/macOS foram removidos da branch.
 
-1. Criar um novo projeto Firebase, por exemplo `motiva-teste-professor`.
-2. Cadastrar nele apenas um app Android.
-3. Gerar a configuracao Android nova desse projeto.
-4. Fazer uma build Android apontando somente para esse Firebase novo.
-5. Remover da build o fluxo de login com Google.
-6. Subir no novo Firebase a mesma estrutura backend usada hoje:
-   - Firestore;
-   - Storage;
-   - Cloud Functions;
-   - regras;
-   - segredos/configuracoes necessarios.
-7. Popular o novo banco com os dados iniciais do box dele usando a mesma modelagem existente.
+### Dados iniciais
 
-## Conclusao da conversa
+- a colecao `movimentos` foi copiada do Firebase antigo para o novo antes da limpeza;
+- a validacao confirmou:
+  - `64` documentos na origem;
+  - `64` documentos gravados no novo projeto;
+  - mesmos IDs;
+  - mesmos campos.
 
-Nesse escopo reduzido, a dificuldade e baixa para media.
+### Fluxos removidos
 
-Nao e uma mudanca arquitetural grande; e principalmente uma duplicacao controlada de configuracao e infraestrutura:
+- login com Google;
+- Cloud Messaging, notificacoes in-app e tokens;
+- telas e servicos de suporte/feedback/bug report;
+- parser de PDF, upload de treino por PDF e regras de Storage;
+- funcoes agendadas e chamadas associadas a notificacoes;
+- referencias de codigo ao Firebase antigo e credenciais antigas.
 
-- novo Firebase;
-- nova configuracao Android;
-- novo deploy do backend;
-- retirada do login Google;
-- novo conjunto de dados.
+### Fluxos mantidos
 
-## Pontos importantes
+- autenticacao por email e senha;
+- Firestore;
+- Functions;
+- IA com Gemini;
+- telas de coach e atleta;
+- analises e insights que nao dependiam dos modulos removidos.
 
-### API key do Firebase
+## Estado esperado do projeto novo
 
-- A API key do Firebase nao e tratada como segredo.
-- Mesmo assim, nao vale a pena reaproveitar manualmente a chave antiga.
-- O correto e usar a configuracao gerada pelo novo projeto Firebase, com os novos valores de:
-  - `apiKey`;
-  - `projectId`;
-  - `appId`;
-  - `messagingSenderId`;
-  - `storageBucket`.
+No Firebase/GCP, o projeto `motiva-andre` deve ter:
 
-### Banco
+- Firestore ativado;
+- Auth por email/senha ativado;
+- plano Blaze ativo;
+- a colecao `movimentos` ja populada;
+- secret `GEMINI_API_KEY` cadastrada antes do deploy das Functions;
+- fila do Cloud Tasks criada antes de usar os fluxos que dependem dela;
+- deploy de Firestore Rules e Functions feito para `motiva-andre`.
 
-- A arquitetura pode continuar igual.
-- O projeto novo comeca vazio.
-- Sera necessario popular os dados iniciais relevantes para o uso do professor, por exemplo movimentos, ciclos e demais documentos-base que o app espera encontrar.
+## O que ainda falta fazer depois da implementacao
 
-### Backend
+1. Rodar:
 
-O app atual usa backend real, nao apenas Firestore no cliente.
+   ```bash
+   cd flutter_app
+   firebase functions:secrets:set GEMINI_API_KEY --project motiva-andre
+   ```
 
-O novo projeto Firebase tambem precisara receber:
+2. Criar a fila do Cloud Tasks usada pelo backend novo, no projeto `motiva-andre`, com a mesma regiao configurada nas Functions.
 
-- `firestore.rules`;
-- `storage.rules`;
-- `functions`;
-- segredos como `SUPPORT_EMAIL` e `GEMINI_API_KEY`, se essas funcionalidades forem usadas;
-- configuracoes relacionadas a filas/tarefas, se forem mantidas.
+3. Fazer o deploy para o projeto novo:
 
-Observacao: para deploy de Cloud Functions no Firebase, o projeto precisa estar no plano Blaze.
+   ```bash
+   cd flutter_app
+   firebase deploy --only firestore:rules,functions --project motiva-andre
+   ```
 
-### Login Google
+4. Criar a conta do professor pelo app e confirmar no Firestore que o documento do usuario ficou com perfil `athleteCoach`.
 
-- Pode ser removido dessa build.
-- Hoje o fluxo existe no app e ha configuracao hardcoded para Google Sign-In.
-- Como essa build sera so para teste do professor e usara email/senha, esse bloco pode ser ocultado/removido para simplificar.
+5. Testar no Android:
+   - cadastro;
+   - login;
+   - troca entre coach e atleta;
+   - leitura dos movimentos;
+   - telas de treino e analise que ja existem.
 
-### Package Android
+6. Depois, implementar o cadastro manual de treino para substituir o fluxo antigo de PDF.
 
-Hoje o app usa:
+## Cuidados
 
-`com.projetofinal.motivaapp`
+- Nao criar alias de producao nesta branch.
+- Nao recolocar arquivos, IDs, service accounts ou configs do Firebase antigo.
+- Confirmar sempre `--project motiva-andre` em comandos de deploy.
+- Como esta branch e Android-only, configuracoes Apple nao entram neste fluxo.
 
-Se o professor so vai instalar essa build, pode manter o mesmo package para simplificar.
+## Validacoes ja executadas
 
-Se algum dia for necessario instalar a build de teste e a build oficial no mesmo aparelho, sera preciso outro `applicationId`, por exemplo:
-
-`com.projetofinal.motivaapp.andre`
-
-## Estado atual observado no repositorio
-
-### Configuracao Firebase atual
-
-- Projeto atual: `motiva-8b82f`
-- Arquivos principais:
-  - `flutter_app/lib/firebase_options.dart`
-  - `flutter_app/firebase.json`
-  - `flutter_app/.firebaserc`
-  - `flutter_app/android/app/google-services.json`
-
-### Android
-
-- Arquivo:
-  - `flutter_app/android/app/build.gradle.kts`
-- Hoje existe apenas um `defaultConfig`.
-- Ainda nao existem flavors configurados.
-- `applicationId` atual:
-  - `com.projetofinal.motivaapp`
-
-### Login
-
-- Login Google esta em:
-  - `flutter_app/lib/core/services/auth_service.dart`
-  - `flutter_app/lib/features/auth/presentation/login_screen.dart`
-  - `flutter_app/lib/features/auth/presentation/google_auth.dart`
-- O `serverClientId` do Google esta hardcoded em `auth_service.dart`.
-- O login por email/senha ja existe e pode continuar sendo usado.
-
-### Backend
-
-- Codigo principal:
-  - `flutter_app/functions/main.py`
-- Regras:
-  - `flutter_app/firestore.rules`
-  - `flutter_app/storage.rules`
-- O backend usa:
-  - Firestore triggers;
-  - Storage trigger;
-  - callable functions;
-  - segredos;
-  - Gemini;
-  - Cloud Tasks / tarefas semanais.
-
-## Caminho pratico recomendado ao retomar
-
-1. Criar o novo projeto Firebase.
-2. Criar nele um app Android com o package desejado.
-3. Baixar o novo `google-services.json`.
-4. Gerar ou ajustar o `firebase_options.dart` para o novo projeto Android.
-5. Configurar alias no Firebase CLI para evitar deploy no projeto errado:
-   - `prod` -> projeto atual;
-   - `andre` ou `teste` -> projeto novo.
-6. Fazer deploy das regras e functions no projeto novo.
-7. Cadastrar os segredos exigidos no projeto novo.
-8. Remover da UI e do fluxo o login Google nessa build.
-9. Criar/popular os dados iniciais do box do professor.
-10. Gerar APK Android e testar cadastro, login, upload de treino e analises.
-
-## Cuidados ao continuar
-
-- Nao sobrescrever sem querer a configuracao de producao se ainda quiser manter o projeto principal intacto.
-- Confirmar sempre em qual projeto Firebase o CLI esta apontando antes de rodar deploy.
-- Se for usar o mesmo codigo-base para as duas builds no futuro, considerar separar por ambiente com arquivos/configuracoes distintas para evitar trocas manuais.
-- Se mantiver apenas uma build temporaria para o professor, a troca manual de config pode ser aceitavel, desde que seja feita com atencao.
-
+- busca por IDs do Firebase antigo sem ocorrencias no repositorio ativo;
+- testes Python das Functions: `34` testes passaram;
+- testes Flutter: todos passaram;
+- processamento do `google-services.json` Android foi exercitado na build debug;
+- a compilacao Android completa foi concluida com sucesso.

@@ -14,6 +14,7 @@ import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/cycle_models.dart';
 
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 
@@ -49,7 +50,7 @@ class _CoachCycleDetailScreenState extends State<CoachCycleDetailScreen> {
     _month = (args['month'] ?? DateTime.now().month) as int;
 
     // TODO(back): trocar pelo boxId real vindo do contexto/auth
-    _boxId = (args['boxId'] ?? '1') as String;
+    _boxId = (args['boxId'] ?? AppBox.id) as String;
 
     _bundleFut = _fetch();
     _scheduleRefresh();

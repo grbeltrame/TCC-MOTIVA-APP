@@ -9,7 +9,6 @@ import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/profile_option.dart';
 import 'package:flutter_app/shared/widgets/utils/form_fields.dart';
 import 'package:flutter_app/shared/widgets/utils/primary_button.dart';
-import 'package:flutter_app/shared/widgets/utils/radio_option_tile.dart';
 import 'package:flutter_app/shared/widgets/utils/text_action_button.dart';
 import 'package:provider/provider.dart'; // <--- Importante
 import 'package:flutter_app/features/auth/presentation/providers/user_provider.dart'; // <--- Seu Provider
@@ -28,7 +27,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  ProfileOption? _selectedProfile;
   bool _agreeTerms = false;
   bool _isSubmitting = false;
 
@@ -43,13 +41,6 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _submitForm() async {
     // 1. Validações básicas do formulário
     if (!_formKey.currentState!.validate()) return;
-
-    if (_selectedProfile == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Selecione seu perfil')));
-      return;
-    }
 
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +58,7 @@ class _SignupScreenState extends State<SignupScreen> {
             name: _nameController.text,
             email: _emailController.text,
             password: _passwordController.text,
-            profile: _selectedProfile!,
+            profile: ProfileOption.athleteCoach,
           );
 
       final User? user = userCredential.user;
@@ -89,7 +80,7 @@ class _SignupScreenState extends State<SignupScreen> {
         final userProvider = Provider.of<UserProvider>(context, listen: false);
 
         if (userProvider.isCoachView) {
-          // Se for Coach, Intern ou Híbrido -> Vai pra Home de Coach
+          // Nesta build, novas contas já nascem com visão de coach e atleta.
           Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
         } else {
           // Se for só Atleta -> Vai pra Home de Aluno
@@ -171,51 +162,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                     SizedBox(height: vSpace(16)),
 
-                    // Perfil
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Como você se define?',
-                        style: TextStyle(
-                          fontFamily: AppFonts.roboto,
-                          fontWeight: AppFontWeight.bold,
-                          fontSize: 18 * scale,
-                          color: AppColors.darkText,
-                        ),
-                      ),
-                    ),
                     SizedBox(height: vSpace(4)),
-                    RadioOptionTile<ProfileOption>(
-                      value: ProfileOption.athlete,
-                      groupValue: _selectedProfile,
-                      label: 'Sou apenas praticante de Crossfit',
-                      onChanged: (v) => setState(() => _selectedProfile = v),
-                    ),
-                    RadioOptionTile<ProfileOption>(
-                      value: ProfileOption.coach,
-                      groupValue: _selectedProfile,
-                      label: 'Sou apenas coach de Crossfit',
-                      onChanged: (v) => setState(() => _selectedProfile = v),
-                    ),
-                    RadioOptionTile<ProfileOption>(
-                      value: ProfileOption.intern,
-                      groupValue: _selectedProfile,
-                      label: 'Sou apenas estagiário de Crossfit',
-                      onChanged: (v) => setState(() => _selectedProfile = v),
-                    ),
-                    RadioOptionTile<ProfileOption>(
-                      value: ProfileOption.athleteCoach,
-                      groupValue: _selectedProfile,
-                      label: 'Sou praticante e professor de Crossfit',
-                      onChanged: (v) => setState(() => _selectedProfile = v),
-                    ),
-                    RadioOptionTile<ProfileOption>(
-                      value: ProfileOption.athleteIntern,
-                      groupValue: _selectedProfile,
-                      label: 'Sou praticante e estagiário de Crossfit',
-                      onChanged: (v) => setState(() => _selectedProfile = v),
-                    ),
-                    SizedBox(height: vSpace(20)),
 
                     // Termos
                     Row(

@@ -10,6 +10,7 @@ import 'package:flutter_app/shared/models/coach_cycle_insights.dart';
 
 import 'package:flutter_app/shared/widgets/utils/month_selector.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/back_button.dart';
 
@@ -44,7 +45,7 @@ class _CoachCycleInsightTopicDetailScreenState
     super.didChangeDependencies();
     final args = (ModalRoute.of(context)?.settings.arguments as Map?) ?? {};
 
-    _boxId = (args['boxId'] ?? 'DEFAULT_BOX') as String;
+    _boxId = (args['boxId'] ?? AppBox.id) as String;
     _categoryKey = (args['categoryKey'] ?? '') as String;
     _categoryTitle = (args['categoryTitle'] ?? 'Análise') as String;
     _topicKey = (args['topicKey'] ?? '') as String;
@@ -146,7 +147,7 @@ class _CoachCycleInsightTopicDetailScreenState
     final scale = MediaQuery.of(context).size.width / 375.0;
 
     return Scaffold(
-      appBar: TopNavbar(onRegisterBox: () {}),
+      appBar: const TopNavbar(),
       bottomNavigationBar: const BottomNavBar(),
       body: Stack(
         children: [

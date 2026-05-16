@@ -101,68 +101,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // --- INÍCIO DA ADIÇÃO DE CÓDIGO ---
-
-  Future<void> _performGoogleLogin() async {
-    setState(() => _isLoading = true);
-
-    try {
-      // 1. Login Google (Igual antes)
-      final googleAuthResult = await AuthService.instance.signInWithGoogle();
-
-      if (googleAuthResult.userCredential.user == null) {
-        throw Exception('Login com Google cancelado ou falhou.');
-      }
-      final User user = googleAuthResult.userCredential.user!;
-
-      if (!googleAuthResult.hasCompletedProfile) {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, AppRoutes.selectProfile);
-        return;
-      }
-
-      final canContinue = await _ensureAccountActive(user);
-      if (!canContinue) return;
-      if (!mounted) return;
-
-      // 2. Tenta carregar perfil no Provider
-      try {
-        await Provider.of<UserProvider>(
-          context,
-          listen: false,
-        ).loadUserData(user);
-
-        if (!mounted) return;
-
-        // Se chegou aqui, tem perfil. Navega conforme o Provider manda.
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-        if (userProvider.isCoachView) {
-          Navigator.pushReplacementNamed(context, AppRoutes.coachHome);
-        } else {
-          Navigator.pushReplacementNamed(context, AppRoutes.athleteHome);
-        }
-      } catch (e) {
-        // Se der erro no loadUserData, provavelmente é usuário novo (sem doc no Firestore)
-        // Então mandamos para a tela de Seleção de Perfil
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, AppRoutes.selectProfile);
-      }
-    } catch (e) {
-      String errorMessage = 'Erro no login com Google: ${e.toString()}';
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(errorMessage)));
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  // --- FIM DA ADIÇÃO DE CÓDIGO ---
-
   Future<bool> _ensureAccountActive(User user) async {
     final userData = await AuthService.instance.fetchUserData(user.uid);
     if (!AuthService.instance.isAccountDisabled(userData)) return true;
@@ -350,63 +288,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           () => Navigator.pushNamed(context, AppRoutes.signup),
                     ),
                   ],
-                ),
-                SizedBox(height: vSpace(40)),
-
-                // Social login
-                Row(
-                  children: [
-                    Expanded(
-                      child: Divider(color: AppColors.mediumGray, thickness: 1),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0 * scale),
-                      child: Text(
-                        'OU',
-                        style: TextStyle(
-                          fontFamily: AppFonts.roboto,
-                          fontWeight: AppFontWeight.regular,
-                          fontSize: 12 * scale,
-                          color: AppColors.mediumGray,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Divider(color: AppColors.mediumGray, thickness: 1),
-                    ),
-                  ],
-                ),
-                SizedBox(height: vSpace(16)),
-                SizedBox(
-                  width: double.infinity,
-                  height: vSpace(48),
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.mediumGray),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8 * scale),
-                      ),
-                    ),
-                    icon: Image.asset(
-                      'assets/images/google_logo.png',
-                      width: 24 * scale,
-                      height: 24 * scale,
-                    ),
-                    label: Text(
-                      'Entrar com Google',
-                      style: TextStyle(
-                        fontFamily: AppFonts.montserrat,
-                        fontWeight: AppFontWeight.bold,
-                        fontSize: 16 * scale,
-                        color: AppColors.darkText,
-                      ),
-                    ),
-                    // --- ALTERAÇÃO AQUI ---
-                    // Conecta o botão à nova função de login do Google
-                    // e desabilita durante o loading
-                    onPressed: _isLoading ? null : _performGoogleLogin,
-                    // --- FIM DA ALTERAÇÃO ---
-                  ),
                 ),
                 SizedBox(height: vSpace(32)),
               ],

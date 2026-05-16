@@ -6,10 +6,10 @@ import 'package:intl/intl.dart';
 
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_fonts.dart';
+import 'package:flutter_app/core/constants/app_box.dart';
 import 'package:flutter_app/core/services/workout/training_service.dart';
 import 'package:flutter_app/routes/app_routes.dart';
 import 'package:flutter_app/shared/models/training.dart';
-import 'package:flutter_app/shared/widgets/bottom_sheets/register_training_bottom_sheet.dart';
 import 'package:flutter_app/shared/widgets/cards/coach_today_workout_card.dart';
 import 'package:flutter_app/shared/widgets/utils/bottom_navbar.dart';
 import 'package:flutter_app/shared/widgets/utils/top_navbar.dart';
@@ -63,7 +63,7 @@ class CoachHomeScreen extends StatefulWidget {
 
 class _CoachHomeScreenState extends State<CoachHomeScreen> {
   late Stream<_HomeData> _homeDataStream;
-  final String _boxId = 'BOX_PRINCIPAL';
+  final String _boxId = AppBox.id;
 
   @override
   void initState() {
@@ -101,12 +101,6 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   Future<void> _refresh() async {
     _reload();
     await Future<void>.delayed(const Duration(milliseconds: 250));
-  }
-
-  void _openRegisterTraining() {
-    showRegisterTrainingBottomSheet(context).then((uploaded) {
-      if (uploaded == true && mounted) _reload();
-    });
   }
 
   // ── Texto de saudação pelo horário ──────────────────────────────────────────
@@ -190,10 +184,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
                   // ── Item 5: Estado vazio inteligente ─────────────────────
                   if (!data.hasTraining) {
-                    return _EmptyTrainingState(
-                      scale: scale,
-                      onCadastrar: _openRegisterTraining,
-                    );
+                    return _EmptyTrainingState(scale: scale);
                   }
 
                   return Column(
@@ -812,10 +803,9 @@ class _CycleStat extends StatelessWidget {
 // =============================================================================
 
 class _EmptyTrainingState extends StatelessWidget {
-  const _EmptyTrainingState({required this.scale, required this.onCadastrar});
+  const _EmptyTrainingState({required this.scale});
 
   final double scale;
-  final VoidCallback onCadastrar;
 
   @override
   Widget build(BuildContext context) {
@@ -852,37 +842,13 @@ class _EmptyTrainingState extends StatelessWidget {
           ),
           SizedBox(height: 6 * scale),
           Text(
-            'Cadastre o treino do dia para que seus alunos\npossam acompanhar e a IA possa analisar.',
+            'O treino do dia ainda não foi cadastrado.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppFonts.roboto,
               fontSize: 12 * scale,
               color: AppColors.mediumGray,
               height: 1.5,
-            ),
-          ),
-          SizedBox(height: 20 * scale),
-          ElevatedButton.icon(
-            onPressed: onCadastrar,
-            icon: Icon(Icons.add, size: 16 * scale),
-            label: Text(
-              'Cadastrar treino',
-              style: TextStyle(
-                fontFamily: AppFonts.roboto,
-                fontSize: 13 * scale,
-                fontWeight: AppFontWeight.bold,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.baseBlue,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(
-                horizontal: 24 * scale,
-                vertical: 12 * scale,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8 * scale),
-              ),
             ),
           ),
         ],
