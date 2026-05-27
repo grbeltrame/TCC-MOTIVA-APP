@@ -88,7 +88,7 @@ dados_todos   = []
 
 for r in rows:
     perfil = r[5].strip()
-    adjs   = parse_adjetivos(r[16])
+    adjs   = list(dict.fromkeys(parse_adjetivos(r[16])))  # deduplica mantendo ordem
     for adj in adjs:
         dados_todos.append(adj)
         if perfil in ("Aluno", "Ambos"):
@@ -146,7 +146,7 @@ wc = WordCloud(
 fig_a, ax_a = plt.subplots(figsize=(13, 6))
 ax_a.imshow(wc, interpolation="bilinear")
 ax_a.axis("off")
-ax_a.set_title("Product Reaction Cards — Nuvem de palavras (n=8)\n",
+ax_a.set_title("Product Reaction Cards — Nuvem de palavras (n=8)\nPalavras maiores e mais escuras = maior frequência",
                fontsize=13, fontweight="bold", pad=12)
 plt.tight_layout(pad=2.0)
 path_a = os.path.join(BASE_DIR, "script4a_wordcloud.png")
@@ -231,7 +231,8 @@ plotar(emocionais, pos_e, COR_E)
 plotar(neutros,    pos_n, COR_N)
 
 ax_c.set_title(
-    "Product Reaction Cards — Matriz Funcional × Emocional\n",
+    "Product Reaction Cards — Matriz Funcional × Emocional\n"
+    "(tamanho do círculo proporcional à frequência)",
     fontsize=12, fontweight="bold", pad=12)
 ax_c.axis("off")
 

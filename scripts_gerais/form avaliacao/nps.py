@@ -136,7 +136,7 @@ for d in dados:
 personas_unicas = list(persona_notas.keys())
 n_personas = len(personas_unicas)
 
-fig2, ax = plt.subplots(figsize=(10, max(4, n_personas * 1.1 + 1.5)))
+fig2, ax = plt.subplots(figsize=(10, max(4, n_personas * 0.9 + 2)))
 fig2.suptitle("NPS por persona — MOTIVA\n(Gênero | Faixa etária | Tempo de prática)",
               fontsize=12, fontweight="bold", y=0.98)
 
@@ -167,21 +167,15 @@ ax.set_title("Nota por persona", fontsize=11, fontweight="bold", pad=8)
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 
-ax.text(3.25, -0.08, "Detratores", transform=ax.transAxes,
-        fontsize=8, color=COR_DETR, ha="center", fontweight="bold")
-ax.text(6.5,  -0.08, "Neutros",    transform=ax.transAxes,
-        fontsize=8, color=COR_NEUT, ha="center", fontweight="bold")
-ax.text(9.0,  -0.08, "Promotores", transform=ax.transAxes,
-        fontsize=8, color=COR_PROM, ha="center", fontweight="bold")
-
-# patch_p = mpatches.Patch(color=COR_PROM, label="Promotor (9–10)")
-# patch_n = mpatches.Patch(color=COR_NEUT, label="Neutro (7–8)")
-# patch_d = mpatches.Patch(color=COR_DETR, label="Detrator (0–6)")
-# ax.legend(handles=[patch_p, patch_n, patch_d],
-#           fontsize=8, loc="lower right", framealpha=0.8)
+patch_p = mpatches.Patch(color=COR_PROM, label="Promotor (9–10)")
+patch_n = mpatches.Patch(color=COR_NEUT, label="Neutro (7–8)")
+patch_d = mpatches.Patch(color=COR_DETR, label="Detrator (0–6)")
+ax.legend(handles=[patch_p, patch_n, patch_d],
+          fontsize=8, loc="upper left", bbox_to_anchor=(1.02, 1),
+          framealpha=0.8, borderaxespad=0)
 
 plt.tight_layout(pad=2.5)
-plt.subplots_adjust(top=0.88, bottom=0.10, left=0.38, right=0.92)
+plt.subplots_adjust(top=0.88, bottom=0.10, left=0.38, right=0.82)
 path2 = os.path.join(BASE_DIR, "script5b_nps_personas.png")
 plt.savefig(path2, dpi=150, bbox_inches="tight")
 plt.show()
