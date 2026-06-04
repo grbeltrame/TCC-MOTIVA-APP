@@ -1,0 +1,155 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function userDocPath(userId) {
+      return /databases/$(database)/documents/users/$(userId);
+    }
+
+    function isDisabledUser(userId) {
+      return exists(userDocPath(userId))
+        && get(userDocPath(userId)).data.keys().hasAny(['accountStatus'])
+        && get(userDocPath(userId)).data.accountStatus == 'disabled';
+    }
+
+    function isActiveOwner(userId) {
+      return isOwner(userId) && !isDisabledUser(userId);
+    }
+
+    function currentUserProfile() {
+      return isSignedIn()
+        && exists(userDocPath(request.auth.uid))
+        ? get(userDocPath(request.auth.uid)).data.profile
+        : null;
+    }
+
+    function isCoachProfile() {
+      return currentUserProfile() in [
+        'coach',
+        'intern',
+        'athleteCoach',
+        'athleteIntern',
+        'admin'
+      ];
+    }
+
+    function isPublishedExercise(data) {
+      return !data.keys().hasAny(['status'])
+        || data.status in ['publicado', 'processado'];
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow update: if isActiveOwner(userId);
+
+      match /results/{resultId} {
+        allow read, write: if isActiveOwner(userId);
+      }
+
+      match /stats/{document} {
+        allow read, write: if isActiveOwner(userId);
+      }
+
+      match /profiles/{profileId} {
+        allow read, write: if isActiveOwner(userId);
+      }
+
+      match /prs/{prId} {
+        allow read, write: if isActiveOwner(userId);
+      }
+
+      match /weekly_load/{weekLabel} {
+        allow read, write: if isActiveOwner(userId);
+      }
+
+      match /insights/{document=**} {
+        allow read, write: if isActiveOwner(userId);
+      }
+
+      // Configuracoes reais das telas de atleta, coach e privacidade.
+      match /settings/{settingId} {
+        allow read: if isOwner(userId)
+          && settingId in ['athlete', 'coach', 'privacy'];
+
+        allow create, update: if isActiveOwner(userId)
+          && settingId in ['athlete', 'coach', 'privacy'];
+
+        allow delete: if false;
+      }
+
+      // Notificacoes internas:
+      // Cloud Functions cria via Admin SDK.
+      // O app so pode ler e marcar como lida.
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+
+        allow update: if isActiveOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'readAt'])
+          && request.resource.data.status == 'read';
+
+        allow create, delete: if false;
+      }
+
+      // Tokens FCM do proprio usuario.
+      // Necessario para push no celular.
+      match /notificationTokens/{tokenId} {
+        allow read: if isOwner(userId);
+
+        allow create, update: if isActiveOwner(userId)
+          && request.resource.data.keys().hasOnly([
+            'token',
+            'platform',
+            'enabled',
+            'updatedAt',
+            'createdAt'
+          ])
+          && request.resource.data.token == tokenId
+          && request.resource.data.enabled is bool;
+
+        allow delete: if isActiveOwner(userId);
+      }
+    }
+
+    match /exercises/{document=**} {
+      allow read: if isSignedIn()
+        && (isCoachProfile() || isPublishedExercise(resource.data));
+      allow create, update, delete: if isCoachProfile();
+    }
+
+    match /cycles/{document=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /movimentos/{document} {
+      allow read: if isSignedIn();
+    }
+
+    match /cohorts/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /telemetry/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Tickets e emails sao criados apenas por Cloud Functions/Admin SDK.
+    match /supportTickets/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /mail/{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

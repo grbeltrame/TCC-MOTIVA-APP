@@ -1,0 +1,33 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function userDocPath(userId) {
+      return /databases/(default)/documents/users/$(userId);
+    }
+
+    function isCoachProfile() {
+      return request.auth != null
+        && firestore.exists(userDocPath(request.auth.uid))
+        && firestore.get(userDocPath(request.auth.uid)).data.profile in [
+          'coach',
+          'intern',
+          'athleteCoach',
+          'athleteIntern',
+          'admin'
+        ];
+    }
+
+    match /uploads/{userId}/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if isCoachProfile()
+        && request.auth.uid == userId
+        && request.resource.contentType == 'application/pdf'
+        && request.resource.size < 20 * 1024 * 1024;
+      allow update, delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

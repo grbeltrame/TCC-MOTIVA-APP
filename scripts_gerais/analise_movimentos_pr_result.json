@@ -1,0 +1,719 @@
+{
+  "generatedAt": "2026-04-09T19:12:06.451215",
+  "totalMovements": 31,
+  "summary": {
+    "byPrType": {
+      "distance": 3,
+      "reps": 17,
+      "weight": 11
+    },
+    "byCategory": {
+      "força": 1,
+      "ginástica": 12,
+      "habilidade": 1,
+      "levantamento de peso": 12,
+      "metcon": 6
+    },
+    "byCategoryAndPrType": {
+      "força": {
+        "weight": 1
+      },
+      "ginástica": {
+        "reps": 12
+      },
+      "habilidade": {
+        "weight": 1
+      },
+      "levantamento de peso": {
+        "reps": 2,
+        "weight": 10
+      },
+      "metcon": {
+        "distance": 3,
+        "reps": 3
+      }
+    }
+  },
+  "prTypes": {
+    "weight": {
+      "unit": "kg",
+      "label": "Carga máxima"
+    },
+    "reps": {
+      "unit": "reps",
+      "label": "Repetições máximas"
+    },
+    "time": {
+      "unit": "s",
+      "label": "Tempo na posição"
+    },
+    "distance": {
+      "unit": "m",
+      "label": "Distância percorrida"
+    }
+  },
+  "movements": [
+    {
+      "id": "air_squat",
+      "displayName": "Air Squat",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "nenhum"
+      ],
+      "primaryMuscles": [
+        "quadríceps",
+        "glúteos"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps"
+      ],
+      "unit": "reps",
+      "reason": "override explícito: \"air squat\" → reps"
+    },
+    {
+      "id": "box_jump",
+      "displayName": "Box Jump",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "caixa pliométrica"
+      ],
+      "primaryMuscles": [
+        "quadríceps",
+        "glúteos"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps"
+      ],
+      "unit": "reps",
+      "reason": "override explícito: \"box jump\" → reps"
+    },
+    {
+      "id": "butterfly_pull_up",
+      "displayName": "Butterfly Pull-Up",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "barra para pull-up"
+      ],
+      "primaryMuscles": [
+        "latíssimo do dorso",
+        "bíceps"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "reps",
+      "reason": "nome contém \"pull-up\" (ginástica/bodyweight)"
+    },
+    {
+      "id": "chest_to_bar_pull_up",
+      "displayName": "Chest-to-Bar Pull-Up",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "barra para pull-up"
+      ],
+      "primaryMuscles": [
+        "latíssimo do dorso",
+        "bíceps"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "reps",
+      "reason": "nome contém \"pull-up\" (ginástica/bodyweight)"
+    },
+    {
+      "id": "ghd_sit_up",
+      "displayName": "GHD Sit-Up",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "GHD"
+      ],
+      "primaryMuscles": [
+        "abdominais",
+        "parte inferior das costas"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps"
+      ],
+      "unit": "reps",
+      "reason": "categoria \"ginastica\" sugere reps"
+    },
+    {
+      "id": "handstand_push_up",
+      "displayName": "Handstand Push-Up",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "opcional parede"
+      ],
+      "primaryMuscles": [
+        "deltoides",
+        "tríceps",
+        "músculos do core"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps"
+      ],
+      "unit": "reps",
+      "reason": "nome contém \"push-up\" (ginástica/bodyweight)"
+    },
+    {
+      "id": "kipping_pull_up",
+      "displayName": "Kipping Pull-Up",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "barra para pull-up"
+      ],
+      "primaryMuscles": [
+        "latíssimo do dorso",
+        "músculos do core"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "reps",
+      "reason": "nome contém \"pull-up\" (ginástica/bodyweight)"
+    },
+    {
+      "id": "muscle_up",
+      "displayName": "Muscle-Up",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "argolas",
+        "barra para pull-up"
+      ],
+      "primaryMuscles": [
+        "peitoral",
+        "latíssimo do dorso",
+        "tríceps"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "reps",
+      "reason": "nome contém \"muscle-up\" (ginástica/bodyweight)"
+    },
+    {
+      "id": "pistols",
+      "displayName": "Pistols (Single-Leg Squat)",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "nenhum"
+      ],
+      "primaryMuscles": [
+        "quadríceps",
+        "glúteos",
+        "músculos do core"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps"
+      ],
+      "unit": "reps",
+      "reason": "override explícito: \"pistol\" → reps"
+    },
+    {
+      "id": "pull_up",
+      "displayName": "Pull-Up",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "barra para pull-up"
+      ],
+      "primaryMuscles": [
+        "latíssimo do dorso",
+        "bíceps"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "reps",
+      "reason": "nome contém \"pull-up\" (ginástica/bodyweight)"
+    },
+    {
+      "id": "ring_row",
+      "displayName": "Ring Row",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "argolas"
+      ],
+      "primaryMuscles": [
+        "latíssimo do dorso",
+        "bíceps"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps"
+      ],
+      "unit": "reps",
+      "reason": "override explícito: \"ring row\" → reps"
+    },
+    {
+      "id": "toes_to_bar",
+      "displayName": "Toes-to-Bar",
+      "categories": [
+        "ginástica"
+      ],
+      "equipment": [
+        "barra para pull-up"
+      ],
+      "primaryMuscles": [
+        "abdominais",
+        "flexores do quadril"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "reps",
+      "reason": "categoria \"ginastica\" sugere reps"
+    },
+    {
+      "id": "turkish_get_up",
+      "displayName": "Turkish Get-Up",
+      "categories": [
+        "habilidade",
+        "força"
+      ],
+      "equipment": [
+        "kettlebell"
+      ],
+      "primaryMuscles": [
+        "ombros",
+        "músculos do core",
+        "glúteos"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "equipamento \"kettlebell\" sugere weight"
+    },
+    {
+      "id": "clean_and_jerk",
+      "displayName": "Clean & Jerk",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "quadríceps",
+        "deltoides",
+        "glúteos"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"clean\" (levantamento com carga)"
+    },
+    {
+      "id": "deadlift",
+      "displayName": "Deadlift",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "isquiotibiais",
+        "glúteos",
+        "parte inferior das costas"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"deadlift\" (levantamento com carga)"
+    },
+    {
+      "id": "front_squat",
+      "displayName": "Front Squat",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "quadríceps",
+        "músculos do core"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"front squat\" (levantamento com carga)"
+    },
+    {
+      "id": "kettlebell_swing",
+      "displayName": "Kettlebell Swing",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "kettlebell"
+      ],
+      "primaryMuscles": [
+        "isquiotibiais",
+        "glúteos",
+        "músculos do core"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "reps",
+      "reason": "override explícito: \"kettlebell swing\" → reps"
+    },
+    {
+      "id": "overhead_squat",
+      "displayName": "Overhead Squat",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "deltoides",
+        "músculos do core",
+        "glúteos"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"overhead squat\" (levantamento com carga)"
+    },
+    {
+      "id": "push_jerk",
+      "displayName": "Push Jerk",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "deltoides",
+        "quadríceps",
+        "glúteos"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"jerk\" (levantamento com carga)"
+    },
+    {
+      "id": "push_press",
+      "displayName": "Push Press",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "ombros",
+        "tríceps",
+        "quadríceps"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"press\" (levantamento com carga)"
+    },
+    {
+      "id": "shoulder_press",
+      "displayName": "Shoulder Press",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "deltoides",
+        "tríceps"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"press\" (levantamento com carga)"
+    },
+    {
+      "id": "snatch",
+      "displayName": "Snatch",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "costas",
+        "ombros",
+        "músculos do core"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"snatch\" (levantamento com carga)"
+    },
+    {
+      "id": "sumo_deadlift_high_pull",
+      "displayName": "Sumo Deadlift High Pull",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "trapézio",
+        "deltoides",
+        "glúteos"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"deadlift\" (levantamento com carga)"
+    },
+    {
+      "id": "thruster",
+      "displayName": "Thruster",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "barra"
+      ],
+      "primaryMuscles": [
+        "quadríceps",
+        "deltoides",
+        "músculos do core"
+      ],
+      "primaryPrType": "weight",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "kg",
+      "reason": "nome contém \"thruster\" (levantamento com carga)"
+    },
+    {
+      "id": "wall_ball_shot",
+      "displayName": "Wall Ball Shot",
+      "categories": [
+        "levantamento de peso"
+      ],
+      "equipment": [
+        "bola medicinal"
+      ],
+      "primaryMuscles": [
+        "quadríceps",
+        "ombros",
+        "músculos do core"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps"
+      ],
+      "unit": "reps",
+      "reason": "override explícito: \"wall ball\" → reps"
+    },
+    {
+      "id": "assault_bike",
+      "displayName": "Assault Bike",
+      "categories": [
+        "metcon"
+      ],
+      "equipment": [
+        "assault_bike"
+      ],
+      "primaryMuscles": [
+        "pernas",
+        "músculos do core"
+      ],
+      "primaryPrType": "distance",
+      "supportedPrTypes": [
+        "distance",
+        "time"
+      ],
+      "unit": "m",
+      "reason": "nome contém \"bike\" (cardio/distância)"
+    },
+    {
+      "id": "burpee",
+      "displayName": "Burpee",
+      "categories": [
+        "metcon"
+      ],
+      "equipment": [
+        "nenhum"
+      ],
+      "primaryMuscles": [
+        "peitoral",
+        "tríceps",
+        "quadríceps"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps"
+      ],
+      "unit": "reps",
+      "reason": "override explícito: \"burpee\" → reps"
+    },
+    {
+      "id": "double_unders",
+      "displayName": "Double-Unders",
+      "categories": [
+        "metcon"
+      ],
+      "equipment": [
+        "corda de pular"
+      ],
+      "primaryMuscles": [
+        "panturrilhas",
+        "músculos do core"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps"
+      ],
+      "unit": "reps",
+      "reason": "equipamento \"corda de pular\" sugere reps"
+    },
+    {
+      "id": "farmers_carry",
+      "displayName": "Farmers Carry",
+      "categories": [
+        "metcon"
+      ],
+      "equipment": [
+        "halteres",
+        "kettlebell"
+      ],
+      "primaryMuscles": [
+        "antebraços",
+        "trapézio",
+        "pernas"
+      ],
+      "primaryPrType": "distance",
+      "supportedPrTypes": [
+        "distance",
+        "weight"
+      ],
+      "unit": "m",
+      "reason": "override explícito: \"farmers carry\" → distance"
+    },
+    {
+      "id": "lunges",
+      "displayName": "Lunges (Walking/Static)",
+      "categories": [
+        "metcon"
+      ],
+      "equipment": [
+        "nenhum"
+      ],
+      "primaryMuscles": [
+        "quadríceps",
+        "glúteos"
+      ],
+      "primaryPrType": "reps",
+      "supportedPrTypes": [
+        "reps",
+        "weight"
+      ],
+      "unit": "reps",
+      "reason": "override explícito: \"lunges\" → reps"
+    },
+    {
+      "id": "rowing",
+      "displayName": "Rowing (Erg)",
+      "categories": [
+        "metcon"
+      ],
+      "equipment": [
+        "máquina de remo"
+      ],
+      "primaryMuscles": [
+        "pernas",
+        "costas",
+        "músculos do core"
+      ],
+      "primaryPrType": "distance",
+      "supportedPrTypes": [
+        "distance",
+        "time"
+      ],
+      "unit": "m",
+      "reason": "nome contém \"row\" (cardio/distância)"
+    }
+  ]
+}
