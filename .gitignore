@@ -1,2 +1,24 @@
 .DS_Store
+**/.DS_Store
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+firebase-debug.log
+firebase-debug.*.log
+*firebase-adminsdk*.json
+context.md
+IA atleta.md
+RELATORIO_VALIDACAO_MONOGRAFIA_MOTIVA.md
+Motiva_Sistema_Carga_Monografia_Ajustado.pdf
+Sistema de Carga de Treino Semanal - Versão ACWR V2.pdf
 scripts_gerais/.venv/
+scripts_gerais/resto/
+flutter_app/functions/venv/
+flutter_app/CLAUDE.md/
+PROMPT_weekly_load.md
+flutter_app/functions/INFRA_SETUP.md
+Contexto_e_Decisoes_IA_Motiva_V2.md
+PROMPT_melhoria_IA.md
+PROMPT_refatoracao_weekly_load.md
+Cronograma*
