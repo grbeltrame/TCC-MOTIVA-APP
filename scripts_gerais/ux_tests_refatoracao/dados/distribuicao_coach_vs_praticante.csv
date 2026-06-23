@@ -1,0 +1,21 @@
+﻿Dimensão,Categoria,Grupo,Número de Pessoas
+Gênero,Homem,Coach,11
+Gênero,Homem,Praticante,26
+Gênero,Mulher,Coach,2
+Gênero,Mulher,Praticante,39
+Faixa etária,Entre 20 e 30 anos,Coach,2
+Faixa etária,Entre 20 e 30 anos,Praticante,26
+Faixa etária,Entre 30 e 40 anos,Coach,6
+Faixa etária,Entre 30 e 40 anos,Praticante,23
+Faixa etária,Entre 40 e 50 anos,Coach,5
+Faixa etária,Entre 40 e 50 anos,Praticante,13
+Faixa etária,Mais de 50 anos,Coach,0
+Faixa etária,Mais de 50 anos,Praticante,2
+Tempo de prática,Menos de 1 ano,Coach,0
+Tempo de prática,Menos de 1 ano,Praticante,7
+Tempo de prática,Entre 1 e 3 anos,Coach,2
+Tempo de prática,Entre 1 e 3 anos,Praticante,17
+Tempo de prática,Entre 3 e 5 anos,Coach,0
+Tempo de prática,Entre 3 e 5 anos,Praticante,21
+Tempo de prática,Mais de 5 anos,Coach,11
+Tempo de prática,Mais de 5 anos,Praticante,19
