@@ -109,8 +109,8 @@ def _plotar_heatmap_likert(
     largura = A4_PAISAGEM[0]
     altura = A4_PAISAGEM[1] if linhas > 10 else 6.8
     fig, ax = plt.subplots(figsize=(largura, altura), constrained_layout=True)
-    cmap = mpl.colormaps["coolwarm"]
-    norm = TwoSlopeNorm(vmin=1, vcenter=3, vmax=5)
+    cmap = mpl.colormaps["Blues"]
+    norm = Normalize(vmin=1, vmax=5)
     sns.heatmap(
         matriz,
         ax=ax,
@@ -520,17 +520,19 @@ def _plotar_heatmap_texto_completo(
 
     hipoteses = [textwrap.fill(str(hipotese), width=wrap_hipotese) for hipotese in matriz.index]
     perfis = [_perfil_multilinha(str(perfil), wrap_perfil) for perfil in matriz.columns]
-    ax.set_yticklabels(hipoteses, rotation=0, fontsize=fontsize_hipotese or (13.2 if detalhe else 13))
-    ax.set_xticklabels(perfis, rotation=0, ha="center", fontsize=fontsize_perfil or (11 if detalhe else 12))
+    fs_hip = fontsize_hipotese or (13.2 if detalhe else 13)
+    fs_perf = fontsize_perfil or (11 if detalhe else 12)
+    ax.set_yticklabels(hipoteses, rotation=0, fontsize=fs_hip, fontweight="bold")
+    ax.set_xticklabels(perfis, rotation=0, ha="center", fontsize=fs_perf, fontweight="bold")
     ax.tick_params(axis="y", pad=9)
     ax.tick_params(axis="x", pad=10)
-    ax.set_title(titulo, fontsize=fontsize_titulo or (18 if detalhe else 20), pad=18 if detalhe else 20)
-    ax.set_xlabel(xlabel, fontsize=15, labelpad=12)
-    ax.set_ylabel("Hipóteses (Escala de Likert)", fontsize=15, labelpad=14)
+    ax.set_title(titulo, fontsize=fontsize_titulo or (18 if detalhe else 20), pad=18 if detalhe else 20, fontweight="bold")
+    ax.set_xlabel(xlabel, fontsize=fs_perf, labelpad=14, fontweight="bold")
+    ax.set_ylabel("Hipóteses (Escala de Likert)", fontsize=fs_hip, labelpad=16, fontweight="bold")
     ax.grid(False)
     colorbar = ax.collections[0].colorbar
-    colorbar.ax.tick_params(labelsize=12.5)
-    colorbar.set_label(cbar_label, fontsize=14, labelpad=12)
+    colorbar.ax.tick_params(labelsize=fontsize_anotacao or 16)
+    colorbar.set_label(cbar_label, fontsize=fontsize_perfil or 18, labelpad=14)
     return _exportar(fig, nome)
 
 
@@ -585,7 +587,7 @@ ANALISES_ANTIGAS = {
         "csv": "hipoteses_por_genero_tempo",
         "titulo": "Média das Respostas por Hipótese\n(Perfis com ≥ 12 respondentes | Gênero + Tempo de Prática)",
         "xlabel": "Perfil (Gênero + Tempo)",
-        "cmap": "Purples",
+        "cmap": "Blues",
         "fig_completa": (14.8, 16.0),
         "fig_detalhe": A4_PAISAGEM,
         "wrap_perfil": 13,
@@ -609,7 +611,7 @@ ANALISES_ANTIGAS = {
         "csv": "hipoteses_por_idade_tempo",
         "titulo": "Média das Respostas por Hipótese\n(Perfis com ≥ 7 respondentes | Idade + Tempo de Prática)",
         "xlabel": "Perfil (Idade + Tempo)",
-        "cmap": "Blues",
+        "cmap": "Purples",
         "fig_completa": (18.8, 16.0),
         "fig_detalhe": (16.4, 9.0),
         "wrap_perfil": 13,
@@ -760,36 +762,45 @@ def gerar_distribuicao_prioridade() -> list[Path]:
         ),
         (
             perfis_atleta,
-            "Média das Hipóteses por Perfil — Praticantes",
+            "Média das Hipóteses por Perfil — Atletas",
             "heatmap_praticantes",
             (15.0, 16.0),
         ),
     ):
         matriz = matriz_prioridade(perfis, nome)
+        cmap_perfil = "Greens" if nome == "heatmap_coaches" else "Blues"
         saidas += _plotar_heatmap_texto_completo(
             matriz,
             titulo,
             nome,
             figura_completa,
             "Perfil",
-            "coolwarm",
+            cmap_perfil,
             limites=(1, 5),
             cbar_label="Média da Nota (1–5)",
             wrap_perfil=13,
             fontsize_anotacao=13.5,
         )
         for numero, bloco in enumerate((matriz.iloc[:10], matriz.iloc[10:]), start=1):
+            n_linhas = len(bloco)
+            n_colunas = len(bloco.columns)
+            fig_w = 6.0 + n_colunas * 2.5
+            fig_h = 3.0 + n_linhas * 1.2
             saidas += _plotar_heatmap_texto_completo(
                 bloco,
                 f"{titulo}\nParte {numero} de 2",
                 f"{nome}_detalhe_{numero:02d}",
-                A4_PAISAGEM,
+                (fig_w, fig_h),
                 "Perfil",
-                "coolwarm",
+                cmap_perfil,
                 limites=(1, 5),
                 cbar_label="Média da Nota (1–5)",
-                wrap_perfil=13,
-                fontsize_anotacao=13.2,
+                wrap_perfil=16,
+                wrap_hipotese=60,
+                fontsize_anotacao=19.0,
+                fontsize_hipotese=20.0,
+                fontsize_perfil=18.0,
+                fontsize_titulo=22.0,
             )
 
     _remover_saidas_graficas("legenda_heatmap_coaches", "legenda_heatmap_praticantes")
@@ -832,7 +843,7 @@ def gerar_hipoteses_todos_perfis() -> list[Path]:
         "heatmap_todos_os_perfis",
         (32.0, 16.5),
         "Perfil",
-        "coolwarm",
+        "Blues",
         cbar_label="Média da Nota",
         wrap_perfil=12,
         fontsize_anotacao=9.6,
@@ -846,7 +857,7 @@ def gerar_hipoteses_todos_perfis() -> list[Path]:
         "heatmap_todos_os_perfis_resumo",
         (32.0, 16.5),
         "Perfil",
-        "coolwarm",
+        "Blues",
         limites=limites,
         cbar_label="Média da Nota",
         wrap_perfil=12,
@@ -863,7 +874,7 @@ def gerar_hipoteses_todos_perfis() -> list[Path]:
             f"heatmap_todos_os_perfis_detalhe_{numero:02d}",
             (22.0, 16.2),
             "Perfil",
-            "coolwarm",
+            "Blues",
             limites=limites,
             cbar_label="Média da Nota",
             wrap_perfil=12,
@@ -884,8 +895,8 @@ def gerar_hipoteses_todos_perfis() -> list[Path]:
     ).sort_values("Média Geral", ascending=True)
     escrever_csv(medias.sort_values("Média Geral", ascending=False), DADOS_DIR / "resumo_hipoteses.csv")
     fig, ax = plt.subplots(figsize=A4_RETRATO, constrained_layout=True)
-    norm_resumo = TwoSlopeNorm(vmin=1, vcenter=3, vmax=5)
-    cores = [mpl.colormaps["coolwarm"](norm_resumo(valor)) for valor in medias["Média Geral"]]
+    norm_resumo = Normalize(vmin=1, vmax=5)
+    cores = [mpl.colormaps["Blues"](norm_resumo(valor)) for valor in medias["Média Geral"]]
     barras = ax.barh(
         [f"{codigo} — {topico}" for codigo, topico in zip(medias["Hipótese ID"], medias["Tópico"])],
         medias["Média Geral"],
