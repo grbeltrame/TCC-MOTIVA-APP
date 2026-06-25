@@ -55,6 +55,37 @@ from dados_ux import (
 aplicar_estilo()
 sns.set_theme(style="whitegrid", rc=mpl.rcParams)
 
+CATEGORIAS_LIKERT_DIVERGENTE = [
+    (1, "Discordo fortemente", "#FF0000"),
+    (2, "Discordo", "#FFA500"),
+    (3, "Neutro", "#FFFF00"),
+    (4, "Concordo", "#90EE90"),
+    (5, "Concordo fortemente", "#006400"),
+]
+
+ORDEM_GRAFICO_DIVERGENTE = [
+    "H18",
+    "H06",
+    "H13",
+    "H16",
+    "H20",
+    "H04",
+    "H12",
+    "H05",
+    "H17",
+    "H02",
+    "H07",
+    "H09",
+    "H19",
+    "H01",
+    "H08",
+    "H14",
+    "H03",
+    "H10",
+    "H15",
+    "H11",
+]
+
 
 def _exportar(fig: plt.Figure, nome: str, aliases: Iterable[str] = ()) -> list[Path]:
     preparar_diretorios()
@@ -807,6 +838,197 @@ def gerar_distribuicao_prioridade() -> list[Path]:
     return saidas
 
 
+def gerar_grafico_divergente_respostas() -> list[Path]:
+    df = carregar_respostas()
+    mapa_hipoteses = {hipotese.codigo: hipotese for hipotese in HIPOTESES}
+    hipoteses = [mapa_hipoteses[codigo] for codigo in ORDEM_GRAFICO_DIVERGENTE]
+    categorias = [rotulo for _, rotulo, _ in CATEGORIAS_LIKERT_DIVERGENTE]
+    cores = {rotulo: cor for _, rotulo, cor in CATEGORIAS_LIKERT_DIVERGENTE}
+
+    registros = []
+    percentuais = []
+    total_geral = 0
+    for hipotese in hipoteses:
+        serie = df[hipotese.texto].dropna().astype(int)
+        total = int(serie.count())
+        total_geral = max(total_geral, total)
+        linha_pct = []
+        registro = {
+            "Hipótese ID": hipotese.codigo,
+            "Tópico": hipotese.topico,
+            "Hipótese": hipotese.texto,
+            "N": total,
+        }
+        for valor, rotulo, _ in CATEGORIAS_LIKERT_DIVERGENTE:
+            contagem = int((serie == valor).sum())
+            percentual = contagem / total * 100 if total else 0
+            linha_pct.append(percentual)
+            registro[f"{rotulo} (n)"] = contagem
+            registro[f"{rotulo} (%)"] = round(percentual, 1)
+        percentuais.append(linha_pct)
+        registros.append(registro)
+
+    escrever_csv(pd.DataFrame(registros), DADOS_DIR / "grafico_divergente_respostas.csv")
+
+    matriz = np.asarray(percentuais)
+    n_linhas = len(hipoteses)
+    posicoes = np.arange(n_linhas)
+
+    # Figura larga e de altura moderada (boa para A4): barras largas e bem
+    # proporcionadas. Cada linha mostra a soma de quem discorda (ponta esquerda),
+    # o neutro (dentro da fatia central) e a soma de quem concorda (ponta direita);
+    # as cinco cores preservam a quebra da escala.
+    altura_barra = 0.58
+    fig, ax = plt.subplots(figsize=(16.0, 19.0))
+
+    cor_total_discorda = "#B00000"
+    cor_total_concorda = "#0B6B2F"
+
+    for i, linha in enumerate(matriz):
+        # Lado negativo: Discordo e Discordo fortemente, partindo da borda do neutro.
+        x = -linha[2] / 2
+        for indice in (1, 0):
+            largura = linha[indice]
+            if largura <= 0:
+                continue
+            ax.barh(
+                i,
+                -largura,
+                left=x,
+                height=altura_barra,
+                color=cores[categorias[indice]],
+                edgecolor="white",
+                linewidth=0.6,
+                zorder=2,
+            )
+            x -= largura
+        ponta_esquerda = x
+
+        # Lado positivo: Concordo e Concordo fortemente.
+        x = linha[2] / 2
+        for indice in (3, 4):
+            largura = linha[indice]
+            if largura <= 0:
+                continue
+            ax.barh(
+                i,
+                largura,
+                left=x,
+                height=altura_barra,
+                color=cores[categorias[indice]],
+                edgecolor="white",
+                linewidth=0.6,
+                zorder=2,
+            )
+            x += largura
+        ponta_direita = x
+
+        # Neutro centralizado em 0, com o percentual dentro da fatia.
+        largura_neutra = linha[2]
+        if largura_neutra > 0:
+            ax.barh(
+                i,
+                largura_neutra,
+                left=-largura_neutra / 2,
+                height=altura_barra,
+                color=cores[categorias[2]],
+                edgecolor="white",
+                linewidth=0.6,
+                zorder=2,
+            )
+            ax.text(
+                0,
+                i,
+                f"{largura_neutra:.1f}%",
+                ha="center",
+                va="center",
+                fontsize=13,
+                fontweight="bold",
+                color=COR_TEXTO,
+                zorder=4,
+            )
+
+        # Totais nas pontas (Bottom-2-box / Top-2-box), fora das barras.
+        soma_discorda = linha[0] + linha[1]
+        soma_concorda = linha[3] + linha[4]
+        if soma_discorda > 0:
+            ax.text(
+                ponta_esquerda - 1.8,
+                i,
+                f"{soma_discorda:.1f}%",
+                ha="right",
+                va="center",
+                fontsize=15,
+                fontweight="bold",
+                color=cor_total_discorda,
+                zorder=4,
+            )
+        if soma_concorda > 0:
+            ax.text(
+                ponta_direita + 1.8,
+                i,
+                f"{soma_concorda:.1f}%",
+                ha="left",
+                va="center",
+                fontsize=15,
+                fontweight="bold",
+                color=cor_total_concorda,
+                zorder=4,
+            )
+
+    rotulos = [
+        textwrap.fill(hipotese.texto, width=60, break_long_words=False)
+        for hipotese in hipoteses
+    ]
+    ax.set_yticks(posicoes)
+    ax.set_yticklabels(rotulos, fontsize=16)
+    for tick in ax.get_yticklabels():
+        tick.set_linespacing(1.0)
+    ax.set_ylim(n_linhas - 1 + 0.7, -0.7)
+    ax.tick_params(axis="y", length=0, pad=8)
+
+    ax.axvline(0, color="#5A5A5A", linewidth=1.2, alpha=0.85, zorder=1)
+    ax.set_xlim(-90, 108)
+    ticks = [-75, -50, -25, 0, 25, 50, 75]
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([f"{abs(int(tick))}%" for tick in ticks], fontsize=14)
+    ax.set_xlabel(
+        f"Percentual de respondentes  (n = {total_geral})",
+        fontsize=16,
+        labelpad=14,
+    )
+
+    fig.suptitle(
+        "Distribuição das Respostas por Hipótese (escala Likert, neutro centralizado)",
+        fontsize=19,
+        fontweight="semibold",
+        y=0.972,
+    )
+    ax.xaxis.grid(True, linestyle="--", alpha=0.45, color="#9A9A9A")
+    ax.yaxis.grid(False)
+    ax.set_axisbelow(True)
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.spines["bottom"].set_alpha(0.6)
+
+    legenda = [
+        Patch(facecolor=cor, edgecolor="#888888", linewidth=0.5, label=rotulo)
+        for _, rotulo, cor in CATEGORIAS_LIKERT_DIVERGENTE
+    ]
+    fig.legend(
+        handles=legenda,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.945),
+        ncol=5,
+        frameon=False,
+        fontsize=14,
+        columnspacing=2.6,
+        handlelength=1.6,
+        handletextpad=0.6,
+    )
+    fig.subplots_adjust(left=0.52, right=0.985, top=0.92, bottom=0.04)
+    return _exportar(fig, "grafico_divergente_respostas_a4")
+
+
 def gerar_legenda_hipoteses() -> list[Path]:
     tabela = legenda_hipoteses()
     caminho = DADOS_DIR / "legenda_hipoteses.csv"
@@ -948,5 +1170,6 @@ def gerar_todos() -> list[Path]:
     for slug in ANALISES:
         saidas += gerar_analise_hipoteses(slug)
     saidas += gerar_distribuicao_prioridade()
+    saidas += gerar_grafico_divergente_respostas()
     saidas += gerar_hipoteses_todos_perfis()
     return saidas
