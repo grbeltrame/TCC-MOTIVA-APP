@@ -37,11 +37,11 @@ def plotar_perfis(ax, perfis, titulo, cor):
     labels   = [l for _, l in pares]
 
     bars = ax.barh(labels, valores, color=cor, edgecolor="white", height=0.5)
-    ax.set_title(titulo, fontsize=11, fontweight="bold", pad=8)
-    ax.set_xlabel("Número de respondentes", fontsize=9)
+    ax.set_title(titulo, fontsize=18, fontweight="bold", pad=8)
+    ax.set_xlabel("Número de respondentes", fontsize=12)
     ax.set_xlim(0, max(valores) + 1.5)
-    ax.tick_params(axis="y", labelsize=9)
-    ax.tick_params(axis="x", labelsize=9)
+    ax.tick_params(axis="y", labelsize=15)
+    ax.tick_params(axis="x", labelsize=15)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     for bar, val in zip(bars, valores):

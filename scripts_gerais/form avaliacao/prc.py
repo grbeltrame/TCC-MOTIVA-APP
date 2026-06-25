@@ -165,17 +165,17 @@ matriz = np.array([
 fig_b, ax_b = plt.subplots(figsize=(15, 4))
 im = ax_b.imshow(matriz, cmap="Blues", aspect="auto", vmin=0)
 ax_b.set_xticks(range(len(todos_unicos)))
-ax_b.set_xticklabels(todos_unicos, rotation=45, ha="right", fontsize=9)
+ax_b.set_xticklabels(todos_unicos, rotation=45, ha="right", fontsize=12)
 ax_b.set_yticks(range(len(perfis)))
 ax_b.set_yticklabels(perfis, fontsize=10)
 ax_b.set_title("Product Reaction Cards — Frequência por perfil",
-               fontsize=13, fontweight="bold", pad=10)
+               fontsize=14, fontweight="bold", pad=10)
 for i in range(len(perfis)):
     for j in range(len(todos_unicos)):
         val = int(matriz[i, j])
         if val > 0:
             ax_b.text(j, i, str(val), ha="center", va="center",
-                      fontsize=10, fontweight="bold",
+                      fontsize=12, fontweight="bold",
                       color="white" if val >= 3 else "#333333")
 plt.colorbar(im, ax=ax_b, label="Frequência", shrink=0.6)
 plt.tight_layout(pad=2.5)
@@ -219,7 +219,7 @@ def plotar(itens, posicoes, cor):
         ax_c.add_patch(circle)
         ax_c.text(x, y + raio + 0.15, adj,
                   ha="center", va="bottom",
-                  fontsize=9, fontweight="bold",
+                  fontsize=12, fontweight="bold",
                   color="#111111", zorder=5)
 
 pos_f = posicoes_grade(len(funcionais), 0.3, 6.7, 0.5, 8.8, cols=3)
@@ -240,7 +240,7 @@ patch_f = mpatches.Patch(color=COR_F, alpha=0.6, label="Funcional")
 patch_e = mpatches.Patch(color=COR_E, alpha=0.6, label="Emocional")
 patch_n = mpatches.Patch(color=COR_N, alpha=0.6, label="Neutro")
 ax_c.legend(handles=[patch_f, patch_e, patch_n],
-            fontsize=9, loc="lower center", ncol=3, framealpha=0.8)
+            fontsize=12, loc="lower center", ncol=3, framealpha=0.8)
 
 plt.tight_layout(pad=2.0)
 path_c = os.path.join(BASE_DIR, "script4c_matriz_sentimento.png")

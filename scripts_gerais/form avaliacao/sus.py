@@ -113,33 +113,33 @@ if media_alunos is not None:
     ax.hlines(media_alunos, 0.7, 1.3, colors=COR_ALUNO,
               linewidths=2.5, zorder=4)
     ax.text(1.35, media_alunos, f"{media_alunos:.1f}",
-            va="center", fontsize=9, color=COR_ALUNO, fontweight="bold")
+            va="center", fontsize=11, color=COR_ALUNO, fontweight="bold")
 
 if media_coaches is not None:
     ax.hlines(media_coaches, 1.7, 2.3, colors=COR_COACH,
               linewidths=2.5, zorder=4)
     ax.text(2.35, media_coaches, f"{media_coaches:.1f}",
-            va="center", fontsize=9, color=COR_COACH, fontweight="bold")
+            va="center", fontsize=11, color=COR_COACH, fontweight="bold")
 
 # Labels faixas no lado direito
 for y0, y1, _, label in faixas:
     ax.text(2.65, (y0 + y1) / 2, label,
-            va="center", fontsize=8, color="gray")
+            va="center", fontsize=11, color="gray")
 
 ax.set_xticks([1, 2])
 ax.set_xticklabels([f"Alunos\n(n={len(alunos)})",
                     f"Coaches\n(n={len(coaches)})"], fontsize=11)
 ax.set_xlim(0.4, 3.1)
 ax.set_ylim(0, 105)
-ax.set_ylabel("Score SUS", fontsize=10)
+ax.set_ylabel("Score SUS", fontsize=12)
 ax.set_title(f"System Usability Scale (SUS) — MOTIVA\nMédia geral: {media_geral:.1f} — {classificar(media_geral)}",
-             fontsize=13, fontweight="bold", pad=10)
+             fontsize=14, fontweight="bold", pad=10)
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 
 patch_aluno  = mpatches.Patch(color=COR_ALUNO,  label=f"Aluno — média {media_alunos:.1f} ({classificar(media_alunos)})")
 patch_coach  = mpatches.Patch(color=COR_COACH,  label=f"Coach — média {media_coaches:.1f} ({classificar(media_coaches)})")
-ax.legend(handles=[patch_aluno, patch_coach], fontsize=9,
+ax.legend(handles=[patch_aluno, patch_coach], fontsize=12,
           loc="lower left", framealpha=0.8)
 
 plt.tight_layout(pad=2.5)

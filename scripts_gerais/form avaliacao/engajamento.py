@@ -64,12 +64,12 @@ def plotar_engajamento(ax, dados, titulo, cores, label_x):
     max_val = max(agrup[p][f] for p in personas for f in faixas_presentes) if personas else 1
     ax.set_xlim(0, max_val + 1)
     ax.set_yticks(list(y_pos))
-    ax.set_yticklabels(personas, fontsize=9)
-    ax.set_xlabel(label_x, fontsize=9)
+    ax.set_yticklabels(personas, fontsize=15)
+    ax.set_xlabel(label_x, fontsize=15)
     ax.set_title(titulo, fontsize=11, fontweight="bold", pad=8)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.legend(title="Faixa de registros", fontsize=8,
+    ax.legend(title="Faixa de registros", fontsize=12,
               title_fontsize=8, loc="lower right")
     ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
 

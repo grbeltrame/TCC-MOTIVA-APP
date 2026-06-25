@@ -64,7 +64,7 @@ def cor_classe(nota):
 fig1, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6),
                                  gridspec_kw={"width_ratios": [2, 1]})
 fig1.suptitle(f"Net Promoter Score (NPS) — MOTIVA (n={n_total})\nScore: {score_nps:.0f}",
-              fontsize=13, fontweight="bold", y=0.98)
+              fontsize=16, fontweight="bold", y=0.98)
 
 ax1.boxplot(notas, vert=True, patch_artist=True, widths=0.35,
             boxprops=dict(facecolor="#EEEEEE", color="#555555", linewidth=1.5),
@@ -82,15 +82,15 @@ for d in dados:
 ax1.axhspan(0,   6.5, alpha=0.08, color=COR_DETR)
 ax1.axhspan(6.5, 8.5, alpha=0.08, color=COR_NEUT)
 ax1.axhspan(8.5, 10,  alpha=0.08, color=COR_PROM)
-ax1.text(1.28, 3.5,  "Detratores\n(0–6)",  fontsize=8, color=COR_DETR, va="center", ha="left", fontweight="bold")
-ax1.text(1.28, 7.5,  "Neutros\n(7–8)",     fontsize=8, color=COR_NEUT, va="center", ha="left", fontweight="bold")
-ax1.text(1.28, 9.25, "Promotores\n(9–10)", fontsize=8, color=COR_PROM, va="center", ha="left", fontweight="bold")
+ax1.text(1.28, 3.5,  "Detratores\n(0–6)",  fontsize=12, color=COR_DETR, va="center", ha="left", fontweight="bold")
+ax1.text(1.28, 7.5,  "Neutros\n(7–8)",     fontsize=12, color=COR_NEUT, va="center", ha="left", fontweight="bold")
+ax1.text(1.28, 9.25, "Promotores\n(9–10)", fontsize=12, color=COR_PROM, va="center", ha="left", fontweight="bold")
 ax1.set_xlim(0.5, 1.6)
 ax1.set_ylim(0, 10.5)
 ax1.set_xticks([])
 ax1.set_yticks(range(0, 11))
-ax1.set_ylabel("Nota de recomendação (0–10)", fontsize=10)
-ax1.set_title("Dispersão das notas", fontsize=11, fontweight="bold", pad=8)
+ax1.set_ylabel("Nota de recomendação (0–10)", fontsize=13)
+ax1.set_title("Dispersão das notas", fontsize=13, fontweight="bold", pad=8)
 ax1.spines["top"].set_visible(False)
 ax1.spines["right"].set_visible(False)
 ax1.spines["bottom"].set_visible(False)
@@ -99,7 +99,7 @@ q1  = np.percentile(notas, 25)
 q3  = np.percentile(notas, 75)
 ax1.text(0.5, -0.06,
          f"Mediana: {med:.1f}   Q1: {q1:.1f}   Q3: {q3:.1f}   Média: {np.mean(notas):.1f}",
-         transform=ax1.transAxes, fontsize=8.5, color="gray", ha="center")
+         transform=ax1.transAxes, fontsize=10, color="gray", ha="center")
 
 categorias = ["Detratores", "Neutros", "Promotores"]
 valores    = [n_detrator, n_neutro, n_promotor]
@@ -110,10 +110,10 @@ for bar, val, pct in zip(bars, valores, pcts):
     ax2.text(bar.get_x() + bar.get_width() / 2,
              bar.get_height() + 0.05,
              f"{val}\n({pct:.0f}%)" if pct > 0 else str(val),
-             ha="center", va="bottom", fontsize=9, fontweight="bold")
+             ha="center", va="bottom", fontsize=10, fontweight="bold")
 ax2.set_ylim(0, max(valores) + 2)
-ax2.set_ylabel("Número de respondentes", fontsize=10)
-ax2.set_title("Distribuição por categoria", fontsize=11, fontweight="bold", pad=8)
+ax2.set_ylabel("Número de respondentes", fontsize=12)
+ax2.set_title("Distribuição por categoria", fontsize=12, fontweight="bold", pad=8)
 ax2.spines["top"].set_visible(False)
 ax2.spines["right"].set_visible(False)
 ax2.tick_params(axis="x", labelsize=9)
@@ -138,7 +138,7 @@ n_personas = len(personas_unicas)
 
 fig2, ax = plt.subplots(figsize=(10, max(4, n_personas * 0.9 + 2)))
 fig2.suptitle("NPS por persona — MOTIVA\n(Gênero | Faixa etária | Tempo de prática)",
-              fontsize=12, fontweight="bold", y=0.98)
+              fontsize=13, fontweight="bold", y=0.98)
 
 ax.axvspan(0,   6.5, alpha=0.07, color=COR_DETR)
 ax.axvspan(6.5, 8.5, alpha=0.07, color=COR_NEUT)
@@ -155,15 +155,15 @@ for yi, persona in enumerate(personas_unicas):
                    color=cor_classe(nota), s=120,
                    edgecolors="white", linewidths=1, zorder=4)
         ax.text(nota + 0.15, yi + jitter, str(nota),
-                va="center", ha="left", fontsize=8.5,
+                va="center", ha="left", fontsize=10,
                 color=cor_classe(nota), fontweight="bold")
 
 ax.set_yticks(range(n_personas))
-ax.set_yticklabels(personas_unicas, fontsize=9)
+ax.set_yticklabels(personas_unicas, fontsize=12)
 ax.set_xlim(5.5, 11)
 ax.set_xticks(range(6, 11))
-ax.set_xlabel("Nota de recomendação", fontsize=10)
-ax.set_title("Nota por persona", fontsize=11, fontweight="bold", pad=8)
+ax.set_xlabel("Nota de recomendação", fontsize=12)
+ax.set_title("Nota por persona", fontsize=13, fontweight="bold", pad=8)
 ax.spines["top"].set_visible(False)
 ax.spines["right"].set_visible(False)
 
@@ -171,7 +171,7 @@ patch_p = mpatches.Patch(color=COR_PROM, label="Promotor (9–10)")
 patch_n = mpatches.Patch(color=COR_NEUT, label="Neutro (7–8)")
 patch_d = mpatches.Patch(color=COR_DETR, label="Detrator (0–6)")
 ax.legend(handles=[patch_p, patch_n, patch_d],
-          fontsize=8, loc="upper left", bbox_to_anchor=(1.02, 1),
+          fontsize=10, loc="upper left", bbox_to_anchor=(1.02, 1),
           framealpha=0.8, borderaxespad=0)
 
 plt.tight_layout(pad=2.5)
